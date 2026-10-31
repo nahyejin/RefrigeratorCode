@@ -18,7 +18,7 @@ import { track } from './track';
 /** 비회원이 재료·즐겨찾기·기록·완료를 각각 자유롭게 담을 수 있는 개수 */
 export const GUEST_SAVE_LIMIT = 3;
 
-export type GateKind = 'ingredient' | 'favorite' | 'write' | 'done' | 'ai' | 'return';
+export type GateKind = 'ingredient' | 'favorite' | 'write' | 'done' | 'ai' | 'return' | 'save';
 
 export const GATE_EVENT = 'cookmatch:login-gate';
 
@@ -70,6 +70,13 @@ export function gateCopy(kind: GateKind, credits = 30): GateCopy {
         title: 'AI 체험을 다 쓰셨어요',
         lines: [`가입하면 ${credits}크레딧을 바로 드려요.`],
         dismiss: '취소',
+      };
+    case 'save':
+      // 처음 레시피를 본 직후(2026-10-29) — 한도·경고가 아니라 「이어서 쓰려면」 제안이라 경고 줄이 없다.
+      return {
+        title: '이 냉장고, 저장해 둘까요?',
+        lines: ['3초 만에 가입하면 지금 고른 재료가 그대로 이어져요.', '다른 기기에서도 같은 냉장고를 볼 수 있어요.'],
+        dismiss: '나중에 할게요',
       };
     case 'return':
     default:
@@ -142,7 +149,38 @@ export function markReturnGateShown(): void {
 // ── 기록(어드민 「가입 유도」 분석용) ────────────────────────────
 /** 어느 확인창인지 한 단어로 — 서버에는 이 값만 간다(내용은 안 보냄). */
 export function gateTag(kind: GateKind): string {
+  if (kind === 'save') return 'save_prompt';
   return kind === 'return' ? 'return_visit' : kind === 'ai' ? 'ai_out' : `${kind}_limit`;
+}
+
+// ── 레시피를 처음 본 직후의 저장 제안(2026-10-29) ─────────────────
+// 가치(만들 수 있는 요리)를 본 뒤에 한 번만 권한다. 앱을 켜자마자·한도에 막혔을 때가 아니라서 거절해도 잃는 게 없다.
+const SAVE_PROMPT_AT = 'cookmatch_save_prompt_at';
+const SAVE_PROMPT_DELAY_MS = 3500;
+
+/** 비회원이고, 이 기기에서 이 제안을 아직 한 번도 안 띄웠다 */
+export function shouldShowSavePrompt(): boolean {
+  try {
+    return isGuestNow() && !localStorage.getItem(SAVE_PROMPT_AT);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 레시피를 열었을 때 부른다. 조리 순서를 잠깐 본 뒤(3.5초) 저장 제안을 띄운다.
+ * 타이머가 도는 사이 다른 카드를 눌러도 겹치지 않게 **예약하는 순간** 띄웠다고 표시한다.
+ */
+export function scheduleSavePrompt(): void {
+  if (!shouldShowSavePrompt()) return;
+  try {
+    localStorage.setItem(SAVE_PROMPT_AT, String(Date.now()));
+  } catch {
+    return; // 표시를 못 남기면 매번 뜰 수 있으니 아예 띄우지 않는다
+  }
+  window.setTimeout(() => {
+    if (isGuestNow()) openLoginGate('save');
+  }, SAVE_PROMPT_DELAY_MS);
 }
 
 export function trackGate(event: 'cta_view' | 'cta_click' | 'cta_dismiss', kind: GateKind): void {

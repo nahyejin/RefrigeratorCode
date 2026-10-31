@@ -7,6 +7,8 @@
  * 시점까지 코드를 기기에 잠깐 들고 있다가, 로그인 직후 참여 화면으로
  * 이어준다.
  */
+import { takePostLoginReturn } from './postLoginReturn';
+
 const PENDING_CODE_KEY = 'cookmatch_pending_invite_code';
 
 export function stashPendingInviteCode(code: string): void {
@@ -33,8 +35,13 @@ export function clearPendingInviteCode(): void {
   }
 }
 
-/** 로그인 직후 이동할 경로. 대기 중인 초대 코드가 있으면 참여 화면으로. */
+/**
+ * 로그인 직후 이동할 경로. 대기 중인 초대 코드가 있으면 참여 화면으로, 아니면 로그인하러 가기 전에 보던 화면
+ * (레시피 패널이 열려 있었으면 그 패널도 다시 열린다 — `utils/postLoginReturn`), 그것도 없으면 기본 화면.
+ */
 export function getPostLoginRedirectPath(defaultPath: string): string {
+  const back = takePostLoginReturn(); // 초대 코드가 있어도 읽어서 지운다(묵은 자리가 남지 않게)
   const code = getPendingInviteCode();
-  return code ? `/join-household?code=${encodeURIComponent(code)}` : defaultPath;
+  if (code) return `/join-household?code=${encodeURIComponent(code)}`;
+  return back || defaultPath;
 }

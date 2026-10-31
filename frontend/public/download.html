@@ -37,7 +37,12 @@
   // 스토어로 넘기기 전에 방문을 남긴다 — 안 그러면 링크로 와서 바로 스토어로 간 사람이 어드민에 한 명도 안 잡힌다.
   // 유입: ?utm_source=ig_profile(프로필) / ig_ad(광고) 처럼 링크에 붙인 값, 없으면 들어온 사이트.
   // 앱의 track.ts 와 같은 저장 키를 써서 「웹에서 바로 시작하기」로 이어지면 같은 방문·같은 기기로 센다.
-  function logVisit(done) {
+  // 방문 기록에 쓴 기기·방문·유입 값. 아래 logStoreClick 이 같은 값으로 「스토어 버튼 누름」을 남긴다.
+  var visitCtx = null;
+  var EVENTS_URL = 'https://refrigeratorcode-production.up.railway.app/api/events';
+
+  // autoStore: 휴대폰이라 스토어로 바로 넘길 때 'app_store_auto' / 'play_store_auto' — 방문 기록과 한 번에 보낸다.
+  function logVisit(done, autoStore) {
     var finished = false;
     function finish() { if (!finished) { finished = true; done(); } }
     try {
@@ -60,11 +65,13 @@
         if (source) sessionStorage.setItem('cookmatch_source', source);
       } catch (e) {}
       var platform = isIOS ? 'ios' : isAndroid ? 'android' : 'web';
-      var ev = function (name, screen) {
-        return { name: name, screen: screen, session_id: sessionId, source: source || undefined, platform: platform, ago_ms: 0 };
+      var ev = function (name, screen, detail) {
+        return { name: name, screen: screen, detail: detail, session_id: sessionId, source: source || undefined, platform: platform, ago_ms: 0 };
       };
-      var EVENTS_URL = 'https://refrigeratorcode-production.up.railway.app/api/events';
-      var payload = JSON.stringify({ device_id: deviceId, events: [ev('session_start'), ev('screen_view', '다운로드')] });
+      visitCtx = { deviceId: deviceId, ev: ev };
+      var events = [ev('session_start'), ev('screen_view', '다운로드')];
+      if (autoStore) events.push(ev('store_click', '다운로드', autoStore));
+      var payload = JSON.stringify({ device_id: deviceId, events: events });
       // 1순위: sendBeacon. 스토어로 넘어가는 순간 페이지가 사라져도 브라우저가 대신 보내 준다(문자열 본문 = text/plain 이라
       // 사전 확인 요청이 없는 단순 요청이고, 서버 /api/events 가 text/plain 도 읽는다 — 2026-10-24).
       // 예전 fetch(application/json + 사용자 지정 머리글)는 안드로이드에서 Play 로 넘어가며 끊겨 안드로이드 방문이 거의 안 잡혔다
@@ -86,8 +93,19 @@
     setTimeout(finish, 700); // 기록이 늦어도 스토어 이동을 오래 막지 않는다
   }
 
-  if (isIOS) logVisit(function () { location.replace(APP_STORE); });
-  else if (isAndroid && ANDROID_LIVE) logVisit(function () { location.replace(PLAY_STORE); });
+  // PC 등에서 스토어·웹 버튼을 누른 것. 페이지가 넘어가도 남도록 sendBeacon 만 쓴다(못 쓰면 keepalive fetch).
+  function logStoreClick(detail) {
+    if (!visitCtx) return;
+    try {
+      var payload = JSON.stringify({ device_id: visitCtx.deviceId, events: [visitCtx.ev('store_click', '다운로드', detail)] });
+      if (!(navigator.sendBeacon && navigator.sendBeacon(EVENTS_URL, payload))) {
+        fetch(EVENTS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true });
+      }
+    } catch (e) {}
+  }
+
+  if (isIOS) logVisit(function () { location.replace(APP_STORE); }, 'app_store_auto');
+  else if (isAndroid && ANDROID_LIVE) logVisit(function () { location.replace(PLAY_STORE); }, 'play_store_auto');
   else logVisit(function () {});
 </script>
 <style>
@@ -127,9 +145,9 @@
 
   <!-- PC 등: 두 스토어 모두 -->
   <div id="stores">
-    <a class="btn primary" id="ios-btn" href="https://apps.apple.com/kr/app/id6814209983">App Store에서 받기 (iPhone)</a>
-    <a class="btn ghost" id="android-btn" href="https://play.google.com/store/apps/details?id=kr.cookmatch.app">Google Play에서 받기 (Android)</a>
-    <a class="btn ghost" href="/">웹에서 바로 시작하기</a>
+    <a class="btn primary" id="ios-btn" href="https://apps.apple.com/kr/app/id6814209983" onclick="logStoreClick('app_store')">App Store에서 받기 (iPhone)</a>
+    <a class="btn ghost" id="android-btn" href="https://play.google.com/store/apps/details?id=kr.cookmatch.app" onclick="logStoreClick('play_store')">Google Play에서 받기 (Android)</a>
+    <a class="btn ghost" href="/" onclick="logStoreClick('web')">웹에서 바로 시작하기</a>
   </div>
 
   <footer><a href="/privacy">개인정보처리방침</a> · <a href="/terms">이용약관</a></footer>

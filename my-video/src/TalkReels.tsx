@@ -4,6 +4,7 @@ import { WHITE, useCustomFont, FONT_FAMILY } from "./shared";
 import { RestFeatures, restLen, REST_EXCL } from "./RestFeatures";
 import { Reel2Cta, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel7Cta, REEL7_CTA_LEN } from "./Reel7RealRecipe";
+import { Reel3Cta, REEL3_CTA_LEN } from "./Reel3CookMode";
 
 // 릴스 형식 ③ 출연자 추천·후기형(store/REEL_FORMATS.md ③, 프롬프트 store/REEL_TALK_V2.md).
 // 사용자가 보낸 참고 영상(재능 검사 앱 광고) 편집을 따른다:
@@ -86,21 +87,84 @@ const TALK02: TalkSpec = {
   ],
 };
 
+// 02 다시 찍음(2026-10-28 「너무 작위적」 → 일반인 차림·평소 말투·말로 하는 권유 없음) — 「딸 저녁, 결국 김에 밥 먹인 날」.
+// 클립 경계 0–9.48 / 9.48–18.60 / 18.60–27.52, 1.4배속. 클립 3의 버벅임 「정리돼, 정리돼」에서 앞의 것(원본 23.79–24.36)을 잘라 낸 talk02b_presenter_cut.mp4 기준(사용자 2026-10-29). 끝에 권유 대사가 없어서 「있어서 이제 금방 해요」는 카드를 내리고 얼굴로 끝낸다.
+const V1 = 9.48;
+const V2 = 18.6;
+const TALK02B: TalkSpec = {
+  src: "talk02b_presenter_x140.mp4", // 1.4배속(사용자 2026-10-29: 1.3은 너무 느림 — 평소 말투 클립이라 예전보다 더 올린다)
+  len: 27.52,
+  speed: 1.4,
+  title: "한 시간 요리하고\n결국 김에 밥", // 훅(2026-10-29 사용자: 「딸 저녁, 김에 밥 먹인 날」은 공감이 안 됨) — 반전·현실 직시형
+  phrases: [
+    [0.0, 2.1, "딸이 배고프다고 해서"], [2.1, 3.74, "저녁을 시작했어요"], [4.3, 6.22, "레시피 찾고 읽고"],
+    [6.22, 7.76, "따라 하다 보니까"], [7.76, V1 - 0.04, "한 시간이 가더라고요"], [9.78, 10.4, "애는 울고"],
+    [10.4, 12.46, "저도 울고 싶고"], [12.46, 13.62, "결국 김에 밥"], [13.62, 14.86, "싸 줬어요"],
+    [15.28, 16.1, "한 시간 걸린"], [16.1, 17.82, "그 요리는 아무도"], [17.82, V2 - 0.02, "안 먹었고요"],
+    [18.94, 20.34, "요즘은 쿡매치에서"], [20.34, 22.08, "빨리 되는 레시피부터 봐요"], [23.02, 24.25, "순서만 딱 정리돼"],
+    [24.25, 26.47, "있어서 이제 금방 해요"],
+  ],
+  // 앱 쓰는 순서(이전 02와 같음): 정렬 「인기순」 → 인기 레시피 결과 → 레시피 상세(재료·순서 요약)로 천천히 살짝 확대.
+  overlays: [
+    { at: V2 + 0.15, len: 2.0, src: "reel7_sort_demo_new.mp4", from: 0.0, rate: 1.0 },
+    { at: V2 + 2.15, len: 1.6, src: "reel7_sort_demo_new.mp4", from: 2.0, rate: 0.8 },
+    { at: V2 + 3.75, len: 2.85, src: "reel7_recipe_demo.mp4", srcW: 880, from: 18.0, rate: 0.85, focus: [0.5, 0.5], zoom: 1.0, zoomTo: 1.2 },
+  ],
+};
+
+// 03 요리 모드 — 「요리가 싫었던 진짜 이유」(출연자 03, 2026-10-30). 클립 경계 0–7.02 / 7.02–15.70 / 15.70–25.32, 1.4배속.
+// 클립 1 끝에 「힘들었던 거예요」를 한 번 더 말해서 뒤의 것(원본 7.15초~)을 잘라 냈다. 끝 「이제 좀 할 만해요」는 카드를 내리고 얼굴로 끝낸다.
+const W1 = 7.02;
+const W2 = 15.7;
+const TALK03: TalkSpec = {
+  src: "talk03_presenter_x140.mp4",
+  len: 25.32,
+  speed: 1.4,
+  title: "요리가 싫었던\n진짜 이유",
+  phrases: [
+    [0.0, 1.5, "저 요리 못하는 줄"], [1.5, 2.3, "알았거든요"], [2.94, 4.46, "근데 아니더라고요"],
+    [4.9, 5.88, "레시피 보는 게"], [5.88, W1 - 0.02, "힘들었던 거예요"],
+    [7.15, 8.05, "한 줄 보고"], [8.28, 9.0, "손 씻고"], [9.88, 10.8, "다시 폰 켜고"],
+    [11.68, 12.35, "어디까지 했지"], [12.48, 13.6, "하는 사이에"], [14.12, W2 - 0.02, "딸은\n배고프다고 하고"],
+    [15.84, 17.28, "요즘은 쿡매치가"], [17.28, 18.66, "한 줄씩 읽어 줘요"], [19.84, 20.75, "저는 듣고"],
+    [21.08, 22.62, "손만 움직이면 되니까"], [23.28, 24.42, "이제 좀 할 만해요"],
+  ],
+  // 앱 쓰는 순서: 레시피 「조리 순서」의 「▶ 읽어 주기」 → 읽는 중(1단계 노란 표시)으로 살짝 다가감 → 1단계에서 2단계로 저절로 넘어감.
+  overlays: [
+    { at: W2 + 0.15, len: 2.0, src: "reel3_cookmode_demo.mp4", srcW: 880, from: 5.8, rate: 1.0, focus: [0.5, 0.45] },
+    { at: W2 + 2.15, len: 2.0, src: "reel3_cookmode_demo.mp4", srcW: 880, from: 8.0, rate: 1.0, focus: [0.6, 0.36], zoom: 1.0, zoomTo: 1.25 },
+    { at: W2 + 4.15, len: 2.8, src: "reel3_cookmode_demo.mp4", srcW: 880, from: 15.8, rate: 1.0, focus: [0.5, 0.5] },
+  ],
+};
+
+// 2026-10-29 사용자: 한 번 껐다가 다시 켬 — 맨 위 문구는 「질문을 던지고 답은 영상 안에」(요리할수록 돈이 더 드는 이유 처럼).
+const SHOW_TITLE = true;
+
 const Title: React.FC<{ text: string }> = ({ text }) => (
   <div style={{ position: "absolute", top: 150, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
     <span style={{ whiteSpace: "pre-line", fontSize: 78, fontWeight: 800, lineHeight: 1.22, color: WHITE, letterSpacing: "-0.01em", textShadow: SHADOW }}>{text}</span>
   </div>
 );
 
-// 말 자막은 항상 한 줄(사용자: 줄바꿈 애매하게 하지 말 것). 한글 한 글자 ≈ 글자 크기 폭이라 13자를 넘으면 크기를 줄인다.
-const Said: React.FC<{ text: string }> = ({ text }) => {
-  const size = Math.min(76, Math.floor(1000 / Math.max(1, text.replace(/\s/g, "").length + text.split(" ").length * 0.3)));
-  return (
-    <div style={{ position: "absolute", top: 1190, left: 20, right: 20, textAlign: "center", fontFamily: SANS }}>
-      <span style={{ fontSize: size, fontWeight: 800, color: WHITE, letterSpacing: "-0.01em", whiteSpace: "nowrap", textShadow: SHADOW }}>{text}</span>
-    </div>
-  );
+// 말 자막 줄바꿈(2026-10-29 사용자: 「한 줄로만 만들어 달라고 한 적 없다, 적당히 줄바꿈」).
+// 글자 크기는 고정(70). 짧으면 한 줄, 9자를 넘으면 가운데에 가장 가까운 띄어쓰기에서 두 줄로 나눈다(어절 중간에서 끊지 않는다).
+// 구절에 \n 을 직접 넣으면 그 자리에서 나눈다.
+const SAID_SIZE = 70;
+const splitSaid = (text: string) => {
+  if (text.includes("\n")) return text;
+  if (text.replace(/\s/g, "").length <= 9) return text;
+  const mid = text.length / 2;
+  let best = -1;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === " " && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+  }
+  return best < 0 ? text : text.slice(0, best) + "\n" + text.slice(best + 1);
 };
+const Said: React.FC<{ text: string }> = ({ text }) => (
+  <div style={{ position: "absolute", top: 1170, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
+    <span style={{ fontSize: SAID_SIZE, fontWeight: 800, lineHeight: 1.25, color: WHITE, letterSpacing: "-0.01em", whiteSpace: "pre-line", textShadow: SHADOW }}>{splitSaid(text)}</span>
+  </div>
+);
 
 // 얼굴 위 가운데 앱 화면 카드(참고 영상처럼 화면 너비의 약 56%). 앱 화면 녹화(940×1920)를 카드 폭에 맞춰 놓고,
 // focus 지점이 카드 가운데 오도록 옮긴 뒤 zoom → zoomTo 로 천천히 다가간다(카드 밖으로 빈 곳이 보이지 않게 가장자리에서 멈춤).
@@ -167,7 +231,8 @@ const Talk: React.FC<{ s: TalkSpec; banner?: boolean }> = ({ s, banner }) => {
               fadeOut={!(i < s.overlays.length - 1 && Math.abs(o.at + o.len - s.overlays[i + 1].at) < 0.05)} />
           </Sequence>
         ))}
-        <Title text={s.title} />
+        {/* 위 제목 자막(훅). SHOW_TITLE 참고. */}
+        {SHOW_TITLE && <Title text={s.title} />}
         {/* 검색 안내는 기능 설명이 시작되는 클립 3(약 20초)부터 끝까지(사용자 2026-10-25) */}
         {banner && (
           <Sequence from={f(s.overlays[0].at * k) - 4}>
@@ -220,4 +285,7 @@ export const REELS_TALK = [
   { id: "Talk01MatchingClean", ...make(TALK01, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1], false) },
   { id: "Talk02Recipe", ...make(TALK02, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
   { id: "Talk02RecipeClean", ...make(TALK02, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6], false) },
+  { id: "Talk02Kim", ...make(TALK02B, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
+  { id: "Talk02KimClean", ...make(TALK02B, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6], false) },
+  { id: "Talk03CookMode", ...make(TALK03, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
 ];

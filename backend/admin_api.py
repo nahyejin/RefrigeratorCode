@@ -31,8 +31,23 @@ import usage_quota
 #   그 밖에 개인정보처리방침·약관만 열었거나 링크 미리보기 봇(/download,… 처럼 경로로 찍힘)이면 → other
 _INFO_SCREEN = ("(screen IN ('/privacy', '/terms', '/account-deletion', '/coupang-banner.html') "
                 "OR screen LIKE '/download%%' OR screen = '다운로드')")
+# 링크 검사 봇 몰림(2026-10-29 사용자: 「몇 초 안에 화면 하나만 열고 끝난 기기가 짧은 시간에 몰려 오면 사람 아님」).
+# 10/29 07:49~07:50 에 9대가 74초 사이에 들어와 화면 하나씩만 열고 같은 초에 끝났다(출처 instagram·m.facebook.com —
+# 프로필 링크를 바꾼 직후 메타가 링크를 검사한 것). 「빠른 기기」 = 화면 1개 이하 + 첫 기록과 끝 기록이 2초 이내.
+# 빠른 기기가 90초 안에 3대 이상 몰리면 그 기기들을 사람이 아닌 것(`other`)으로 센다. 파라미터가 없는 SQL 이라 어디에 끼워도 된다.
+_QUICK_DEVICES = (
+    "SELECT device_id, MIN(created_at) t0 FROM user_events WHERE device_id IS NOT NULL GROUP BY device_id "
+    "HAVING SUM(name = 'screen_view') <= 1 AND TIMESTAMPDIFF(SECOND, MIN(created_at), MAX(created_at)) <= 2"
+)
+BOT_DEVICES_SQL = (
+    f"SELECT qa.device_id FROM ({_QUICK_DEVICES}) qa JOIN ({_QUICK_DEVICES}) qb "
+    "ON qb.device_id <> qa.device_id AND ABS(TIMESTAMPDIFF(SECOND, qa.t0, qb.t0)) <= 90 "
+    "GROUP BY qa.device_id HAVING COUNT(*) >= 2"
+)
+
 DEVICE_KIND = (
     "CASE "
+    f"WHEN device_id IN ({BOT_DEVICES_SQL}) THEN 'other' "
     f"WHEN SUM(name = 'screen_view' AND screen IS NOT NULL AND NOT {_INFO_SCREEN}) > 0 THEN MAX(platform) "
     # 다운로드 페이지만 연 기기 중 아이폰·안드로이드가 아닌 접속(PC 등)은 사람이 아닌 봇일 가능성이 커서 「사람 아닌 것」으로 센다(2026-10-24:
     # 10/24 새벽 5시에 18대가 2건씩만 남기고 끝남, 출처 없음 — 휴대폰 접속(아이폰·안드로이드)만 「다운로드 페이지까지만 온 기기」).
@@ -264,7 +279,9 @@ def _where(column, start, end, ids=None, devices=None,
 # 사용자가 인스타 릴스를 올릴 때마다 날짜를 알려 주면 쌓고, 올린 날 전후의 신규 기기·가입과 나란히 보여 준다.
 # 왜 DB 에 두나: 일정표(store/REEL_UPLOAD_PLAN.html)의 「올렸어요」 체크는 브라우저에만 저장돼 실제 게시일을 알 수 없었다.
 # 프로필 링크가 하나라 어느 릴스에서 왔는지는 기록되지 않는다 — 날짜 겹침으로만 본다(어드민 화면에도 그렇게 적는다).
-REEL_KINDS = {'overview': '기능 총정리', 'hook': '연기 영상', 'cooking': '직접 요리', 'selfie': '셀카 설명', 'other': '기타'}
+# 릴스 종류 + 스레드·인스타 게시물(2026-10-29 사용자: 스레드 글도 같은 탭에 기록). kind 는 VARCHAR 라 표를 바꿀 필요가 없다.
+REEL_KINDS = {'overview': '기능 총정리', 'hook': '연기 영상', 'cooking': '직접 요리', 'selfie': '셀카 설명',
+              'threads': '스레드 글', 'ig_post': '인스타 피드·스토리', 'other': '기타'}
 
 # 처음 만들 때 한 번 넣는, 사용자가 직접 알려 준 19편(2026-10-24).
 REEL_SEED = [
@@ -328,13 +345,42 @@ def _reel_fields(body):
         return ('error', '올린 날짜를 YYYY-MM-DD 로 적어 주세요.')
     title = str(body.get('title') or '').strip()[:120]
     if not title:
-        return ('error', '릴스 제목(내용)을 적어 주세요.')
+        return ('error', '제목(내용)을 적어 주세요.')
     kind = str(body.get('kind') or 'hook')
     if kind not in REEL_KINDS:
         return ('error', '종류가 올바르지 않습니다.')
     note = str(body.get('note') or '').strip()[:255] or None
     return (posted, title, kind, note)
 
+
+
+def _period_device_counts(cursor, start, end, ev_cond, ev_params, nd_cond, nd_params):
+    """한 기간의 기기 수 — `{active, new, returning, non_person}`.
+
+    들어온 기기(active) = 그 기간에 기록이 있는 기기(사람만) = 새로 들어온(처음 기록이 그 기간 안) + 다시 들어온(예전부터 있던).
+    사람 아닌 기기(링크 미리보기 봇 등, `DEVICE_KIND` 가 `other`)는 따로 센다. 대시보드·요약 탭이 같은 함수를 써서 숫자가 어긋나지 않는다(2026-10-29).
+    """
+    p_new_parts, p_new_params = [], []
+    if start:
+        p_new_parts.append("f.first_at >= %s")
+        p_new_params.append(start)
+    if end:
+        p_new_parts.append("f.first_at <= %s")
+        p_new_params.append(end)
+    p_new = " AND ".join(p_new_parts) if p_new_parts else "1=1"
+    cursor.execute(
+        "SELECT COALESCE(SUM(CASE WHEN p.k IS NULL OR p.k <> 'other' THEN 1 ELSE 0 END), 0) AS active, "
+        f"COALESCE(SUM(CASE WHEN (p.k IS NULL OR p.k <> 'other') AND {p_new} THEN 1 ELSE 0 END), 0) AS new_n, "
+        "COALESCE(SUM(CASE WHEN p.k = 'other' THEN 1 ELSE 0 END), 0) AS other_n FROM ("
+        f"  SELECT device_id, {DEVICE_KIND} AS k FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id"
+        ") p JOIN ("
+        f"  SELECT device_id, MIN(created_at) AS first_at FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
+        ") f ON f.device_id = p.device_id",
+        tuple(p_new_params) + tuple(ev_params) + tuple(nd_params),
+    )
+    row = cursor.fetchone() or {}
+    active, new = int(row.get('active') or 0), int(row.get('new_n') or 0)
+    return {'active': active, 'new': new, 'returning': max(active - new, 0), 'non_person': int(row.get('other_n') or 0)}
 
 
 def register(app, get_db):
@@ -1058,6 +1104,60 @@ def register(app, get_db):
         payload['recorded_at'] = row['updated_at'].isoformat() if row['updated_at'] else None
         return jsonify({'status': payload})
 
+    @app.route('/api/admin/summary', methods=['GET'])
+    def admin_summary():
+        """「요약」 탭 — 오늘·어제·최근 7일·전체를 나란히(2026-10-29).
+
+        기준은 대시보드와 같다: 기기 기준·사람 아닌 것 제외, 「내 활동 빼고 보기」(`keep_excluded=1` 이면 포함). 날짜는 대시보드 「오늘」과 같은 서버 시계.
+        신규 가입 = 그 기간에 가입한 계정(탈퇴하지 않은 것).
+        """
+        _, err = guard()
+        if err:
+            return err
+        usage_quota.ensure_tables(get_db)
+        ex_ids, ex_devices = _excluded(get_db)
+        now = datetime.now()
+        today0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        spans = [
+            ('today', '오늘', today0, None),
+            ('yesterday', '어제', today0 - timedelta(days=1), today0 - timedelta(seconds=1)),
+            ('week', '최근 7일', today0 - timedelta(days=6), None),
+            ('all', '전체', None, None),
+        ]
+        nd_cond, nd_params = _where('created_at', None, None, ex_ids, ex_devices, device_col='device_id')
+        db = get_db()
+        cursor = db.cursor()
+        out = []
+        try:
+            cursor.execute("SHOW TABLES LIKE 'user_events'")
+            has_events = bool(cursor.fetchone())
+            for key, label, start, end in spans:
+                counts = {'active': 0, 'new': 0, 'returning': 0, 'non_person': 0}
+                if has_events:
+                    ev_cond, ev_params = _where('created_at', start, end, ex_ids, ex_devices, device_col='device_id')
+                    counts = _period_device_counts(cursor, start, end, ev_cond, ev_params, nd_cond, nd_params)
+                u_cond, u_params = "", []
+                if start:
+                    u_cond += " AND created_at >= %s"
+                    u_params.append(start)
+                if end:
+                    u_cond += " AND created_at <= %s"
+                    u_params.append(end)
+                if ex_ids:
+                    u_cond += " AND id NOT IN (" + ",".join(["%s"] * len(ex_ids)) + ")"
+                    u_params.extend(ex_ids)
+                cursor.execute(f"SELECT COUNT(*) AS n FROM users WHERE deleted_at IS NULL{u_cond}", tuple(u_params))
+                counts['signups'] = int((cursor.fetchone() or {}).get('n') or 0)
+                out.append({'key': key, 'label': label, **counts})
+        finally:
+            cursor.close()
+            db.close()
+        return jsonify({
+            'periods': out,
+            'filters': {'excluded_users': len(ex_ids), 'excluded_devices': len(ex_devices)},
+            'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
+        })
+
     @app.route('/api/admin/activity', methods=['GET'])
     def admin_activity():
         """사용자가 어디까지 오고 어디서 멈추는지.
@@ -1116,18 +1216,22 @@ def register(app, get_db):
             # 맨 앞 칸 「방문」 — 가입 전에 앱·웹을 열어 본 사람(비회원 포함). 2026-10-12 사용자 요청:
             # 가입부터 세면 광고로 들어온 사람 중 몇 명이 가입까지 갔는지(= 가장 큰 이탈)가 안 보인다.
             # 사람 = 로그인했으면 계정, 아니면 기기. 기간 필터와 내 계정·기기 제외가 그대로 걸린다.
+            #
+            # ⚠️ 2026-10-29 기준 통일(사용자 지적: 위쪽 「들어온 기기 합계」 296/299 와 이 칸 408 이 다름). 예전엔 「로그인했으면 계정, 아니면 기기」로 세서
+            # 같은 사람이 가입 전 기기·가입 후 계정으로 두 번 잡히고, 약관만 열어 본 심사·봇(③)도 들어 있었다. 이제 위 합계와 같은 **기기 기준·사람 아닌 것 제외**.
             visits = 0
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
-                    "SELECT COUNT(*) n FROM (SELECT COALESCE(CONCAT('u', user_id), CONCAT('d', device_id)) who "
-                    f"FROM user_events WHERE 1=1{ev_cond} GROUP BY who HAVING who IS NOT NULL) x",
+                    f"SELECT COUNT(*) n FROM (SELECT device_id, {DEVICE_KIND} AS k "
+                    f"FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id) x "
+                    "WHERE k IS NULL OR k <> 'other'",
                     tuple(ev_params),
                 )
                 visits = cursor.fetchone()['n'] or 0
 
             steps = [
-                ('들어온 사람', visits, '앱이나 웹을 열어 기록이 남은 사람(비회원 포함, 기기 기준)'),
+                ('들어온 사람', visits, '앱이나 웹을 열어 기록이 남은 기기(비회원 포함, 사람 아닌 것 제외 — 위 「들어온 기기 합계」와 같은 기준)'),
                 ('가입한 사람', total, '탈퇴하지 않은 계정'),
                 ('재료 담은 사람', count(
                     "SELECT COUNT(DISTINCT i.user_id) n FROM user_ingredients i "
@@ -1206,6 +1310,7 @@ def register(app, get_db):
             devices_total = {}
             visit_hist = {}
             day_hist = {}
+            period_devices = {'active': 0, 'new': 0, 'returning': 0, 'non_person': 0}
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -1267,6 +1372,9 @@ def register(app, get_db):
                     tuple(ev_params),
                 )
                 visit_hist = {str(r['b']): int(r['n']) for r in cursor.fetchall()}
+                # 「사람 N명 · 두 번 이상 온 N명」 줄도 같은 기준(기기·사람 아닌 것 제외)으로 맞춘다(2026-10-29).
+                sessions['people'] = sum(visit_hist.values())
+                sessions['returning'] = sum(n for b, n in visit_hist.items() if int(b) >= 2)
                 # 같은 기기가 **며칠에 걸쳐** 들어왔나(2026-10-25 사용자 요청 추가). 하루에 여러 번 열어도 하루로 센다.
                 cursor.execute(
                     "SELECT LEAST(v, 10) AS b, COUNT(*) AS n FROM ("
@@ -1318,6 +1426,8 @@ def register(app, get_db):
                     {'date': r['d'].isoformat(), 'platform': r['platform'], 'n': r['n']}
                     for r in cursor.fetchall()
                 ]
+                # 이 기간에 **들어온** 기기 = 새로 들어온 + 다시 들어온(+ 사람 아닌 기기 수). 계산은 `_period_device_counts`(요약 탭 표와 공용).
+                period_devices = _period_device_counts(cursor, start, end, ev_cond, ev_params, nd_cond, nd_params)
                 # 지금까지 **누적** — 「다운로드 수가 어디 있나」 에 기간과 상관없이 답하는 숫자(2026-10-17).
                 # 기간 표만 있으면 최근 7일만 보여서 "그래서 전체 몇 대냐" 를 못 읽는다.
                 cursor.execute(
@@ -1383,7 +1493,10 @@ def register(app, get_db):
                            COUNT(DISTINCT COALESCE(CONCAT('u', e.user_id),
                                                    CONCAT('d', e.device_id))) people,
                            SUM(e.name = 'screen_view') views,
+                           -- 재료 담기: 회원은 서버 기록(ingredient_add), 비회원은 앱이 보낸 fridge_edit(직접·사진)로 센다.
+                           -- 비회원 기록은 2026-10-22 부터 있고, 팝업에서 빼기(seed_trim)는 담기가 아니라 뺀다.
                            COUNT(DISTINCT CASE WHEN e.name = 'ingredient_add'
+                                                 OR (e.name = 'fridge_edit' AND e.detail IN ('manual', 'photo'))
                                                THEN e.session_id END) added,
                            COUNT(DISTINCT CASE WHEN e.name IN ('vision_use', 'chat_use')
                                                THEN e.session_id END) ai,
@@ -1395,7 +1508,7 @@ def register(app, get_db):
                            MAX(e.created_at) last_at
                     FROM user_events e
                     JOIN (""" + _SESSION_SOURCE + """) s ON s.session_id = e.session_id
-                    WHERE 1=1 """ + ev_cond.replace('created_at', 'e.created_at')
+                    WHERE (e.device_id IS NULL OR e.device_id NOT IN (""" + BOT_DEVICES_SQL + """)) """ + ev_cond.replace('created_at', 'e.created_at')
                                           .replace('user_id', 'e.user_id')
                                           .replace('device_id', 'e.device_id') + """
                     GROUP BY s.src ORDER BY sessions DESC LIMIT 20
@@ -1610,10 +1723,11 @@ def register(app, get_db):
                            SUM(name = 'cta_view') views,
                            SUM(name = 'cta_click') clicks,
                            SUM(name = 'cta_dismiss') dismisses,
+                           SUM(name = 'cta_start') starts,
                            COUNT(DISTINCT CASE WHEN name = 'cta_view'
                                  THEN COALESCE(CAST(user_id AS CHAR), device_id) END) viewers
                     FROM user_events
-                    WHERE name IN ('cta_view', 'cta_click', 'cta_dismiss')""" + ev_cond + """
+                    WHERE name IN ('cta_view', 'cta_click', 'cta_dismiss', 'cta_start')""" + ev_cond + """
                     GROUP BY detail
                     ORDER BY views DESC
                     """,
@@ -1621,7 +1735,7 @@ def register(app, get_db):
                 )
                 cta = cursor.fetchall()
                 for r in cta:
-                    for k in ('views', 'clicks', 'dismisses', 'viewers'):
+                    for k in ('views', 'clicks', 'dismisses', 'starts', 'viewers'):
                         r[k] = int(r[k] or 0)
                 cursor.execute(
                     """
@@ -1667,6 +1781,7 @@ def register(app, get_db):
             'new_devices': new_devices,
             'devices_total': devices_total,
             'visit_hist': visit_hist,
+            'period_devices': period_devices,
             'day_hist': day_hist,
             'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
             'sources': sources,
@@ -1716,14 +1831,16 @@ def register(app, get_db):
                 dev_clause = " AND device_id NOT IN (" + ",".join(["%s"] * len(devices)) + ")"
                 dev_params = list(devices)
             cursor.execute(
-                "SELECT d, COUNT(*) AS n, SUM(ig) AS ig FROM ("
+                "SELECT d, COUNT(*) AS n, SUM(ig) AS ig, SUM(th) AS th FROM ("
                 " SELECT DATE(MIN(created_at)) AS d,"
-                "  MAX(source LIKE 'ig%%' OR source LIKE '%%instagram%%') AS ig"
+                "  MAX(source LIKE 'ig%%' OR source LIKE '%%instagram%%') AS ig,"
+                "  MAX(source LIKE '%%threads%%') AS th"
                 " FROM user_events WHERE device_id IS NOT NULL" + dev_clause +
+                " AND device_id NOT IN (" + BOT_DEVICES_SQL + ")"   # 링크 검사 봇 몰림은 뺀다(2026-10-29)
                 " GROUP BY device_id HAVING MIN(created_at) >= %s) t GROUP BY d",
                 dev_params + [first],
             )
-            new_by = {r['d']: (int(r['n']), int(r['ig'] or 0)) for r in cursor.fetchall()}
+            new_by = {r['d']: (int(r['n']), int(r['ig'] or 0), int(r['th'] or 0)) for r in cursor.fetchall()}
 
             cursor.execute(
                 "SELECT DATE(created_at) AS d, COUNT(DISTINCT device_id) AS n FROM user_events"
@@ -1789,7 +1906,8 @@ def register(app, get_db):
         d = first
         while d <= today:
             days.append({
-                'date': d.isoformat(), 'new': new_by.get(d, (0, 0))[0], 'ig': new_by.get(d, (0, 0))[1],
+                'date': d.isoformat(), 'new': new_by.get(d, (0, 0, 0))[0], 'ig': new_by.get(d, (0, 0, 0))[1],
+                'th': new_by.get(d, (0, 0, 0))[2],
                 'downloads': dl_by.get(d, 0), 'signups': su_by.get(d, 0),
                 'posts': [p['title'] for p in per_day.get(d, [])],
                 'kinds': [p['kind'] for p in per_day.get(d, [])],

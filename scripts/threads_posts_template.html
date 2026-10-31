@@ -1,0 +1,139 @@
+<title>냉장고 엄마 스레드</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Gowun+Batang:wght@700&display=swap">
+<style>
+/* 레이아웃: 폰 한 손으로 내려 보며 복사하는 세로 한 줄. 글 카드 = 스레드 글 모양, 노란 줄은 냉장고 메모지 */
+:root {
+  --bg: #F3F5F4; --paper: #FFFFFF; --ink: #17191A; --muted: #646C69; --line: #DCE1DF;
+  --note: #FFF3B8; --note-ink: #5A4A00; --fill: #FFE7A3; --accent: #1E6B52; --accent-ink: #FFFFFF;
+  --k-info: #DCEFE6; --k-story: #F6E2D6; --k-talk: #E2E6F6;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --display: "Gowun Batang", "Nanum Myeongjo", serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121514; --paper: #1B1F1E; --ink: #ECEFEE; --muted: #9AA39F; --line: #2D3331;
+  --note: #3A3314; --note-ink: #F2E2A0; --fill: #5A4A10; --accent: #6FCBA6; --accent-ink: #0D1A15;
+  --k-info: #1F3A2F; --k-story: #3D2A20; --k-talk: #262C45; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121514; --paper: #1B1F1E; --ink: #ECEFEE; --muted: #9AA39F; --line: #2D3331;
+  --note: #3A3314; --note-ink: #F2E2A0; --fill: #5A4A10; --accent: #6FCBA6; --accent-ink: #0D1A15;
+  --k-info: #1F3A2F; --k-story: #3D2A20; --k-talk: #262C45; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); }
+.wrap { max-width: 560px; margin: 0 auto; padding-block: 24px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 20px; }
+h1 { font: 700 26px/1.3 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 700 17px/1.4 var(--sans); margin: 0; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.acct { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.acct b { color: var(--ink); font-weight: 500; }
+.note { background: var(--note); color: var(--note-ink); border-radius: 4px; padding: 14px 16px; }
+.note h2 { color: var(--note-ink); }
+.note ol, .note ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.rules { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rules li { display: grid; gap: 0; }
+.rules b { font-weight: 700; }
+.rules span { color: var(--muted); font-size: 13px; }
+.progress { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.post { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.post.done { opacity: .55; }
+.head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.day { font-weight: 700; font-size: 16px; }
+.chip { font-size: 12px; padding: 2px 9px; border-radius: 999px; color: var(--ink); }
+.chip.정보 { background: var(--k-info); } .chip.이야기 { background: var(--k-story); } .chip.참여 { background: var(--k-talk); }
+.donebox { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.donebox input { width: 18px; height: 18px; accent-color: var(--accent); }
+.photo { font-size: 13px; color: var(--muted); }
+.photo b { color: var(--ink); font-weight: 500; }
+.lbl { font-size: 12px; letter-spacing: .04em; color: var(--muted); margin-bottom: 4px; }
+pre { margin: 0; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; font: 15px/1.65 var(--sans); }
+.reply pre { color: var(--ink); padding-left: 12px; border-left: 2px solid var(--line); }
+mark { background: var(--fill); color: inherit; border-radius: 3px; padding: 0 2px; }
+.btn { appearance: none; border: 0; border-radius: 10px; padding: 11px 14px; font: 500 14px var(--sans); cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); width: 100%; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.btn:focus-visible, .donebox input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pnote { font-size: 13px; color: var(--muted); }
+.later { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.later b { display: block; }
+.later span { color: var(--muted); font-size: 14px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) { .post { transition: opacity .2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>냉장고 엄마 스레드</h1>
+    <p class="sub">첫 글부터 2주 치. 본문 복사 → 사진 붙이기 → 올리고 첫 답글 복사.</p>
+  </header>
+  <div class="acct"><span>계정 <b>@fridge.mom.log</b></span><span>·</span><span>프로필 링크에만 쿡매치 (utm_source=threads)</span><span>·</span><span>11/11 이후 이름을 「냉장고 앱 만드는 엄마」로</span></div>
+
+  <section class="note" aria-labelledby="h-steps">
+    <h2 id="h-steps">글 올릴 때마다</h2>
+    <ol id="steps"></ol>
+  </section>
+
+  <section aria-labelledby="h-rules" style="display:grid;gap:10px">
+    <h2 id="h-rules">지킬 것</h2>
+    <ul class="rules" id="rules"></ul>
+  </section>
+
+  <div class="progress" id="progress"></div>
+  <div id="posts" style="display:grid;gap:14px"></div>
+
+  <section aria-labelledby="h-later" style="display:grid;gap:10px">
+    <h2 id="h-later">3주 차 이후, 앱 이야기</h2>
+    <p class="sub" style="margin:0">13일 글에서 「3번」이 나오면 꺼내요. 사람들이 먼저 궁금해한 뒤에.</p>
+    <ul class="later" id="later"></ul>
+  </section>
+</div>
+<div class="toast" id="toast" hidden>복사했어요</div>
+
+<script>
+const DATA = /*DATA*/null;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const marked = s => esc(s).replace(/\[([^\]]+)\]/g, "<mark>[$1]</mark>");
+const KEY = "threads_done_v1";
+let done = {};
+try { done = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };
+
+$("#steps").innerHTML = DATA.steps.map(s => `<li>${esc(s)}</li>`).join("");
+$("#rules").innerHTML = DATA.rules.map(r => `<li><b>${esc(r.t)}</b><span>${esc(r.d)}</span></li>`).join("");
+$("#later").innerHTML = DATA.later.map(r => `<li><b>${esc(r.t)}</b><span>${marked(r.d)}</span></li>`).join("");
+
+const toast = $("#toast"); let tt;
+function copy(text, pre) {
+  const ok = () => { toast.hidden = false; clearTimeout(tt); tt = setTimeout(() => toast.hidden = true, 1400); };
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast.textContent = "선택했어요. 길게 눌러 복사하세요"; ok(); setTimeout(() => toast.textContent = "복사했어요", 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback); else fallback();
+}
+
+function progress() {
+  const n = DATA.posts.filter((p, i) => done[i]).length;
+  $("#progress").textContent = `올린 글 ${n} / ${DATA.posts.length}`;
+}
+
+const box = $("#posts");
+DATA.posts.forEach((p, i) => {
+  const el = document.createElement("article");
+  el.className = "post" + (done[i] ? " done" : "");
+  el.innerHTML = `
+    <div class="head"><span class="day">${esc(p.day)}</span><span class="chip ${esc(p.kind)}">${esc(p.kind)}</span>
+      <label class="donebox"><input type="checkbox" id="done-${i}" ${done[i] ? "checked" : ""}>올렸어요</label></div>
+    <div class="photo"><b>사진</b> ${esc(p.photo)}</div>
+    <div><div class="lbl">본문</div><pre class="body">${marked(p.body)}</pre></div>
+    <button class="btn" type="button" data-a="body">본문 복사</button>
+    ${p.reply ? `<div class="reply"><div class="lbl">첫 답글 · 올리자마자</div><pre>${marked(p.reply)}</pre></div>
+    <button class="btn ghost" type="button" data-a="reply">첫 답글 복사</button>` : ""}
+    ${p.note ? `<div class="pnote">${marked(p.note)}</div>` : ""}`;
+  $("button[data-a=body]", el).addEventListener("click", () => copy(p.body, $(".body", el)));
+  if (p.reply) $("button[data-a=reply]", el).addEventListener("click", () => copy(p.reply, $(".reply pre", el)));
+  $("input", el).addEventListener("change", e => { done[i] = e.target.checked; el.classList.toggle("done", e.target.checked); save(); progress(); });
+  box.appendChild(el);
+});
+progress();
+</script>

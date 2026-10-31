@@ -1,0 +1,201 @@
+<title>쿡매치 올리기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 폰 한 손 세로 목록. 위 = 올릴 것(날짜순), 아래 = 올린 것(접힘). 카드 = 날짜 띠 + 본문 복사 */
+:root {
+  --bg: #F4F3EF; --paper: #FFFFFF; --ink: #1B1C1A; --muted: #66685F; --line: #DEDCD3;
+  --accent: #1F5F4A; --accent-ink: #FFFFFF; --hi: #FFF1B8; --late: #B4452B;
+  --ig: #C2366B; --th: #1B1C1A; --cap: #F8F7F3;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141513; --paper: #1D1F1C; --ink: #ECECE6; --muted: #A2A499; --line: #30332E;
+  --accent: #7CCBAA; --accent-ink: #0E1A15; --hi: #4A3F10; --late: #F08A6E; --ig: #F07AA6; --th: #ECECE6; --cap: #181A17; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141513; --paper: #1D1F1C; --ink: #ECECE6; --muted: #A2A499; --line: #30332E;
+  --accent: #7CCBAA; --accent-ink: #0E1A15; --hi: #4A3F10; --late: #F08A6E; --ig: #F07AA6; --th: #ECECE6; --cap: #181A17; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); }
+.wrap { max-width: 620px; margin: 0 auto; padding-block: 22px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px; }
+h1 { font-size: 24px; margin: 0; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 2px 0 0; font-size: 14px; }
+.state { font-size: 12.5px; color: var(--muted); }
+.state.warn { color: var(--late); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: 500 13px var(--sans); border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+h2 { font-size: 15px; margin: 10px 0 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+h2 span { font-size: 12.5px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.card.today { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+.top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; font-variant-numeric: tabular-nums; }
+.d { font-weight: 700; }
+.ch { font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; color: var(--paper); }
+.ch.reel { background: var(--ig); } .ch.threads { background: var(--th); }
+.kind { color: var(--muted); }
+.flag { font-size: 11.5px; font-weight: 700; color: var(--late); }
+.flag.now { color: var(--accent); }
+.done { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; }
+.done input { width: 20px; height: 20px; accent-color: var(--accent); }
+h3 { margin: 0; font-size: 17px; line-height: 1.4; text-wrap: balance; }
+.meta { font-size: 13px; color: var(--muted); display: grid; gap: 2px; }
+.file { font-family: ui-monospace, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.65 var(--sans); background: var(--cap); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; max-height: 260px; overflow: auto; }
+mark { background: var(--hi); color: inherit; border-radius: 3px; padding: 0 2px; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { flex: 1 1 140px; appearance: none; border: 0; border-radius: 10px; padding: 10px 12px; font: 500 14px var(--sans); cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.note { font-size: 12.5px; color: var(--muted); }
+details > summary { cursor: pointer; font-weight: 700; padding: 8px 0; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] > summary { margin-bottom: 10px; }
+.list { display: grid; gap: 12px; }
+.card.isdone { opacity: .62; }
+.card.isdone pre, .card.isdone .btns { display: none; }
+.card.isdone.open pre, .card.isdone.open .btns { display: block; }
+.card.isdone.open .btns { display: flex; }
+.more { font: 500 12.5px var(--sans); color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; justify-self: start; }
+.btn:focus-visible, .chip:focus-visible, .done input:focus-visible, .more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 14px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>쿡매치 올리기</h1>
+    <p class="sub">위 탭에서 묶음(연기형 1~4벌 · 셀카형 · 스레드 …)을 고르세요. 숫자는 남은 것/전체. 본문 복사 → 올리고 → 「올렸어요」.</p>
+    <p class="state" id="state">불러오는 중…</p>
+  </header>
+  <div class="chips" id="chips" role="group" aria-label="묶음"></div>
+  <h2>올릴 것 <span id="nTodo"></span></h2>
+  <div class="list" id="todo"></div>
+  <h2 id="hNodate" hidden>날짜 미정 <span id="nNodate"></span></h2>
+  <div class="list" id="nodate"></div>
+  <details id="doneBox">
+    <summary>올린 것 <span id="nDone" class="note"></span></summary>
+    <div class="list" id="doneList"></div>
+  </details>
+</div>
+<div class="toast" id="toast" hidden>복사했어요</div>
+
+<script>
+const DATA = /*DATA*/null;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const marked = s => esc(s).replace(/\[([^\]\n]{1,40})\]/g, "<mark>[$1]</mark>");
+const pad = n => String(n).padStart(2, "0");
+const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const WD = ["일", "월", "화", "수", "목", "금", "토"];
+const md = iso => { const d = new Date(iso + "T00:00:00"); return `${d.getMonth() + 1}/${d.getDate()} (${WD[d.getDay()]})`; };
+
+let posted = {};          // id -> {done, on}
+let db = null, filter = "all";
+try { filter = localStorage.getItem("hub_post_filter") || "all"; } catch (e) {}
+const LOCAL = "hub_post_done_local";
+
+const toast = $("#toast"); let tt;
+function say(t) { toast.textContent = t; toast.hidden = false; clearTimeout(tt); tt = setTimeout(() => toast.hidden = true, 1500); }
+function copy(text, pre) {
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); say("선택했어요. 길게 눌러 복사하세요"); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => say("복사했어요"), fallback); else fallback();
+}
+
+async function setDone(id, on) {
+  if (on) posted[id] = { done: true, on: todayIso() }; else delete posted[id];
+  render();
+  if (db) {
+    try {
+      const ref = db.collection("posted").doc(id);
+      if (on) await ref.set({ done: true, on: todayIso() }); else await ref.delete();
+    } catch (e) { say("저장하지 못했어요. 다시 눌러 주세요"); }
+  } else {
+    try { localStorage.setItem(LOCAL, JSON.stringify(posted)); } catch (e) {}
+  }
+}
+
+function card(it) {
+  const el = document.createElement("article");
+  const isDone = !!posted[it.id];
+  const t = todayIso();
+  el.className = "card" + (isDone ? " isdone" : "") + (!isDone && it.date === t ? " today" : "");
+  const flag = isDone ? (posted[it.id].on ? `<span class="note">${md(posted[it.id].on)} 올림</span>` : "")
+    : it.date === t ? '<span class="flag now">오늘</span>'
+    : it.date && it.date < t ? '<span class="flag">날짜 지남</span>' : "";
+  el.innerHTML = `
+    <div class="top">
+      ${it.date ? `<span class="d">${md(it.date)}${it.time ? " " + esc(it.time) : ""}</span>` : ""}
+      <span class="ch ${it.ch}">${it.ch === "threads" ? "스레드" : "인스타"}</span>
+      <span class="kind">${esc(it.kind)}${it.tag ? " · " + esc(it.tag) : ""}</span>${flag}
+      <label class="done"><input type="checkbox" id="chk-${it.id}" ${isDone ? "checked" : ""}>올렸어요</label>
+    </div>
+    <h3>${esc(it.title)}</h3>
+    <div class="meta">
+      ${it.scene ? `<div>${marked(it.scene)}</div>` : ""}
+      ${it.file ? `<div class="file">${esc(it.file)}</div>` : ""}
+      ${it.music ? `<div>${esc(it.music)}</div>` : ""}
+    </div>
+    ${it.body ? `<pre class="b">${marked(it.body)}</pre>` : ""}
+    ${it.reply ? `<pre class="r">${marked(it.reply)}</pre>` : ""}
+    ${(it.body || it.reply) ? `<div class="btns">${it.body ? '<button class="btn" type="button" data-a="b">본문 복사</button>' : ""}${it.reply ? '<button class="btn ghost" type="button" data-a="r">첫 답글 복사</button>' : ""}</div>` : ""}
+    ${it.note ? `<div class="note">${marked(it.note)}</div>` : ""}
+    ${isDone && it.body ? '<button class="more" type="button">본문 다시 보기</button>' : ""}`;
+  $("input", el).addEventListener("change", e => setDone(it.id, e.target.checked));
+  const b = $("button[data-a=b]", el); if (b) b.addEventListener("click", () => copy(it.body, $("pre.b", el)));
+  const r = $("button[data-a=r]", el); if (r) r.addEventListener("click", () => copy(it.reply, $("pre.r", el)));
+  const m = $(".more", el); if (m) m.addEventListener("click", () => el.classList.toggle("open"));
+  return el;
+}
+
+function render() {
+  renderChips();
+  const items = DATA.items.filter(it => filter === "all" || it.grp === filter);
+  const todo = items.filter(it => !posted[it.id] && it.date).sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
+  const nodate = items.filter(it => !posted[it.id] && !it.date);
+  const done = items.filter(it => posted[it.id]).sort((a, b) => (posted[b.id].on || b.date || "").localeCompare(posted[a.id].on || a.date || ""));
+  const fill = (box, arr) => { box.replaceChildren(...arr.map(card)); };
+  fill($("#todo"), todo); fill($("#nodate"), nodate); fill($("#doneList"), done);
+  $("#nTodo").textContent = `${todo.length}개`;
+  $("#nNodate").textContent = `${nodate.length}개`;
+  $("#hNodate").hidden = nodate.length === 0;
+  $("#nDone").textContent = `${done.length}개`;
+}
+
+// 묶음 탭: 전체 · 총정리 · 연기형 1~4벌 · 직접 요리 · 출연자 셀카형 · 스레드. 탭마다 「남은 수/전체」.
+const GROUPS = ["총정리", "연기형 1벌", "연기형 2벌", "연기형 3벌", "연기형 4벌", "직접 요리", "출연자 셀카형", "스레드"];
+function renderChips() {
+  const box = $("#chips");
+  const left = g => DATA.items.filter(it => (g === "all" || it.grp === g) && !posted[it.id]).length;
+  const total = g => DATA.items.filter(it => g === "all" || it.grp === g).length;
+  const keys = ["all", ...GROUPS.filter(g => total(g) > 0)];
+  if (!keys.includes(filter)) filter = "all";
+  box.replaceChildren(...keys.map(g => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", g === filter ? "true" : "false");
+    b.textContent = `${g === "all" ? "전체" : g} ${left(g)}/${total(g)}`;
+    b.title = "남은 것 / 전체";
+    b.addEventListener("click", () => { filter = g; try { localStorage.setItem("hub_post_filter", filter); } catch (e) {} render(); });
+    return b;
+  }));
+}
+
+render();
+(async () => {
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { db = null; }
+  if (!db) {
+    try { posted = JSON.parse(localStorage.getItem(LOCAL) || "{}"); } catch (e) { posted = {}; }
+    $("#state").textContent = "체크가 이 기기에만 저장돼요(로그인한 claude.ai 에서 열면 어디서든 유지돼요).";
+    $("#state").classList.add("warn");
+    render();
+    return;
+  }
+  db.collection("posted").onSnapshot(snap => {
+    const next = {};
+    snap.docs.forEach(d => { const v = d.data(); if (v && v.done) next[d.id] = v; });
+    posted = next;
+    $("#state").textContent = "「올렸어요」는 저장돼서 다시 열어도 그대로예요.";
+    $("#state").classList.remove("warn");
+    render();
+  }, () => { $("#state").textContent = "저장소에 연결하지 못했어요. 새로고침해 주세요."; $("#state").classList.add("warn"); });
+})();
+</script>

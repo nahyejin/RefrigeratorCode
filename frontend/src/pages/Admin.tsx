@@ -87,7 +87,12 @@ const num = (n: number) => n.toLocaleString('ko-KR');
  *  - `.adm-grid`(ActivityTable)는 2단 머리라 sticky 를 스스로 정한다 — 첫 열 규칙만 뺀다
  */
 const ADMIN_TABLE_CSS = `
+/* index.css 가 모든 select 에 z-index(드롭다운 층)를 준다. 줄 배치(flex) 안에서는 그게 먹어서, 스크롤하면 위에 붙은 탭 줄 위로
+   떠 보였다(2026-10-29 사용자). 어드민에서는 끈다 — 이 스타일이 index.css 보다 뒤에 들어가 같은 세기에서 이긴다. */
+div select { z-index: auto !important; }
 .adm-scroll { overflow: auto; max-height: min(60vh, 520px); -webkit-overflow-scrolling: touch; }
+/* 줄 수가 정해진 짧은 표(어디서 들어왔나)는 높이를 자르지 않는다 — 옆으로 밀기만(2026-10-29 사용자) */
+.adm-scroll.adm-full { max-height: none; }
 .adm-scroll > table { border-collapse: separate !important; border-spacing: 0; }
 .adm-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
 .adm-scroll tfoot td, .adm-scroll tfoot th { position: sticky; bottom: 0; z-index: 2; background: var(--surface-sub); }
@@ -2114,7 +2119,7 @@ const TL_PLATFORM: Record<string, string> = { android: '안드로이드', ios: '
 const TL_PROVIDER: Record<string, string> = { kakao: '카카오', naver: '네이버', google: '구글', apple: '애플', local: '이메일' };
 const TL_CTA: Record<string, string> = {
   ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
-  done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문',
+  done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문', welcome: '첫 시작(기본 재료)', save_prompt: '레시피 본 뒤 저장 제안',
 };
 const TL_ACTION: Record<string, string> = {
   favorite_add: '즐겨찾기 추가', favorite_remove: '즐겨찾기 취소', complete_add: '완료 추가', complete_remove: '완료 취소',
@@ -2135,11 +2140,21 @@ function describeEvent(e: any): { text: string; kind: 'screen' | 'act' | 'cta' |
     case 'chat_use': return { text: d ? `챗봇·AI 질문 (${d})` : '챗봇에 질문', kind: 'ai' };
     case 'vision_use': return { text: `사진으로 재료 인식${d ? ` (${d})` : ''}`, kind: 'ai' };
     case 'coupang_click': return { text: '쿠팡 링크를 눌렀어요', kind: 'act' };
+    case 'store_click': return {
+      text: d === 'app_store' ? '다운로드 화면에서 [App Store]를 눌렀어요'
+        : d === 'play_store' ? '다운로드 화면에서 [Google Play]를 눌렀어요'
+        : d === 'web' ? '다운로드 화면에서 [웹에서 바로 시작하기]를 눌렀어요'
+        : d === 'app_store_auto' ? 'App Store로 바로 넘어갔어요 (아이폰)'
+        : d === 'play_store_auto' ? 'Google Play로 바로 넘어갔어요 (안드로이드)'
+        : `다운로드 화면 이동 (${d || '?'})`,
+      kind: 'act',
+    };
     case 'signup': return { text: `가입 완료 (${TL_PROVIDER[d || ''] || d || '?'})`, kind: 'auth' };
     case 'login': return { text: `로그인 (${TL_PROVIDER[d || ''] || d || '?'})`, kind: 'auth' };
     case 'cta_view': return { text: `「${TL_CTA[d || ''] || d}」 팝업이 떴어요`, kind: 'cta' };
     case 'cta_click': return { text: `「${TL_CTA[d || ''] || d}」 팝업에서 [로그인하기]를 눌렀어요`, kind: 'cta' };
     case 'cta_dismiss': return { text: `「${TL_CTA[d || ''] || d}」 팝업을 닫았어요`, kind: 'cta' };
+    case 'cta_start': return { text: `「${TL_CTA[d || ''] || d}」 팝업에서 [이대로 시작]을 눌렀어요 (로그인 없이)`, kind: 'cta' };
     case 'fridge_edit': return {
       text: d === 'photo' ? '재료를 사진으로 담았어요 (비회원)' : d === 'seed_trim' ? '기본 재료에서 없는 재료를 뺐어요 (비회원)' : '재료를 직접 담았어요 (비회원)',
       kind: 'act',
@@ -2554,7 +2569,7 @@ const StatsBar: React.FC<{
  * 기기 수 ≠ 사람 수: 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 브라우저와 앱이 각각 기기
  * 한 대로 잡힌다.
  */
-const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string }> = ({ c, periodNote }) => {
+const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string; title?: string }> = ({ c, periodNote, title }) => {
   const g = (k: string) => Number(c[k] || 0);
   const app = g('android') + g('ios');
   const web = g('web');
@@ -2590,7 +2605,7 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>들어온 기기 합계 (봇·안내만 뺀 것)</span>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>{title || '들어온 기기 합계 (봇·안내만 뺀 것)'}</span>
         <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(people)}대</span>
         <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>= ① {num(used)} + ② {num(link)} (둘은 겹치지 않아요){periodNote ? ` · ${periodNote}` : ''}</span>
       </div>
@@ -2665,13 +2680,14 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
 };
 
 /**
- * 「릴스」 탭 — 인스타 릴스를 올린 날과 그 전후의 신규 기기·가입을 나란히(2026-10-24 사용자 요청: 올린 영상을 계속 알려 줄 테니 누적해서 대시보드에).
+ * 「게시물」 탭(옛 「릴스」, 2026-10-29 스레드 글·인스타 게시물도 기록) — 올린 날과 그 전후의 신규 기기·가입을 나란히(2026-10-24 사용자 요청: 올린 영상을 계속 알려 줄 테니 누적해서 대시보드에).
  *
  * 한계를 화면에 적어 둔다: 프로필 링크가 하나라 **어느 릴스에서 왔는지는 기록되지 않는다.** 올린 날과 올린 다음 날의
  * 신규 기기·가입을 보여 줄 뿐이라, 같은 날 여러 편이면 편 수로 나눈 몫이다. 원인을 증명하는 표가 아니다.
  */
 // 범례 색은 서로 확실히 달라야 한다(막대의 노랑과도 겹치지 않게): 파랑·주황·초록·보라·회색.
-const KIND_COLOR: Record<string, string> = { overview: '#1C7ED6', hook: '#E8590C', cooking: '#2F9E44', selfie: '#9C36B5', other: '#868E96' };
+// 스레드 글·인스타 게시물도 같은 탭에 기록한다(2026-10-29) — 청록·분홍을 더했다.
+const KIND_COLOR: Record<string, string> = { overview: '#1C7ED6', hook: '#E8590C', cooking: '#2F9E44', selfie: '#9C36B5', threads: '#0C8599', ig_post: '#D6336C', other: '#868E96' };
 
 const ReelsTab: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
@@ -2693,7 +2709,7 @@ const ReelsTab: React.FC = () => {
   }, [data]);
 
   const add = async () => {
-    if (!form.title.trim()) { setError('릴스 제목(내용)을 적어 주세요.'); return; }
+    if (!form.title.trim()) { setError('제목(내용)을 적어 주세요.'); return; }
     setSaving(true);
     try {
       await api('/api/admin/reels', { method: 'POST', body: JSON.stringify(form) });
@@ -2739,29 +2755,29 @@ const ReelsTab: React.FC = () => {
       </label>
 
       <div style={S.card}>
-        <h2 style={S.h2}>릴스 올렸어요</h2>
+        <h2 style={S.h2}>오늘 올렸어요 — 릴스·스레드·인스타 게시물</h2>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <input type="date" value={form.posted_on} onChange={e => setForm({ ...form, posted_on: e.target.value })} style={{ ...S.input, width: 140 }} />
-          <select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })} style={{ ...S.input, width: 110 }}>
+          <select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })} style={{ ...S.input, width: 150 }}>
             {Object.entries(labels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="릴스 제목·내용"
+          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder={form.kind === 'threads' ? '스레드 글 첫 줄' : '제목·내용'}
                  onKeyDown={e => e.key === 'Enter' && add()} style={{ ...S.input, flex: '1 1 200px' }} />
           <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="메모(선택)" style={{ ...S.input, flex: '1 1 140px' }} />
           <button type="button" style={S.primary} disabled={saving} onClick={add}>{saving ? '저장 중' : '추가'}</button>
         </div>
         {error && <div style={{ color: '#B4452B', fontSize: 12, marginTop: 8 }}>{error}</div>}
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-          올린 날짜와 내용을 적으면 아래 표에 바로 반영돼요. <b>어느 릴스에서 왔는지는 기록되지 않아요</b>(프로필 링크가 하나) —
+          올린 날짜·종류·내용을 적으면 아래 표에 바로 반영돼요. 스레드 글은 종류에서 「스레드 글」을 고르고 첫 줄을 적으면 돼요. <b>어느 글에서 왔는지는 기록되지 않아요</b>(프로필 링크가 하나) —
           올린 날과 그 다음 날의 신규 기기·가입을 나란히 보여 주는 것이고, 같은 날 여러 편이면 편 수로 나눈 몫이에요. 원인을 증명하는 표가 아니에요.
         </div>
       </div>
 
       {(data.kinds || []).length > 0 && (
         <div style={S.card}>
-          <h2 style={S.h2}>릴스 종류별 — 1편당 평균</h2>
+          <h2 style={S.h2}>종류별 — 1편당 평균</h2>
           <div style={{ fontSize: 12, color: 'var(--ink-700)', marginBottom: 8, lineHeight: 1.6 }}>
-            아래 숫자는 모두 <b>릴스 1편당 평균</b>이에요. 릴스를 올린 날과 다음 날, 이틀 동안 늘어난 수를 그 종류 편수로 나눈 값이에요.
+            아래 숫자는 모두 <b>1편당 평균</b>이에요(스레드 글도 1편으로 셈). 올린 날과 다음 날, 이틀 동안 늘어난 수를 그 종류 편수로 나눈 값이에요.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
             {data.kinds.map((k: any) => (
@@ -2787,7 +2803,7 @@ const ReelsTab: React.FC = () => {
       )}
 
       <div style={S.card}>
-        <h2 style={S.h2}>올린 릴스 {posts.length}편</h2>
+        <h2 style={S.h2}>올린 게시물 {posts.length}개</h2>
         <div className="adm-scroll">
           <table style={{ width: '100%', minWidth: 560 }}>
             <thead>
@@ -2824,7 +2840,7 @@ const ReelsTab: React.FC = () => {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11.5, color: 'var(--ink-500)', marginBottom: 8, alignItems: 'center' }}>
           <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#FFD600', borderRadius: 2, marginRight: 4 }} />막대 = 그날 새로 들어온 기기(대)</span>
           <span><span style={{ display: 'inline-block', background: '#1A1A1E', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '0 4px', marginRight: 4 }}>2</span>검은 칸 = 그날 가입한 사람(명)</span>
-          <span>색 점 = 그날 올린 릴스</span>
+          <span>색 점 = 그날 올린 게시물</span>
           {Object.entries(labels).map(([k, v]) => (
             <span key={k}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 9999, background: KIND_COLOR[k] || '#8A8A93', marginRight: 3 }} />{v}</span>
           ))}
@@ -2840,7 +2856,7 @@ const ReelsTab: React.FC = () => {
                   key={d.date}
                   type="button"
                   onClick={() => setSel(d.date)}
-                  aria-label={`${md(d.date)} 신규 기기 ${d.new}대 가입 ${d.signups}명 릴스 ${d.posts.length}편`}
+                  aria-label={`${md(d.date)} 신규 기기 ${d.new}대 가입 ${d.signups}명 게시물 ${d.posts.length}개`}
                   style={{ width: 22, flexShrink: 0, border: 'none', cursor: 'pointer', padding: '0 0 4px', borderRadius: 6,
                            background: on ? 'var(--surface-sub)' : 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                 >
@@ -2869,7 +2885,7 @@ const ReelsTab: React.FC = () => {
         </div>
         {selDay && (
           <div style={{ marginTop: 10, background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, lineHeight: 1.7 }}>
-            <b>{md(selDay.date)}</b> · 새로 들어온 기기 <b>{selDay.new}대</b>(그중 인스타 표시 {selDay.ig}대) · 다운로드 화면 본 기기 {selDay.downloads}대 · 회원가입 <b>{selDay.signups}명</b>
+            <b>{md(selDay.date)}</b> · 새로 들어온 기기 <b>{selDay.new}대</b>(그중 인스타 표시 {selDay.ig}대 · 스레드 표시 {selDay.th || 0}대) · 다운로드 화면 본 기기 {selDay.downloads}대 · 회원가입 <b>{selDay.signups}명</b>
             {selDay.posts.length > 0 ? (
               <div style={{ marginTop: 4 }}>
                 {selDay.posts.map((t: string, i: number) => (
@@ -2877,12 +2893,12 @@ const ReelsTab: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ color: 'var(--ink-500)' }}>이날 올린 릴스 없음</div>
+              <div style={{ color: 'var(--ink-500)' }}>이날 올린 게시물 없음</div>
             )}
           </div>
         )}
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-          「인스타 표시」는 그날 새로 들어온 기기 중 인스타에서 온 표시가 붙은 기기예요(링크에 유입 표시를 안 붙이면 못 잡아요). 그래프는 처음 릴스를 올린 날 전날부터 오늘까지예요.
+          「인스타 표시」·「스레드 표시」는 그날 새로 들어온 기기 중 프로필 링크 꼬리표(<code>?utm_source=instagram</code> / <code>threads</code>)가 붙어 온 기기예요. 꼬리표를 안 붙이면 못 잡아요. 그래프는 처음 올린 날 전날부터 오늘까지예요.
         </div>
       </div>
     </>
@@ -2941,74 +2957,212 @@ const RevisitBars: React.FC<{ hist?: Record<string, number>; dayHist?: Record<st
   );
 };
 
+/** 「어디서 들어왔나」 표의 유입 이름(utm_source)을 사람 말로 풀어 준다(2026-10-29 사용자: 이름만 봐서는 어디서 온 건지 모르겠다).
+ *  내가 붙인 꼬리표는 이름 규칙으로, 꼬리표가 없을 땐 앱이 대신 적어 둔 「온 사이트 주소」로 푼다. */
+const SOURCE_GUIDE: { tag: string; means: string; link?: string }[] = [
+  { tag: 'portfolio_web', means: '포트폴리오의 「웹에서 바로 써보기」 버튼', link: '/?utm_source=portfolio_web' },
+  { tag: 'portfolio_app', means: '포트폴리오의 「앱 다운로드」 버튼', link: '/download?utm_source=portfolio_app' },
+  { tag: 'resume_web', means: '이력서의 웹 링크', link: '/?utm_source=resume_web' },
+  { tag: 'resume_app', means: '이력서의 앱 다운로드 링크', link: '/download?utm_source=resume_app' },
+  { tag: 'ig_profile_main', means: '인스타 본계정 프로필의 링크', link: '/download?utm_source=ig_profile_main' },
+  { tag: 'ig_profile_cookmatch', means: '인스타 쿡매치 계정 프로필의 링크', link: '/download?utm_source=ig_profile_cookmatch' },
+  { tag: 'ig_profile_ddong', means: '인스타 똥글이 계정 프로필의 링크', link: '/download?utm_source=ig_profile_ddong' },
+  { tag: 'ig_profile', means: '계정 구분 없이 붙였던 인스타 프로필 링크(세 계정이 섞여 있어요)', link: '/download?utm_source=ig_profile' },
+  { tag: 'threads', means: '스레드 글에 붙인 링크', link: '/?utm_source=threads' },
+  { tag: 'instagram', means: '인스타그램 릴스·스토리·게시물 글에 붙인 링크', link: '/?utm_source=instagram' },
+];
+
+function sourceLabel(src: string): string {
+  const t = (src || '').toLowerCase();
+  if (t === '(직접)') return '꼬리표 없음 — 주소 직접 입력·북마크·홈 화면 아이콘, 또는 출처를 안 알려주는 링크(PDF·메신저 등)';
+  const kind = t.endsWith('_web') ? ' · 웹 첫 화면' : t.endsWith('_app') ? ' · 앱 다운로드 페이지' : '';
+  if (t.startsWith('portfolio')) return '포트폴리오에서 온 방문' + kind;
+  if (t.startsWith('resume')) return '이력서에서 온 방문' + kind;
+  if (t === 'ig_profile') return '인스타그램 프로필 링크 — 계정 구분 없이 붙인 것(본계정·쿡매치·똥글이가 섞임)';
+  if (t === 'ig') return '인스타그램 꼬리표(ig) — 어느 링크인지까지는 구분 안 됨';
+  if (t === 'ig_profile_main') return '인스타 본계정 프로필 링크';
+  if (t === 'ig_profile_cookmatch') return '인스타 쿡매치 계정 프로필 링크';
+  if (t === 'ig_profile_ddong') return '인스타 똥글이 계정 프로필 링크';
+  if (t === 'ig_ad') return '인스타그램 광고';
+  if (t.startsWith('ig_') || t.startsWith('instagram')) return '인스타그램 글에 붙인 링크';
+  if (t.startsWith('threads')) return '스레드 글에 붙인 링크';
+  if (t.includes('.')) {
+    // 꼬리표가 없어서 앱이 「어느 사이트에서 왔나」 로 대신 적은 것
+    if (t.includes('instagram')) return '꼬리표 없음 — 인스타그램에서 눌러 들어옴';
+    if (t.includes('threads')) return '꼬리표 없음 — 스레드에서 눌러 들어옴';
+    if (/google|naver|daum|bing/.test(t)) return '꼬리표 없음 — 검색해서 들어옴';
+    if (t.includes('vercel.app')) return '꼬리표 없음 — 쿡매치 다른 페이지에서 이어짐';
+    return '꼬리표 없음 — 이 사이트의 링크를 눌러 들어옴';
+  }
+  return '';
+}
+
+/** 같은 곳에서 온 유입 이름들을 한 묶음으로(2026-10-29 사용자: 인스타 꼬리표는 계정마다 다른데 하위로 구분돼야 한다).
+ *  인스타그램 아래에 프로필(본계정·쿡매치·똥글이)·릴스·꼬리표 없이 인스타에서 눌러 들어온 것이 한 단계 아래로 들어간다. */
+function sourceFamily(src: string): string | null {
+  const t = (src || '').toLowerCase();
+  if (t === '(직접)') return null;
+  if (t.startsWith('portfolio')) return '포트폴리오';
+  if (t.startsWith('resume')) return '이력서';
+  if (t === 'ig' || t.startsWith('ig_') || t.startsWith('instagram') || t.includes('instagram.')) return '인스타그램';
+  if (t.startsWith('threads') || t.includes('threads.')) return '스레드';
+  return null;
+}
+
+/** 묶음이 2줄 이상이면 합계 줄(_group) + 아래 줄(_depth=1)로 펼쳐 준다. 방문·재료·가입 수는 합산(방문은 줄마다 겹치지 않는다). */
+function groupSources(rows: any[]): any[] {
+  const fam = new Map<string, any[]>();
+  const order: { key: string; sessions: number; rows: any[]; name?: string }[] = [];
+  for (const r of rows) {
+    const f = sourceFamily(r.source);
+    if (!f) { order.push({ key: r.source, sessions: r.sessions || 0, rows: [r] }); continue; }
+    if (!fam.has(f)) fam.set(f, []);
+    fam.get(f)!.push(r);
+  }
+  fam.forEach((members, name) => {
+    if (members.length < 2) {
+      order.push({ key: members[0].source, sessions: members[0].sessions || 0, rows: members });
+      return;
+    }
+    const sum = (k: string) => members.reduce((a, m) => a + (m[k] || 0), 0);
+    const firsts = members.map(m => m.first_at).filter(Boolean).sort();
+    const lasts = members.map(m => m.last_at).filter(Boolean).sort();
+    const head = {
+      source: name, _group: true, _n: members.length,
+      sessions: sum('sessions'), people: sum('people'), views: sum('views'),
+      added: sum('added'), ai: sum('ai'), signups: sum('signups'), coupang: sum('coupang'),
+      landing: '', first_at: firsts[0] || null, last_at: lasts[lasts.length - 1] || null,
+    };
+    const kids = [...members].sort((a, b) => (b.sessions || 0) - (a.sessions || 0)).map(m => ({ ...m, _depth: 1 }));
+    order.push({ key: name, sessions: head.sessions, rows: [head, ...kids] });
+  });
+  order.sort((a, b) => b.sessions - a.sessions);
+  return order.flatMap(o => o.rows);
+}
+
+/** 탭 맨 위 한 줄 — 요약과 대시보드가 같은 카드를 일부 같이 쓰므로, 이 탭을 무엇에 쓰는지 먼저 적어 둔다(2026-10-29 사용자: 두 탭의 역할이 분명치 않음. 항목은 하나도 빼지 않는 조건). */
+const TabRole: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div style={{ margin: '0 2px 10px', fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-700)' }}>
+    <b>{title}</b> <span style={{ color: 'var(--ink-500)' }}>{children}</span>
+  </div>
+);
+
+/**
+ * 「이 기간에 들어온 기기 = 새로 들어온 + 다시 들어온」 박스(2026-10-29 사용자 지적: 오늘인데 퍼널 「들어온 사람」 12 vs 「새로 들어온 기기」 3).
+ * 들어온 기기 = 그 기간에 기록이 있는 기기(퍼널 맨 앞 칸과 같은 숫자). 사람 아닌 기기(링크 미리보기 봇 등)는 따로 보여 준다.
+ * 대시보드와 요약 탭이 함께 쓴다.
+ */
+const PeriodDevicesBox: React.FC<{ pd?: { active: number; new: number; returning: number; non_person?: number }; ranged: boolean; showFunnelNote?: boolean }> = ({ pd, ranged, showFunnelNote }) => {
+  if (!pd) return null;
+  return (
+    <div style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, background: 'var(--surface-sub)', border: '1px solid var(--line-200)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>{ranged ? '이 기간에 들어온 기기' : '들어온 기기'}(사람, 기록이 있는 기기)</span>
+        <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(pd.active)}대</span>
+      </div>
+      <div style={{ fontSize: 13, marginTop: 2 }}>
+        = <b>새로 들어온 {num(pd.new)}대</b> <span style={{ color: 'var(--ink-500)' }}>(처음 기록된 기기)</span>
+        {' + '}<b>다시 들어온 {num(pd.returning)}대</b> <span style={{ color: 'var(--ink-500)' }}>(예전에 온 적 있는 기기)</span>
+      </div>
+      {(pd.non_person ?? 0) > 0 && (
+        <div style={{ fontSize: 12, marginTop: 4, color: 'var(--ink-700)' }}>
+          이 밖에 <b>사람 아닌 기기 {num(pd.non_person ?? 0)}대</b>가 더 기록됐어요(링크 미리보기 봇·약관만 열어 본 기기 등) — 위 숫자와 퍼널에서는 뺐어요.
+        </div>
+      )}
+      {showFunnelNote && (
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.5 }}>
+          아래 「어디까지 오고 어디서 멈추나」의 「들어온 사람」이 이 숫자예요. 아래 칸들은 이 중 <b>새로 들어온 기기</b>만 나눠 보여 줘요.
+        </div>
+      )}
+    </div>
+  );
+};
+
 /**
  * 「요약」 탭 — 기간과 상관없이 지금까지의 전반적인 숫자만 카드로(2026-10-24 사용자 요청: 일자별 분석은 대시보드 탭에 두고,
  * 전체 누적은 따로 한눈에 보게).
  */
 const Overview: React.FC = () => {
-  const [act, setAct] = React.useState<any>(null);
+  const [summary, setSummary] = React.useState<any>(null);
   const [data, setData] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
-  // 「내 활동 빼고 보기」 — 대시보드 탭과 **같은 규칙**(2026-10-24 사용자 요청): 켜 두면(기본) 사용자 탭에서 표시한 내 계정·기기를
-  // 빼고, 끄면 서버에 `keep_excluded=1` 을 보내 그대로 센다.
+  // 「내 활동 빼고 보기」 — 대시보드 탭과 **같은 규칙**: 켜 두면(기본) 사용자 탭에서 표시한 내 계정·기기를 빼고, 끄면 `keep_excluded=1`.
   const [excludeMine, setExcludeMine] = React.useState(true);
   React.useEffect(() => {
     const q = excludeMine ? '' : '?keep_excluded=1';
-    setAct(null);
+    setSummary(null);
     setData(null);
-    api(`/api/admin/activity${q}`).then(setAct).catch(e => setError(e.message));
+    api(`/api/admin/summary${q}`).then(setSummary).catch(e => setError(e.message));
     api(`/api/admin/dashboard${q}`).then(setData).catch(() => {});
   }, [excludeMine]);
   if (error) return <div style={S.card}>{error}</div>;
+  // 위·아래 카드와 간격을 둔 카드 안에 둔다(2026-10-29 사용자: 이 줄이 너무 붙어 있음).
   const mineToggle = (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer',
-                    background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 12, padding: '10px 14px' }}>
-      <input
-        type="checkbox"
-        checked={excludeMine}
-        onChange={e => setExcludeMine(e.target.checked)}
-        style={{ width: 16, height: 16 }}
-      />
-      내 활동 빼고 보기
-      <span style={{ color: 'var(--ink-500)' }}>
-        (사용자 탭에서 표시한 {(act?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}개 계정)
-      </span>
-    </label>
+    <div style={S.card}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
+        <input type="checkbox" checked={excludeMine} onChange={e => setExcludeMine(e.target.checked)} style={{ width: 16, height: 16 }} />
+        내 활동 빼고 보기
+        <span style={{ color: 'var(--ink-500)' }}>
+          (사용자 탭에서 표시한 {(summary?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}개 계정)
+        </span>
+      </label>
+    </div>
   );
-  if (!act) return <>{mineToggle}<div style={S.card}>불러오는 중...</div></>;
+  const head = (
+    <TabRole title="요약 — 지금 어떤 상황인지 한눈에.">
+      오늘·어제·최근 7일·전체를 나란히 보고, 회원 현황을 봐요. 기간을 골라 보는 기기 구성·재방문·퍼널·추이 같은 분석은 「대시보드」에서 해요(같은 숫자는 두 탭이 똑같이 나와요).
+    </TabRole>
+  );
+  if (!summary) return <>{head}{mineToggle}<div style={S.card}>불러오는 중...</div></>;
 
-  const today: string = act.today_kst;
-  const shift = (base: string, offset: number) => {
-    const d = new Date(base + 'T12:00:00Z');
-    d.setUTCDate(d.getUTCDate() + offset);
-    return d.toISOString().slice(0, 10);
-  };
-  const nd: { date: string; platform: string; n: number }[] = act.new_devices || [];
-  // 새로 들어온 기기(그 기기가 처음 기록된 날 기준, 봇·안내만 제외)
-  const sumDays = (from: string, to: string) =>
-    nd.filter(r => r.date >= from && r.date <= to && r.platform !== 'other').reduce((a, r) => a + r.n, 0);
-  const todayN = sumDays(today, today);
-  const yesterdayN = sumDays(shift(today, -1), shift(today, -1));
-  const weekN = sumDays(shift(today, -6), today);
+  const periods: any[] = summary.periods || [];
   const U = data?.users || {};
+  const mineNote = excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함';
+  const th: React.CSSProperties = { ...S.th, textAlign: 'right', padding: '8px 4px', fontSize: 10.5 };
+  const rowLabel = (text: string, sub?: string, indent?: boolean) => (
+    <td style={{ ...S.td, whiteSpace: 'normal', paddingLeft: indent ? 14 : 4, paddingRight: 4, fontSize: indent ? 12 : 13, color: indent ? 'var(--ink-700)' : undefined, fontWeight: indent ? 400 : 700 }}>
+      {text}{sub && <div style={{ fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 400 }}>{sub}</div>}
+    </td>
+  );
+  const cell = (v: number, strong?: boolean, sub?: string) => (
+    <td style={{ ...S.td, textAlign: 'right', padding: '9px 4px', fontVariantNumeric: 'tabular-nums', fontWeight: strong ? 800 : 500, fontSize: strong ? 15 : 13 }}>
+      {num(v)}{sub && <div style={{ fontSize: 10, color: 'var(--ink-500)', fontWeight: 400 }}>{sub}</div>}
+    </td>
+  );
+  const row = (label: string, key: string, opts: { strong?: boolean; indent?: boolean; sub?: string } = {}) => (
+    <tr key={label}>
+      {rowLabel(label, opts.sub, opts.indent)}
+      {periods.map(p => cell(p[key] || 0, opts.strong, key === 'new' && p.key === 'week' ? `하루 평균 ${((p.new || 0) / 7).toFixed(1)}` : undefined))}
+    </tr>
+  );
+
   return (
     <>
+      {head}
       {mineToggle}
       <div style={S.card}>
-        <h2 style={S.h2}>쿡매치에 들어온 기기 — 전체 누적</h2>
-        <Range mode="fixed">서버에 처음 기록된 날부터 지금까지 · {excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함'}</Range>
-        <DeviceBreakdown c={act.devices_total || {}} />
-      </div>
-
-      <RevisitBars hist={act.visit_hist} dayHist={act.day_hist} note={`서버에 처음 기록된 날부터 지금까지 · ${excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함'} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`} />
-
-      <div style={S.card}>
-        <h2 style={S.h2}>새로 들어온 기기</h2>
-        <Range mode="fixed">그 기기가 처음 기록된 날 기준 · 봇·안내만 제외 · 기간별 자세한 표는 「대시보드」 탭</Range>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <StatTile title="오늘" value={todayN} />
-          <StatTile title="어제" value={yesterdayN} />
-          <StatTile title="최근 7일" value={weekN} sub={`하루 평균 ${(weekN / 7).toFixed(1)}대`} />
+        <h2 style={S.h2}>들어온 기기 — 오늘·어제·최근 7일·전체</h2>
+        <Range mode="fixed">기기 기준(사람 아닌 것 제외) · {mineNote} · 기간을 바꿔 자세히 보려면 「대시보드」 탭</Range>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+            <colgroup><col style={{ width: '34%' }} /><col style={{ width: '15%' }} /><col style={{ width: '15%' }} /><col style={{ width: '18%' }} /><col style={{ width: '18%' }} /></colgroup>
+            <thead>
+              <tr>
+                <th style={{ ...S.th, padding: '8px 10px' }} />
+                {periods.map(p => <th key={p.key} style={th}>{p.label}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {row('들어온 기기', 'active', { strong: true, sub: '그 기간에 기록 있는 기기' })}
+              {row('└ 새로 들어온', 'new', { indent: true, sub: '처음 기록된 기기' })}
+              {row('└ 다시 들어온', 'returning', { indent: true, sub: '예전에도 온 기기' })}
+              {row('사람 아닌 기기', 'non_person', { sub: '봇 등(위에서 뺌)' })}
+              {row('신규 가입', 'signups', { strong: true, sub: '그 기간 가입 계정' })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+          「전체」의 들어온 기기는 처음부터 지금까지의 합계예요. 같은 사람이 폰·PC 로 들어오면 두 기기로 세어요.
         </div>
       </div>
 
@@ -3074,6 +3228,9 @@ const Dashboard: React.FC = () => {
     <PeriodContext.Provider value={periodLabel}>
       {timeline && <PersonTimeline target={timeline} onClose={() => setTimeline(null)} />}
       {/* 전체 누적 기기 카드는 「요약」 탭으로 옮겼다(2026-10-24). 이 탭은 날짜를 고르는 분석만 둔다. */}
+      <TabRole title="대시보드 — 기간을 골라 왜 그런지 파고드는 분석.">
+        기기 구성(①②③)·몇 번/며칠 들어왔나·일자별 표·퍼널(어디서 멈추나)·화면 추이·크레딧·사람별 활동을 봐요. 「전체」를 고르면 처음부터 지금까지예요. 오늘·어제·최근 7일을 한 줄로 비교하는 건 「요약」이 더 빨라요(같은 숫자는 두 탭이 똑같이 나와요).
+      </TabRole>
 
       <StatsBar
         value={filter}
@@ -3132,8 +3289,10 @@ const Dashboard: React.FC = () => {
                     <div style={{ margin: '4px 0 6px' }}>
                       <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기(기간 안에서 처음 기록된 날 기준)' : '「전체」 = 처음 기록된 날부터 지금까지'}</Range>
                     </div>
+                    <PeriodDevicesBox pd={act.period_devices} ranged={ranged} showFunnelNote />
                     <div style={{ margin: '0 0 12px' }}>
                       <DeviceBreakdown
+                        title="새로 들어온 기기 합계 (봇·안내만 뺀 것)"
                         c={{
                           android: sumOf(all, 'android'), ios: sumOf(all, 'ios'), web: sumOf(all, 'web'), unknown: sumOf(all, 'unknown'),
                           link_ios: sumOf(all, 'link_ios'), link_android: sumOf(all, 'link_android'), link_web: sumOf(all, 'link_web'),
@@ -3279,8 +3438,8 @@ const Dashboard: React.FC = () => {
                   : `화면 기록을 켠 뒤 전부 · ${spanOf(AP.events_from, AP.events_to)}`}
               </Range>
               <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
-                방문 {act.sessions?.total ?? 0}회 · 사람 {act.sessions?.people ?? 0}명 ·
-                두 번 이상 온 사람 <b>{act.sessions?.returning ?? 0}명</b>
+                방문 {act.sessions?.total ?? 0}회 · 기기 {act.sessions?.people ?? 0}대(사람 아닌 것 제외) ·
+                두 번 이상 온 기기 <b>{act.sessions?.returning ?? 0}대</b>
                 {(act.sessions?.people ?? 0) > 0 &&
                   ' (' + Math.round(((act.sessions?.returning ?? 0) / act.sessions.people) * 100) + '%)'}
               </div>
@@ -3382,12 +3541,20 @@ const Dashboard: React.FC = () => {
                       괄호 안 비율은 모두 <b>그 유입의 방문 수 대비</b>예요.
                       <b> 방문이 많은 쪽</b>이 아니라 <b>재료 담기·가입 비율이 높은 쪽</b>에
                       광고를 더 쓰면 됩니다.
+                      <br />
+                      표가 넓어서 폰에서는 <b>표를 옆으로 밀어야</b> 오른쪽 숫자(재료 담은 방문·가입한 방문 등)가 보여요.
+                      <br />
+                      <b>재료 담은 방문</b>은 회원의 재료 담기와 비회원의 직접·사진 담기를 함께 센 값이에요
+                      (비회원 기록은 10/22부터라 그 전 방문은 0으로 나와요. 팝업에서 기본 재료를 빼는 건 담기에 안 세요).
+                      <br />
+                      <b>인스타그램·스레드·포트폴리오·이력서</b>는 이름이 둘 이상이면 <b>합친 줄</b> 아래에 계정·링크별로 나뉘어 보여요.
+                      합친 줄의 사람 수는 아래 줄을 더한 값이라, 같은 기기가 두 줄에 있으면 겹쳐 셀 수 있어요.
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
+                      <div className="adm-scroll adm-full"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
                         <thead><tr>{cols.map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                         <tbody>
-                          {act.sources.map((r: any) => {
+                          {groupSources(act.sources).map((r: any) => {
                             const share = Math.round((r.sessions / totalSessions) * 100);
                             const rate = (n: number) => (r.sessions ? Math.round((n / r.sessions) * 100) : 0);
                             const cellNum = { ...S.td, fontVariantNumeric: 'tabular-nums' as const };
@@ -3400,8 +3567,21 @@ const Dashboard: React.FC = () => {
                               </>
                             );
                             return (
-                              <tr key={r.source}>
-                                <td style={S.td}><b>{r.source}</b></td>
+                              <tr key={(r._depth ? 'k:' : '') + r.source} style={r._group ? { background: 'var(--surface-sub)' } : undefined}>
+                                <td style={{ ...S.td, width: 170, minWidth: 170, maxWidth: 170, whiteSpace: 'normal', wordBreak: 'break-all',
+                                             paddingLeft: r._depth ? 24 : undefined,
+                                             background: r._group ? 'var(--surface-sub)' : undefined }}>
+                                  <b>{r._depth ? '└ ' : ''}{r.source}</b>
+                                  {r._group ? (
+                                    <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.45, fontWeight: 400 }}>
+                                      아래 {r._n}개를 합친 줄
+                                    </div>
+                                  ) : sourceLabel(r.source) && (
+                                    <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.45, fontWeight: 400 }}>
+                                      {sourceLabel(r.source)}
+                                    </div>
+                                  )}
+                                </td>
                                 <td style={cellNum}>
                                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
                                     <span>{num(r.sessions)}</span>
@@ -3443,6 +3623,30 @@ const Dashboard: React.FC = () => {
                       (<code>instagram_story</code>, <code>threads_0902</code> 처럼 글마다
                       다르게 붙이면 글 단위로도 볼 수 있어요).
                     </div>
+                    <details style={{ marginTop: 10, fontSize: 12, color: 'var(--ink-700)', lineHeight: 1.7 }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 700 }}>
+                        내가 심어 둔 꼬리표 목록 · 링크 (눌러서 펼치기)
+                      </summary>
+                      <div className="adm-scroll" style={{ marginTop: 6 }}>
+                        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
+                          <thead><tr>{['표에 뜨는 이름', '어디서 온 건가', '심을 링크 (앞에 refrigerator-code.vercel.app 붙이기)'].map(h => (
+                            <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+                          <tbody>
+                            {SOURCE_GUIDE.map(g => (
+                              <tr key={g.tag}>
+                                <td style={S.td}><b>{g.tag}</b></td>
+                                <td style={S.td}>{g.means}</td>
+                                <td style={{ ...S.td, fontSize: 11.5 }}><code>{g.link}</code></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style={{ marginTop: 6, color: 'var(--ink-500)' }}>
+                        이름 뒤에 <code>_web</code> 은 웹 첫 화면, <code>_app</code> 은 다운로드 페이지로 보낸 링크예요.
+                        목록에 없는 이름도 표에 그대로 뜨고, 이름 규칙(portfolio·resume·ig·threads로 시작)에 맞으면 설명도 같이 붙어요.
+                      </div>
+                    </details>
                   </div>
                 );
               })()}
@@ -3517,6 +3721,7 @@ const Dashboard: React.FC = () => {
             const CTA_LABEL: Record<string, string> = {
               ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
               done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문',
+              welcome: '첫 시작(기본 재료 고르기)', save_prompt: '레시피 본 뒤 저장 제안',
             };
             const cta: any[] = act.cta || [];
             const signupAfter: any[] = act.signup_after_cta || [];
@@ -3528,13 +3733,14 @@ const Dashboard: React.FC = () => {
                   <h2 style={{ ...S.h2, margin: 0 }}>가입 유도 팝업</h2>
                   <div style={{ fontSize: 12, color: '#6A6A73', margin: '4px 0 10px', lineHeight: 1.6 }}>
                     {filterSpan} · 앱에 이 팝업이 들어간 새 버전부터 쌓입니다. 「누름」은 [로그인하기]를 누른 횟수, 「닫음」은 취소·나중에·X.
+                    「첫 시작(기본 재료 고르기)」은 처음 앱을 열면 뜨는 팝업이에요 — 「그냥 시작」=[이 재료로 요리 보기](예전 빌드는 [이대로 시작]), 「닫음」=X, 「누름」=[로그인하고 시작](예전 빌드만). 「레시피 본 뒤 저장 제안」은 처음 레시피를 연 3.5초 뒤 한 번 뜨는 「이 냉장고, 저장해 둘까요?」예요. 새 앱 빌드부터 쌓여요.
                   </div>
                   {cta.length === 0 ? (
                     <div style={{ fontSize: 13, color: '#6A6A73' }}>아직 기록이 없어요.</div>
                   ) : (
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360 }}>
-                        <thead><tr>{['팝업', '본 사람', '뜬 횟수', '누름', '닫음', '누른 비율'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                        <thead><tr>{['팝업', '본 사람', '뜬 횟수', '누름', '그냥 시작', '닫음', '누른 비율'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                         <tbody>
                           {cta.map(r => (
                             <tr key={r.tag}>
@@ -3542,6 +3748,7 @@ const Dashboard: React.FC = () => {
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.viewers)}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.views)}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{num(r.clicks)}</td>
+                              <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.tag === 'welcome' ? num(r.starts) : '-'}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.dismisses)}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.views ? `${Math.round((r.clicks / r.views) * 100)}%` : '-'}</td>
                             </tr>
@@ -3918,7 +4125,7 @@ const Admin: React.FC = () => {
           top 은 공통 GNB 높이(56px). 배경을 페이지 배경과 같게 칠해 아래 내용이 비치지 않게 한다. */}
       <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 56, zIndex: 20, overflowX: 'auto',
                     background: 'var(--surface-sub)', margin: '0 -12px 12px', padding: '8px 12px' }}>
-        {([['overview', '요약'], ['dashboard', '대시보드'], ['reels', '릴스'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
+        {([['overview', '요약'], ['dashboard', '대시보드'], ['reels', '게시물'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"

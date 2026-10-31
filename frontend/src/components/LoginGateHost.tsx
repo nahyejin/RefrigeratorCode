@@ -4,6 +4,8 @@ import Dialog from './ui/Dialog';
 import {
   GATE_EVENT, GateDetail, GateKind, gateCopy, isGuestNow, markReturnGateShown, shouldShowReturnGate, trackGate,
 } from '../utils/loginGate';
+import { isUsageGuideRunning } from '../utils/onboardingPrompts';
+import { rememberPostLoginReturn } from '../utils/postLoginReturn';
 
 /**
  * 비회원 로그인 확인창 — 앱에 **하나만** 둔다(2026-10-22).
@@ -39,6 +41,8 @@ const LoginGateHost: React.FC = () => {
     if (location.pathname === firstPath.current) return;
     if (SKIP_PATHS.some(p => location.pathname.startsWith(p))) return;
     if (!shouldShowReturnGate()) return;
+    // 사용 가이드가 화면을 옮겨 가며 도는 중이면 겹치지 않게 이번 방문에는 건너뛴다(2026-10-29: 가이드가 두 번째 방문에도 뜬다)
+    if (isUsageGuideRunning()) return;
     markReturnGateShown();
     const timer = window.setTimeout(() => {
       setGate({ kind: 'return' });
@@ -58,6 +62,9 @@ const LoginGateHost: React.FC = () => {
   const login = () => {
     trackGate('cta_click', kind);
     setGate(null);
+    // 레시피 패널이 열려 있으면 로그인 화면이 그 뒤에 숨는다 — 보던 자리를 적어 두고 패널을 닫은 뒤 이동한다.
+    // 로그인이 끝나면 그 화면으로 돌아와 같은 레시피 패널이 다시 열린다.
+    rememberPostLoginReturn();
     navigate('/login');
   };
 
@@ -69,7 +76,7 @@ const LoginGateHost: React.FC = () => {
       title={copy.title}
       actions={[
         { label: copy.dismiss, onClick: dismiss, variant: 'outline' },
-        { label: '로그인하기', onClick: login, variant: 'primary' },
+        { label: kind === 'save' ? '3초 만에 저장하기' : '로그인하기', onClick: login, variant: 'primary' },
       ]}
     >
       <div style={{ fontSize: 14 }}>

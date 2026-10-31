@@ -31,6 +31,11 @@ export function openCookMode(target: CookTarget) {
   listeners.forEach(fn => fn(current));
 }
 
+/** 지금 열려 있는 레시피(없으면 null) — 로그인하러 갔다가 돌아올 때 다시 열려고 읽는다 */
+export function getCookTarget(): CookTarget | null {
+  return current;
+}
+
 export function closeCookMode() {
   current = null;
   listeners.forEach(fn => fn(current));

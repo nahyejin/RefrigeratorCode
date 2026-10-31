@@ -12,6 +12,21 @@ export const ONBOARDING_KEYS = {
   expiryPushPromptSeen: 'expiry_push_prompt_seen',
 } as const;
 
+/**
+ * 첫 시작 팝업에서 [이 재료로 요리 보기]로 곧바로 요리 화면에 간 사람(2026-10-29) — 첫 방문에는 사용 가이드를 건너뛴다
+ * (가치를 보기 전에 18단계 안내를 얹지 않으려고). 대신 **다음에 앱을 열 때** 내냉장고에서 한 번 보여 준다.
+ * 가이드가 실제로 열리면(`markUsageGuideOpened`) 표시를 지운다.
+ */
+const GUIDE_DEFERRED_KEY = 'usage_guide_deferred_to_next_visit';
+
+export function deferUsageGuideToNextVisit(): void {
+  try {
+    if (!localStorage.getItem(ONBOARDING_KEYS.usageGuideNeverShow)) localStorage.setItem(GUIDE_DEFERRED_KEY, 'true');
+  } catch {
+    /* 표시를 못 남기면 가이드는 안 뜬다 — 마이페이지에서 다시 볼 수 있다 */
+  }
+}
+
 export const USAGE_GUIDE_INACTIVE_DAYS = 30;
 export const USAGE_GUIDE_FINISHED_EVENT = 'usageGuideFinished';
 export const USAGE_GUIDE_OPENED_EVENT = 'usageGuideOpened';
@@ -31,7 +46,9 @@ export function evaluateVisitForUsageGuide(now = Date.now()): boolean {
   const isFirstVisit = previousVisitTime === 0;
   const isLongReturn = !isFirstVisit && now - previousVisitTime >= USAGE_GUIDE_INACTIVE_DAYS * DAY_MS;
   const neverShow = localStorage.getItem(ONBOARDING_KEYS.usageGuideNeverShow) === 'true';
-  const shouldShowGuide = !neverShow && (isFirstVisit || isLongReturn);
+  // 첫 방문에 가이드를 미뤄 둔 사람은 그다음 방문에서 한 번(가이드가 열릴 때까지 매 방문 대상)
+  const deferred = !isFirstVisit && localStorage.getItem(GUIDE_DEFERRED_KEY) === 'true';
+  const shouldShowGuide = !neverShow && (isFirstVisit || isLongReturn || deferred);
 
   sessionStorage.setItem(ONBOARDING_KEYS.visitEvaluatedThisSession, 'true');
   sessionStorage.setItem(ONBOARDING_KEYS.usageGuideDueThisVisit, String(shouldShowGuide));
@@ -76,7 +93,27 @@ export function markUsageGuideFinished(): void {
 
 export function markUsageGuideOpened(): void {
   sessionStorage.setItem(ONBOARDING_KEYS.usageGuideStartedThisVisit, 'true');
+  try { localStorage.removeItem(GUIDE_DEFERRED_KEY); } catch { /* 무시 */ }
   window.dispatchEvent(new Event(USAGE_GUIDE_OPENED_EVENT));
+}
+
+/** 가이드가 열렸고 아직 끝나지 않았다 — 이 동안은 다른 팝업(두 번째 방문 로그인 안내 등)을 띄우지 않는다. */
+export function isUsageGuideRunning(): boolean {
+  return sessionStorage.getItem(ONBOARDING_KEYS.usageGuideStartedThisVisit) === 'true'
+    && sessionStorage.getItem(ONBOARDING_KEYS.usageGuideFinishedThisVisit) !== 'true';
+}
+
+/**
+ * 마이페이지 「사용 가이드 다시 보기」 — 이번 방문을 「가이드를 볼 차례」로 되돌린다. 호출한 쪽이 `/my-fridge` 로 보낸다.
+ * 내냉장고가 열리면서 가이드를 처음부터 시작하고(첫 시작 팝업은 이미 본 기기라 다시 뜨지 않는다), 끝나면 냉장고요리 →
+ * 캘린더 →(로그인했으면) 마이페이지로 이어진다.
+ */
+export function requestUsageGuideReplay(): void {
+  sessionStorage.setItem(ONBOARDING_KEYS.visitEvaluatedThisSession, 'true');
+  sessionStorage.setItem(ONBOARDING_KEYS.usageGuideDueThisVisit, 'true');
+  sessionStorage.removeItem(ONBOARDING_KEYS.usageGuideStartedThisVisit);
+  sessionStorage.removeItem(ONBOARDING_KEYS.usageGuideFinishedThisVisit);
+  try { localStorage.removeItem('myfridge_guide_completed'); } catch { /* 무시 */ }
 }
 
 export function isStandaloneAppMode(): boolean {

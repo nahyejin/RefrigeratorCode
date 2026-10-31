@@ -13,7 +13,9 @@ import subprocess, sys, wave
 import numpy as np
 
 CLEAN = "adeclick=w=55:o=75:a=2:t=2,afftdn=nr=8:nf=-40,lowpass=f=12000"
-WM = "delogo=x=570:y=1130:w=62:h=62"
+WM = "delogo=x=570:y=1130:w=62:h=62,delogo=x=598:y=1203:w=106:h=74"  # 두 번째 표식(아래쪽 작은 별)이 끝까지 남는 클립이 있다(talk02 1차·2차 클립 1). talk03 은 클립마다 x 620~700·y 1205~1275 로 위치가 달라 상자를 넓힘
+# 클립마다 첫 0.4초는 표식이 움직이며 더 크게 나온다(REEL_FORMATS ③) — 원본 시각 기준으로 넓은 영역을 따로 지운다.
+WM_START = "delogo=x=622:y=1186:w=92:h=90:enable='lt(t,0.45)'"
 SR = 48000
 
 
@@ -46,7 +48,7 @@ def main(c1, c2, c3, out):
     parts, inputs = [], []
     for i, (c, (a, b)) in enumerate(zip((c1, c2, c3), segs)):
         inputs += ["-i", c]
-        parts.append(f"[{i}:v]trim={a}:{b},setpts=PTS-STARTPTS,{WM},fps=24[v{i}];"
+        parts.append(f"[{i}:v]{WM_START},trim={a}:{b},setpts=PTS-STARTPTS,{WM},fps=24[v{i}];"
                      f"[{i}:a]atrim={a}:{b},asetpts=PTS-STARTPTS,aresample={SR},{CLEAN},afade=t=in:d=0.03[a{i}];")
     fc = "".join(parts) + "[v0][a0][v1][a1][v2][a2]concat=n=3:v=1:a=1[v][a]"
     subprocess.check_call(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", fc, "-map", "[v]", "-map", "[a]",

@@ -5,6 +5,9 @@ import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
 import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
+import { Reel5Demo, Reel5Cta, REEL5_DEMO_LEN, REEL5_CTA_LEN } from "./Reel5ExpiryAlert";
+import { Reel6Demo, Reel6Cta, REEL6_DEMO_LEN, REEL6_CTA_LEN } from "./Reel6ChatbotDemo";
+import { Reel8Demo, Reel8Cta, REEL8_DEMO_LEN, REEL8_CTA_LEN } from "./Reel8FamilySavings";
 
 // 후킹 v6(2026-10-23) — store/REEL_HOOKS_V6.md 프롬프트로 사용자가 뽑은 제미나이 클립 중 살린 두 편.
 // 클립은 편집본(my-video/public/hooks_v6_fixed 에서 확대·글자 지우기·라벨 블러 후 사용자가 확인한 파일).
@@ -25,12 +28,24 @@ const H4: HookSpec = { src: "reel4_hook_v6_menu.mp4", segs: [[0, 17.3]], caption
 
 // 07 검증된 레시피 ← 빈 팬 앞에서 블로그 레시피를 내리며 「이 사람이 아직 제주도에 있어」 → 「아직 바다 보고 있어」 → 「…이제 귤 따러 갔어」
 // 원본 9.25s 가 너무 빨라(사용자) 0.85배로 늦춘 편집본(10.875s, 목소리 높이 유지·표식 지움). 펀치 대사 「아직 바다 보고 있어」 원본 3.82s → 4.5s.
-const H7: HookSpec = { src: "reel7_hook_v6_blog.mp4", segs: [[0, 10.8]], captionAt: 4.5, caption: "레시피 보려다\n남의 여행기만 봤어요" };
+// 2026-10-29 사용자: 0.85배는 너무 느리다 → 그 파일을 1.12배(원본의 약 0.95배)로 다시 올림. 시각도 1.12로 나눔.
+const H7: HookSpec = { src: "reel7_hook_v6_blog_fast.mp4", segs: [[0, 9.66]], captionAt: 4.03, caption: "레시피 보려다\n남의 여행기만 봤어요" };
 
 // 06 요리 AI ← (남편 주인공, v7.2) 소파에서 「냉장고 파먹기 하려고 레시피를 열 개를 봤거든?」 → 「근데 열 개 다 마트 가서 뭘 사 오래」(5.5s) → 아내 「배달 시킬까?」(~9.0s)
 // 원본 10.0s 가 대사 직후 끝나 너무 짧다(사용자) → 대사 끝(9.0s) 뒤 1초를 3배 슬로우(프레임 보간)로 3초 + 그동안 남자 얼굴로 천천히 1.35배. 편집본 12.0s.
 // (정·역 반복으로 늘렸더니 버벅거려 보인다는 지적으로 슬로우로 바꿈, 2026-10-24)
 const H6: HookSpec = { src: "reel6_hook_v6_delivery.mp4", segs: [[0, 12.0]], captionAt: 5.5, caption: "레시피 열 개 봤는데\n다 장 보래요" };
+
+// 05 유통기한 ← v7.4(대사 두 번: 아내 「어제까지네... 하루 지난 건 괜찮지?」 1.5~3.8s → 남편 「그럼 자기가 먹어.」 4.5~5.4s → 째려봄).
+// 클립 전체(10.0s)를 쓴다. 표식 두 개(오른쪽 아래 큰 별·그 아래 작은 별)와 첫 0.45초 움직이는 표식을 delogo 로 지움(reel5_hook_v6_yogurt.mp4).
+const H5: HookSpec = { src: "reel5_hook_v6_yogurt.mp4", segs: [[0, 10.0]], captionAt: 4.5, caption: "유통기한 어제,\n먹어? 말아?" };
+
+// v7 새 프롬프트(사진 먼저 → 대본 한 덩어리)로 뽑은 두 편(2026-10-29). 클립 전체 10.0s, 빠르기 그대로(짧아서 배속 없음 — 사용자).
+// 표식은 delogo(큰 별 570,1130 · 작은 별 638,1203 · 첫 0.45초 움직이는 표식). Whisper 실측 시각.
+// 08 아낀 돈 ← 남편 「짠! … 이만 원은 아꼈다」 0~4.9s → 아내 「그럼 그 돈으로 오늘 치킨 시켜 먹자」 5.34s → 남편 「…그럼 안 아낀 거잖아」 8.46s
+const H8: HookSpec = { src: "reel8_hook_v7_chicken.mp4", segs: [[0, 10.0]], captionAt: 5.4, caption: "집밥으로 아낀 돈,\n어디에 써요?" };
+// 06B 요리 AI ← 남편 「자기야 두부랑 김치 있는데 이걸로 뭐 해 먹지?」 0~4.1s → 아내 「그거 오늘만 세 번째야… 나 말고 폰한테 물어봐. 걔가 더 잘 알아」 4.44~8.46s
+const H6B: HookSpec = { src: "reel6_hook_v7_askphone.mp4", segs: [[0, 10.0]], captionAt: 6.2, caption: "뭐 해 먹지는\n이제 폰한테 물어봐요" };
 
 export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
@@ -38,5 +53,8 @@ export const REELS_HOOK_V6 = [
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
   // 06 배달 훅이지만 데모는 02 매칭 — 「레시피마다 장 보래」에는 「내 냉장고 기준 매칭률 순 + 없는 재료는 있는 걸로 대체」가 답이다(사용자 선택, 2026-10-24).
   { id: "Reel6HookV6Delivery", ...makeReel(H6, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
+  { id: "Reel5HookV6Yogurt", ...makeReel(H5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN, REST_EXCL[4]) },
+  { id: "Reel8HookV7Chicken", ...makeReel(H8, Reel8Demo, REEL8_DEMO_LEN, Reel8Cta, REEL8_CTA_LEN, REST_EXCL[7]) },
+  { id: "Reel6HookV7AskPhone", ...makeReel(H6B, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN, REST_EXCL[5]) },
   { id: "Reel7HookV6Blog", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
 ];

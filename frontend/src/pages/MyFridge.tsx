@@ -33,6 +33,7 @@ import {
   markUsageGuideFinished,
   usageGuideTotalSteps,
   markUsageGuideOpened,
+  deferUsageGuideToNextVisit,
   ONBOARDING_KEYS,
 } from '../utils/onboardingPrompts';
 
@@ -2313,6 +2314,13 @@ const MyFridge: React.FC = () => {
     [frozen, fridge, room],
   );
 
+  // 첫 시작 팝업이 뜬 것(비회원) — 어드민 「가입 유도 팝업」에 「첫 시작 팝업」으로 쌓인다(2026-10-29).
+  // 뜬 뒤 [이대로 시작]/[로그인하고 시작]/X 중 무엇을 눌렀는지를 같은 이름으로 이어 남긴다.
+  const welcomeOpen = showWelcomeModal && seedItems.length > 0;
+  React.useEffect(() => {
+    if (welcomeOpen && !isLoggedIn) track('cta_view', 'welcome');
+  }, [welcomeOpen, isLoggedIn]);
+
   /** 첫 진입 팝업을 닫고 이어서 사용 가이드를 시작한다(예전 WelcomeModal 의 닫기와 같은 흐름) */
   const finishWelcome = () => {
     setShowWelcomeModal(false);
@@ -3057,16 +3065,18 @@ const MyFridge: React.FC = () => {
           open={showWelcomeModal && seedItems.length > 0}
           items={seedItems}
           isLoggedIn={isLoggedIn}
-          onClose={finishWelcome}
-          onStart={(ids) => { removeSeedItems(ids); finishWelcome(); }}
-          onLogin={(ids) => {
+          onClose={() => { if (!isLoggedIn) track('cta_dismiss', 'welcome'); finishWelcome(); }}
+          onStart={(ids) => {
+            if (isLoggedIn) { removeSeedItems(ids); finishWelcome(); return; }
+            // 비회원: 빼기로 한 재료를 이 기기에 **바로 저장**하고 만들 수 있는 요리 화면으로 간다(2026-10-29).
+            // 화면이 바뀌면 이 페이지의 저장 효과가 돌기 전에 사라질 수 있어 상태 반영에 기대지 않는다.
+            track('cta_start', 'welcome');
+            deferUsageGuideToNextVisit(); // 첫 방문엔 가이드를 건너뛰고 다음 방문에 한 번
             removeSeedItems(ids);
-            // 로그인 뒤에 사용 가이드를 이어서 보여 주기 위한 표시(예전 WelcomeModal 과 같은 규칙)
-            try {
-              if (!localStorage.getItem('myfridge_guide_shown')) localStorage.setItem('show_guide_after_login', 'true');
-            } catch { /* 표시를 못 남겨도 로그인은 진행 */ }
+            const keep = (list: Ingredient[] | null) => (list ?? []).filter(i => !ids.includes(i.id as string));
+            saveIngredients(keep(frozen), keep(fridge), keep(room));
             setShowWelcomeModal(false);
-            navigate('/login');
+            navigate('/recipe-list');
           }}
         />
         
