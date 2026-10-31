@@ -25,6 +25,7 @@
        `frontend/public/threads/<문서id>-<N>.<확장자>`(N = 1부터 순서, 영상은 .mp4/.mov 확장자를 지켜야 스크립트가 영상으로 올림) 로 복사 → 한 번에 커밋·푸시 → 모든 `https://refrigerator-code.vercel.app/threads/<파일>` 이 200이 될 때까지(최대 5분) 기다림 → 순서대로 `image_publics` 에 저장.
        (옛 문서: `image_asset` 이 있고 `image_public` 이 없으면 같은 방법으로 `<문서id>.<확장자>` 한 장 → `image_public`.)
      - `{"id", "kind":"post", "text", "image_urls": image_publics (옛 문서는 [image_public]), "first_reply": first_reply_text or first_reply}` — 2개 이상이면 스크립트가 캐러셀로 올린다(영상 섞여도 됨, 영상 처리에 1~2분).
+   - `post_after`(ISO 시각)가 있으면 그 시각 전에는 승인됐어도 올리지 않고 다음 실행으로 미룬다(이어지는 글을 다음 날 올리기 — 2026-11-01 사용자: 소분 글 오늘, 요리 후기 내일).
    - 본문에 `[대괄호]` 가 남아 있으면 올리지 말고 `failed`, error = "대괄호를 실제 내용으로 바꿔 주세요".
    - 항목들을 JSON 파일(스크래치 폴더)로 써서 `post` 실행 → 결과대로 `posted`(posted_link·media_id·posted_at) / `failed`(error) 업데이트. 읽은 version 을 if_version 으로.
 2. **새 댓글** — `fetch` 결과 중 items 에 같은 id 문서가 **없는** 것만 답글 초안을 써서 `pending` 으로 넣는다.

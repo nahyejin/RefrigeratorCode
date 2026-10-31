@@ -31,7 +31,7 @@ function card(d) {
     ? `<div class="tmeta"><span>${esc(d.post_first_line)}</span>${d.permalink ? `<a href="${esc(d.permalink)}" target="_blank" rel="noopener">글 보기</a>` : ""}<span>${when(d.timestamp)}</span></div>
        ${d.parent_text ? `<div class="quote">내 답글: ${esc(d.parent_text)}</div>` : ""}
        <div class="comment"><span class="who">@${esc(d.username)}</span> ${esc(d.comment)}</div>`
-    : `<div class="tmeta"><span>${esc(d.slot)}</span><span>${esc(d.type)}</span></div>${d.photo_hint ? `<div class="quote">사진: ${esc(d.photo_hint)}</div>` : ""}`;
+    : `<div class="tmeta"><span>${esc(d.slot)}</span><span>${esc(d.type)}</span>${d.post_after ? `<span>${when(d.post_after)} 이후에 올라가요</span>` : ""}</div>${d.photo_hint ? `<div class="quote">사진: ${esc(d.photo_hint)}</div>` : ""}`;
   // 사진·영상 여러 장(스레드 캐러셀, 최대 20개). 옛 문서는 image_url 한 장.
   const imgs = d.images || (d.image_url ? [{ url: d.image_url }] : []);
   const photo = d.kind === "post"
