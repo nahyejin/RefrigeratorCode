@@ -20,9 +20,9 @@
 ## 순서
 1. **올리기** — `status == approved` 를 읽는다(쿼리).
    - reply: 바로 올린다. `{"id", "kind":"reply", "text": text or draft, "reply_to": 문서 id}`
-   - post: **아침 7~8시(출근길), 낮 12~13시(점심), 밤 20시~0시대(퇴근·아이 재운 뒤)에만**, 하루 최대 2개·한 시간대에 1개. 그 밖이면 다음 실행으로 미룬다. (2026-10-30 사용자: 엄마들이 폰 보는 시간 = 출근길·점심·밤 8시~새벽 12시, 본인도 그렇다)
+   - post: **승인되면 바로 올린다**(시간대 제한 없음, 2026-11-01 사용자: 「특정 시간 기다리지 말고 내가 승인할 때 바로」). 예전 규칙(7~8·12~13·20~0시대만, 하루 2개)은 폐지. 한 번 실행에 승인된 글이 여럿이면 order 순으로 모두.
      - `images` 가 있고 `image_publics` 가 없으면: 사진마다 Artifact `read`(url=https://claude.ai/artifact/BGyobmSLq8o69qkFQWhSkK, path=asset id)로 받아서
-       `frontend/public/threads/<문서id>-<N>.<확장자>`(N = 1부터 순서, 영상은 .mp4/.mov 확장자를 지켜야 스크립트가 영상으로 올림) 로 복사 → 한 번에 커밋·푸시 → 모든 `https://refrigerator-code.vercel.app/threads/<파일>` 이 200이 될 때까지(최대 5분) 기다림 → 순서대로 `image_publics` 에 저장.
+       `frontend/public/threads/<문서id>-<N>.<확장자>`(N = 1부터 순서, 영상은 .mp4/.mov 확장자를 지켜야 스크립트가 영상으로 올림) 로 복사하면서 **위치정보(GPS) 등 메타데이터를 지운다**(사진: `ffmpeg -i 원본 -map_metadata -1 -vf scale=긴 변 최대 2048 -q:v 3`, 영상: `-map_metadata -1 -c copy`; 2026-11-01 아이폰 사진에 집 GPS가 들어 있었음) → 한 번에 커밋·푸시 → 모든 `https://refrigerator-code.vercel.app/threads/<파일>` 이 **Content-Type image/·video/** 로 올 때까지(최대 10분) 기다림 — 배포 전엔 사이트 기본 페이지가 200 text/html 로 와서 200만 보면 안 됨(스레드가 「알 수 없는 이미지 형식」으로 거절) → 순서대로 `image_publics` 에 저장.
        (옛 문서: `image_asset` 이 있고 `image_public` 이 없으면 같은 방법으로 `<문서id>.<확장자>` 한 장 → `image_public`.)
      - `{"id", "kind":"post", "text", "image_urls": image_publics (옛 문서는 [image_public]), "first_reply": first_reply_text or first_reply}` — 2개 이상이면 스크립트가 캐러셀로 올린다(영상 섞여도 됨, 영상 처리에 1~2분).
    - `post_after`(ISO 시각)가 있으면 그 시각 전에는 승인됐어도 올리지 않고 다음 실행으로 미룬다(이어지는 글을 다음 날 올리기 — 2026-11-01 사용자: 소분 글 오늘, 요리 후기 내일).

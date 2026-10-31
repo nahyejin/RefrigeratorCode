@@ -6,8 +6,8 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const LABEL = { pending: "검토 전", approved: "올리기 대기", posted: "올림", skip: "안 달기", failed: "실패" };
 const ORDER = ["pending", "failed", "approved", "posted", "skip"];
 const HOW = {
-  reply: `<b>답글 검토</b><ol><li>새 댓글이 오면 Claude가 답글 초안을 넣어요.</li><li>고칠 곳을 고치고 「이대로 답글 달기」, 안 달 거면 「안 달기」.</li><li>승인한 답글은 다음 정각 7분에 올라가요.</li></ol>`,
-  post: `<b>새 글 검토</b><ol><li>[대괄호]를 실제 이야기로 바꾸고, 직접 찍은 사진을 한 장 올려요.</li><li>「이대로 올리기」를 누르면 아침 7~8시·점심 12~13시·밤 8시~새벽 12시 중 다음 시간에 올라가요.</li><li>올리자마자 「첫 답글」도 같이 달려요.</li></ol>`,
+  reply: `<b>답글 검토</b><ol><li>새 댓글이 오면 Claude가 답글 초안을 넣어요.</li><li>고칠 곳을 고치고 「이대로 답글 달기」, 안 달 거면 「안 달기」.</li><li>승인한 답글은 15분 안에 올라가요.</li></ol>`,
+  post: `<b>새 글 검토</b><ol><li>[대괄호]를 실제 이야기로 바꾸고, 직접 찍은 사진을 한 장 올려요.</li><li>「이대로 올리기」를 누르면 15분 안에 올라가요(PC·Claude 앱이 켜져 있을 때).</li><li>올리자마자 「첫 답글」도 같이 달려요.</li></ol>`,
 };
 let kind = "reply", docs = [], db = null, assets = null, ready = false;
 try { kind = localStorage.getItem("tr_kind") || "reply"; } catch (e) {}
@@ -46,7 +46,7 @@ function card(d) {
     ? `<div class="trow"><button class="btn main" type="button" data-go="${d.id}" ${bracket ? "disabled" : ""}>${d.kind === "reply" ? "이대로 답글 달기" : "이대로 올리기"}</button>
        <button class="btn" type="button" data-skip="${d.id}">${d.kind === "reply" ? "안 달기" : "이 글 빼기"}</button></div>`
     : `<div class="trow"><span class="state ${d.status}">${LABEL[d.status]}</span>
-       ${d.status === "approved" ? `<span class="feat">${d.kind === "reply" ? "다음 정각 7분에 올라가요" : "다음 올리는 시간에 올라가요"}</span>` : ""}
+       ${d.status === "approved" ? `<span class="feat">${d.kind === "reply" ? "15분 안에 올라가요" : (d.post_after && new Date(d.post_after) > new Date() ? "정한 날짜가 되면 올라가요" : "15분 안에 올라가요")}</span>` : ""}
        ${d.status === "approved" || d.status === "skip" ? `<button class="btn" type="button" data-undo="${d.id}">되돌리기</button>` : ""}
        ${d.posted_link ? `<a href="${esc(d.posted_link)}" target="_blank" rel="noopener">스레드에서 보기</a>` : ""}</div>`;
   return `<article class="tcard ${d.status}">${head}
