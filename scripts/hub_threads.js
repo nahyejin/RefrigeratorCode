@@ -32,11 +32,13 @@ function card(d) {
        ${d.parent_text ? `<div class="quote">내 답글: ${esc(d.parent_text)}</div>` : ""}
        <div class="comment"><span class="who">@${esc(d.username)}</span> ${esc(d.comment)}</div>`
     : `<div class="tmeta"><span>${esc(d.slot)}</span><span>${esc(d.type)}</span></div>${d.photo_hint ? `<div class="quote">사진: ${esc(d.photo_hint)}</div>` : ""}`;
-  // 사진은 여러 장(스레드 캐러셀, 최대 20장). 옛 문서는 image_url 한 장.
+  // 사진·영상 여러 장(스레드 캐러셀, 최대 20개). 옛 문서는 image_url 한 장.
   const imgs = d.images || (d.image_url ? [{ url: d.image_url }] : []);
   const photo = d.kind === "post"
-    ? `<div class="photo">${imgs.length ? `<div class="pics">${imgs.map((m, i) => `<img src="${esc(m.url)}" alt="올릴 사진 ${i + 1}">`).join("")}</div>` : ""}
-       ${editable && assets ? `<label for="ph-${d.id}">사진 고르기 — 여러 장은 한 번에 같이 골라요(최대 20장, 고른 순서대로 올라가요)</label><input type="file" accept="image/*" multiple id="ph-${d.id}" data-photo="${d.id}"><span class="feat" id="phs-${d.id}">${imgs.length ? `지금 ${imgs.length}장` : ""}</span>` : ""}</div>` : "";
+    ? `<div class="photo">${imgs.length ? `<div class="pics">${imgs.map((m, i) => m.type === "video"
+      ? `<video src="${esc(m.url)}" muted playsinline controls preload="metadata" aria-label="올릴 영상 ${i + 1}"></video>`
+      : `<img src="${esc(m.url)}" alt="올릴 사진 ${i + 1}">`).join("")}</div>` : ""}
+       ${editable && assets ? `<label for="ph-${d.id}">사진·영상 고르기 — 여러 개는 한 번에 같이 골라요(최대 20개, 고른 순서대로 올라가요)</label><input type="file" accept="image/*,video/*" multiple id="ph-${d.id}" data-photo="${d.id}"><span class="feat" id="phs-${d.id}">${imgs.length ? `지금 ${imgs.length}개` : ""}</span>` : ""}</div>` : "";
   const first = d.kind === "post"
     ? `<div><label for="fr-${d.id}">올리자마자 달 첫 답글</label><textarea id="fr-${d.id}" data-first="${d.id}" ${editable ? "" : "readonly"} style="min-height:56px">${esc(d.first_reply_text ?? d.first_reply ?? "")}</textarea></div>` : "";
   const bracket = editable && /\[[^\]]*\]/.test(text);
@@ -106,7 +108,7 @@ $("#tlist").addEventListener("change", async e => {
       for (const [i, file] of files.entries()) {
         if (st) st.textContent = `올리는 중… ${i + 1}/${files.length}`;
         const a = await assets.upload(file);
-        images.push({ asset: a.id, url: a.url });
+        images.push({ asset: a.id, url: a.url, type: (a.contentType || file.type).startsWith("video/") ? "video" : "image" });
       }
       // 새로 고르면 통째로 바꾼다. 옛 한 장 필드는 비운다.
       await db.collection("items").doc(id).update({ images, image_publics: null, image_asset: null, image_url: null, image_public: null });

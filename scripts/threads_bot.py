@@ -6,7 +6,7 @@
 
 토큰은 .env.threads 의 THREADS_TOKEN(깃 무시). 값은 절대 출력하지 않는다.
 post 입력 = [{"id": 검토 문서 id, "kind": "reply"|"post", "text": ..., "reply_to": 답글 id(reply만),
-              "image_url": 공개 이미지 주소(post에서 선택), "first_reply": 올린 뒤 바로 달 첫 답글(post에서 선택)}]
+              "image_urls": 공개 주소 목록(post에서 선택, .mp4/.mov 는 영상), "first_reply": 올린 뒤 바로 달 첫 답글(post에서 선택)}]
 """
 import json
 import sys
@@ -73,7 +73,7 @@ def fetch():
 
 
 def wait_ready(cid):
-    for _ in range(30):
+    for _ in range(90):  # 영상은 처리에 1~2분 걸린다
         st = call(cid, fields="status,error_message")
         if st.get("status") == "FINISHED":
             return
@@ -83,20 +83,27 @@ def wait_ready(cid):
     raise RuntimeError("컨테이너 준비 시간 초과")
 
 
+def media(u, **extra):
+    """주소 확장자로 사진/영상을 가른다."""
+    if u.lower().split("?")[0].endswith((".mp4", ".mov")):
+        return dict(media_type="VIDEO", video_url=u, **extra)
+    return dict(media_type="IMAGE", image_url=u, **extra)
+
+
 def publish(item):
     q = {"text": item["text"]}
     imgs = item.get("image_urls") or []
     if item["kind"] == "reply":
         q.update(media_type="TEXT", reply_to_id=item["reply_to"])
-    elif len(imgs) > 1:  # 사진 여러 장 = 캐러셀(2~20장): 사진마다 항목 컨테이너 → 묶음 컨테이너
+    elif len(imgs) > 1:  # 사진·영상 여러 개 = 캐러셀(2~20개): 하나마다 항목 컨테이너 → 묶음 컨테이너
         kids = []
         for u in imgs[:20]:
-            k = call("me/threads", "POST", media_type="IMAGE", image_url=u, is_carousel_item="true")["id"]
+            k = call("me/threads", "POST", **media(u, is_carousel_item="true"))["id"]
             wait_ready(k)
             kids.append(k)
         q.update(media_type="CAROUSEL", children=",".join(kids))
     elif imgs or item.get("image_url"):
-        q.update(media_type="IMAGE", image_url=imgs[0] if imgs else item["image_url"])
+        q.update(media(imgs[0] if imgs else item["image_url"]))
     else:
         q.update(media_type="TEXT")
     cid = call("me/threads", "POST", **q)["id"]

@@ -14,7 +14,7 @@
 | `status` | `pending` 검토 전 → 사용자가 `approved`(올리기) 또는 `skip` → 실행이 `posted` / `failed` |
 | `draft` | Claude 초안. 사용자가 고친 최종본은 `text`(있으면 이걸 올림) |
 | reply 전용 | 문서 id = 스레드 답글 id, `username` `comment` `timestamp` `post_id` `post_first_line` `permalink` `parent_text` |
-| post 전용 | 문서 id = `post-w1-01` 식, `slot` `type` `photo_hint` `first_reply`(최종 `first_reply_text`) `order`, 사진 `images: [{asset, url}]`(검토함에 올린 사진들, 순서대로, 최대 20장) → 공개 주소 목록 `image_publics`. 옛 문서는 한 장짜리 `image_asset` → `image_public` |
+| post 전용 | 문서 id = `post-w1-01` 식, `slot` `type` `photo_hint` `first_reply`(최종 `first_reply_text`) `order`, 사진·영상 `images: [{asset, url, type}]`(검토함에 올린 것들, 순서대로, 최대 20개, type = image|video) → 공개 주소 목록 `image_publics`. 옛 문서는 한 장짜리 `image_asset` → `image_public` |
 | 결과 | `posted_link` `posted_at` `media_id` `error` |
 
 ## 순서
@@ -22,9 +22,9 @@
    - reply: 바로 올린다. `{"id", "kind":"reply", "text": text or draft, "reply_to": 문서 id}`
    - post: **아침 7~8시(출근길), 낮 12~13시(점심), 밤 20시~0시대(퇴근·아이 재운 뒤)에만**, 하루 최대 2개·한 시간대에 1개. 그 밖이면 다음 실행으로 미룬다. (2026-10-30 사용자: 엄마들이 폰 보는 시간 = 출근길·점심·밤 8시~새벽 12시, 본인도 그렇다)
      - `images` 가 있고 `image_publics` 가 없으면: 사진마다 Artifact `read`(url=https://claude.ai/artifact/BGyobmSLq8o69qkFQWhSkK, path=asset id)로 받아서
-       `frontend/public/threads/<문서id>-<N>.<확장자>`(N = 1부터 순서) 로 복사 → 한 번에 커밋·푸시 → 모든 `https://refrigerator-code.vercel.app/threads/<파일>` 이 200이 될 때까지(최대 5분) 기다림 → 순서대로 `image_publics` 에 저장.
+       `frontend/public/threads/<문서id>-<N>.<확장자>`(N = 1부터 순서, 영상은 .mp4/.mov 확장자를 지켜야 스크립트가 영상으로 올림) 로 복사 → 한 번에 커밋·푸시 → 모든 `https://refrigerator-code.vercel.app/threads/<파일>` 이 200이 될 때까지(최대 5분) 기다림 → 순서대로 `image_publics` 에 저장.
        (옛 문서: `image_asset` 이 있고 `image_public` 이 없으면 같은 방법으로 `<문서id>.<확장자>` 한 장 → `image_public`.)
-     - `{"id", "kind":"post", "text", "image_urls": image_publics (옛 문서는 [image_public]), "first_reply": first_reply_text or first_reply}` — 2장 이상이면 스크립트가 캐러셀로 올린다.
+     - `{"id", "kind":"post", "text", "image_urls": image_publics (옛 문서는 [image_public]), "first_reply": first_reply_text or first_reply}` — 2개 이상이면 스크립트가 캐러셀로 올린다(영상 섞여도 됨, 영상 처리에 1~2분).
    - 본문에 `[대괄호]` 가 남아 있으면 올리지 말고 `failed`, error = "대괄호를 실제 내용으로 바꿔 주세요".
    - 항목들을 JSON 파일(스크래치 폴더)로 써서 `post` 실행 → 결과대로 `posted`(posted_link·media_id·posted_at) / `failed`(error) 업데이트. 읽은 version 을 if_version 으로.
 2. **새 댓글** — `fetch` 결과 중 items 에 같은 id 문서가 **없는** 것만 답글 초안을 써서 `pending` 으로 넣는다.

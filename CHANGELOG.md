@@ -14062,3 +14062,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 사용자: 지금 걸린 자동 절전·전원 끔을 해제해 달라. 점검: 윈도우 절전·최대 절전·화면 꺼짐 AC 설정 모두 0(안 함) — 이미 해제 상태. 남은 건 평일 19:00 `CookMatch-EveningShutdown`(`sleep_when_idle.ps1 -Shutdown`) 하나(토·일은 스크립트가 건너뜀).
 - `no_shutdown.flag` 를 만들어 스크립트가 절전·종료를 하지 않게 함(스크립트가 대기 루프와 종료 직전에 이 파일을 확인). 작업 자체를 끄는 건 시스템 설정이라 사용자가 관리자 PowerShell 로 `Disable-ScheduledTask CookMatch-EveningShutdown`(또는 삭제) 실행. 다시 켜려면 flag 삭제 + `Enable-ScheduledTask`.
 - 그대로 둔 것: 아침 BIOS 알람(설정했다면)과 `CookMatch-DailyChain` 07:00 깨우기 — 켜는 쪽이라 해제 대상 아님.
+- 2026-11-01: 스레드 새 글에 영상도 — 검토함에서 사진·영상을 같이 고를 수 있고(영상은 카드에서 재생), `threads_bot.py`가 .mp4/.mov 주소는 VIDEO 항목으로 캐러셀에 넣음(영상 처리 대기 최대 3분). 캠핑 알리오 올리오 후기 초안(post-camp-20261101: 소분통→물 끓이기·면 넣기·면 삶기 영상→완성 2장)을 검토함에 넣고, 시점이 지난 소분 글은 「안 달기」로 합침. 30일 밤부터 멈춰 있던 threads-auto 실행을 중지.
