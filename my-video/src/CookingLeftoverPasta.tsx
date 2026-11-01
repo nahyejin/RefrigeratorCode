@@ -36,16 +36,15 @@ const RECAP: Shot[] = [
   { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.8), origin: "50% 55%", lines: [
     { at: 0.2, len: 3.4, text: "도아가 방울토마토도, 새우도, 면도 좋아해서\n건강하게 만든 건데..." },
   ] },
-  // 사용자 2026-11-01: 「갑자기 추워져서…」를 나눠 텐트 속 거위털 옷 영상(20261031_083400, 3초부터 · 끝부분)에 배분. 엄마 설명 원래 소리
-  { kind: "video", src: "coat1.mp4", from: 0, to: 10.0, audio: true, lines: [
-    { at: 0.2, len: 4.6, text: "갑자기 추워져서" },
-    { at: 5.0, len: 4.8, text: "도아가 울어서" },
-  ], talk: [
-    // 엄마 말(사용자가 알려 준 내용, 2026-11-01). 원본 3.1~6.3s · 7.0~10.5s 말소리 구간에 맞춤
-    { at: 0.2, len: 3.6, text: "엄마가 추울까 봐\n이 캠핑을 위해서\n거위털 패딩을 구해 왔단다", who: "엄마" },
-    { at: 4.0, len: 3.6, text: "춥지는 않지?", who: "엄마" },
+  // 텐트 속 거위털 옷 영상(20261031_083400, 68초). 목소리 분석: 3~12초는 주변 소음(옆 텐트 수다), 도아 종알종알 14.5~16.8초, 엄마 설명 17~28.5초
+  // → 앉아서 텐트 밖을 보다가(45~54초) 벌러덩 눕는(55.3~56.5초) 장면. 사용자 2026-11-01
+  { kind: "video", src: "coat1.mp4", from: 0, to: 14.8, audio: true, lines: [{ at: 0.2, len: 14.4, text: "갑자기 추워져서" }], talk: [
+    { at: 0.4, len: 2.4, text: "(종알종알)", who: "도아" },
+    { at: 3.0, len: 6.2, text: "엄마가 추울까 봐 / 이 캠핑을 위해서 / 거위털 패딩을 구해 왔단다", who: "엄마" },
+    { at: 9.5, len: 4.6, text: "춥지는 않지?", who: "엄마" },
   ] },
-  { kind: "video", src: "coat2.mp4", from: 0, to: 3.0, audio: true, lines: [{ at: 0.1, len: 2.8, text: "급하게 집으로 오느라\n한 입도 못 먹였어요" }] },
+  { kind: "video", src: "coat2.mp4", from: 0, to: 6.4, audio: true, lines: [{ at: 0.2, len: 6.0, text: "도아가 울어서" }] },
+  { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, lines: [{ at: 0.1, len: 3.6, text: "급하게 집으로 오느라\n한 입도 못 먹였어요" }] },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
 const LEFT: Shot[] = [
@@ -56,7 +55,7 @@ const LEFT: Shot[] = [
     { at: 5.5, len: 2.6, text: "집에 오자마자 바로 냉장 보관했다가\n센 불에 한 번 더 볶았어요" },
   ] },
   // 도아가 먼저 「이거 뭐지?」 하는 부분부터(사용자 2026-11-01). 원본 7.2s 무렵 짧은 아이 목소리 — 받아쓰기가 막혀 목소리 높이로 찾은 자리
-  { kind: "video", src: "pan.mp4", from: 2.8, to: 12.5, audio: true, lines: [
+  { kind: "video", src: "pan.mp4", from: 2.8, to: 14.2, audio: true, lines: [
     { at: 0.1, len: 4.2, text: "남은 면을 본 도아" },
   ], talk: [{ at: 4.4, len: 2.4, text: "이거 뭐지?", who: "도아" }] },
 ];
@@ -146,18 +145,35 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
   );
 };
 
-// 사람이 실제로 한 말 — 설명 자막과 다른 말풍선(사용자 2026-11-01: 사람이 말하는 건 말하는 형태의 자막으로)
+// 사람이 실제로 한 말 — 요즘 릴스식 말 자막(사용자 2026-11-01: 말풍선이 촌스럽다). 상자 없이 굵은 흰 글씨 + 검은 외곽선,
+// 단어가 하나씩 톡톡 튀어나오고 지금 단어만 노랗게(캡컷 자동 자막 느낌). 말한 사람은 작은 색 글씨로 위에
+const WHO_COLOR: Record<string, string> = { 도아: "#FF9EC7", 엄마: "#8FD3FF" };
 const Talk: React.FC<{ text: string; who: string; len: number }> = ({ text, who, len }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const p = spring({ frame, fps, config: { damping: 12, mass: 0.5 } });
+  // 긴 말은 「 / 」로 나눈 덩어리를 한 번에 하나씩(요즘 릴스 자막처럼 한 줄씩 바뀜)
+  const chunks = text.split(" / ");
+  const per = len / chunks.length;
+  const ci = Math.min(chunks.length - 1, Math.floor(frame / per));
+  const local = frame - ci * per;
+  const words = chunks[ci].split(" ");
+  const span = Math.max(8, Math.min(per * 0.6, words.length * 8));
   const o = interpolate(frame, [len - 5, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const cur = Math.min(words.length - 1, Math.floor((local / span) * words.length));
+  const stroke = { WebkitTextStroke: "14px #000", paintOrder: "stroke fill" } as React.CSSProperties;
   return (
-    <div style={{ position: "absolute", top: 300, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: Math.min(p, o), transform: `scale(${interpolate(p, [0, 1], [0.7, 1])})`, transformOrigin: "50% 100%", fontFamily: FONT_FAMILY }}>
-      <div style={{ position: "relative", backgroundColor: WHITE, color: INK, borderRadius: 48, padding: "26px 46px 30px", boxShadow: "0 12px 30px rgba(0,0,0,0.35)", textAlign: "center" }}>
-        <div style={{ position: "absolute", top: -26, left: 34, backgroundColor: YELLOW, color: INK, fontSize: 34, fontWeight: 900, padding: "4px 20px", borderRadius: 999 }}>{who}</div>
-        <div style={{ fontSize: 76, fontWeight: 900, lineHeight: 1.2, whiteSpace: "pre-line" }}>{text}</div>
-        <div style={{ position: "absolute", bottom: -28, left: "50%", marginLeft: -20, width: 0, height: 0, borderLeft: "20px solid transparent", borderRight: "20px solid transparent", borderTop: `30px solid ${WHITE}` }} />
+    <div style={{ position: "absolute", top: 470, left: 60, right: 60, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
+      <div style={{ fontSize: 40, fontWeight: 900, color: WHO_COLOR[who] ?? YELLOW, marginBottom: 10, ...stroke, WebkitTextStroke: "8px #000" }}>{who}</div>
+      <div style={{ fontSize: 84, fontWeight: 900, lineHeight: 1.22, wordBreak: "keep-all" }}>
+        {words.map((w, k) => {
+          const at = (k / words.length) * span;
+          const p = spring({ frame: local - at, fps, config: { damping: 11, mass: 0.45 } });
+          return (
+            <span key={`${ci}-${k}`} style={{ display: "inline-block", margin: "0 12px", color: k === cur ? YELLOW : WHITE, opacity: local >= at ? 1 : 0, transform: `scale(${interpolate(p, [0, 1], [0.5, 1])}) rotate(${k === cur ? -2 : 0}deg)`, filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.45))", ...stroke }}>
+              {w}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
