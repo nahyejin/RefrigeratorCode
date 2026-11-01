@@ -29,7 +29,7 @@ import gen_reel_hooks_v9 as hooks6  # noqa: E402
 # 다 만든 편(영상이 out/ 에 있음). 새로 만들면 여기에 번호를 더한다.
 HOOK_DONE = {"02", "03", "04", "05", "06", "06B", "07", "08"}
 HOOK5_DONE = {"01", "02", "03", "04"}  # 5벌(gen_reel_hooks_v8.py)
-HOOK6_DONE = set()  # 6벌(gen_reel_hooks_v9.py, 4벌식 받아치기)
+HOOK6_DONE = {"01", "02"}  # 6벌(gen_reel_hooks_v9.py, 4벌식 받아치기)
 TALK_DONE = {"01", "02", "03"}
 
 ROUND_NAME = {"-1": "총정리", "0": "1벌", "1": "2벌", "2": "3벌", "3": "직접 요리", "4": "4벌"}

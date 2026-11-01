@@ -44,6 +44,8 @@
 | 후킹 5벌 02 굴소스(물이랑 소금만) | Owies Ukulele (Mixkit 1072) | 우쿨렐레 (처음 깐 스카는 바꿈) |
 | 후킹 5벌 03 광고(4초?) | Happy Home (Mixkit 801) | 어쿠스틱 팝 |
 | 후킹 5벌 04 장보기(그건 캠핑 가는 거잖아) | Walking in the Park (Mixkit 529) | 잔잔한 산책 (처음 깐 컨트리는 바꿈) |
+| 후킹 6벌 01 장 본 거 입력(다 먹어서 없애는 게 빠르겠다) | Playground Fun (Mixkit 12) | 말렛(실로폰류)·더블베이스 |
+| 후킹 6벌 02 냉장고 털기(케첩이랑 김이다) | At the Playhouse (Mixkit 821) | 벨·멜로디 |
 
 ---
 

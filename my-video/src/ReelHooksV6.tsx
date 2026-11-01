@@ -60,7 +60,16 @@ const H3V8: HookSpec = { src: "reel3_hook_v8_ad_slow.mp4", segs: [[0, 11.6]], ca
 // 04 AI 식단 ← 「이번 주 장 볼 거 하나씩 불러 봐」 「삼겹살, 목살, 라면, 맥주, 아 숯도」 → 「그건 캠핑 가는 거잖아」(7.74s)
 const H4V8: HookSpec = { src: "reel4_hook_v8_camping_slow.mp4", segs: [[0, 11.2]], captionAt: 7.7, caption: "남편한테 장보기 목록\n불러 달라고 하면" };
 
+// v9(6벌, 4벌식 받아치기 — store/REEL_HOOKS_V9.md) 2026-11-01. 클립 10.0s 통째, 표식(별) 지움(02 는 별이 조금 아래라 상자 넓힘),
+// 대사 뒤 꼬리 슬로(01 9.15s~×2.3 · 02 8.9s~×2.0)로 자막 3.5초 이상. 데모 동안 하단 검색 안내(banner).
+// 01 사진 인식 ← 「자기야 오늘 장 본 거 앱에 하나씩 입력 좀 해 줘」 → 「그냥 오늘 저녁에 다(6.40s) 먹어서 없애는 게 빠르겠다」
+const H1V9: HookSpec = { src: "reel1_hook_v9_eatall_slow.mp4", segs: [[0, 11.1]], captionAt: 6.4, caption: "장 본 재료 서른 개,\n하나씩 입력하실 거예요?" };
+// 02 매칭 ← 「오늘 저녁은 장 보지 말고 냉장고에 있는 걸로만 해 보자」 → 「좋아. 그럼 오늘 메뉴는 케첩이랑(7.68s) 김이다」
+const H2V9: HookSpec = { src: "reel2_hook_v9_ketchup_slow.mp4", segs: [[0, 11.1]], captionAt: 7.6, caption: "냉장고 털어서 먹자 했는데\n메뉴가 이거예요" };
+
 export const REELS_HOOK_V6 = [
+  { id: "Reel1HookV9EatAll", ...makeReel(H1V9, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0], true) },
+  { id: "Reel2HookV9Ketchup", ...makeReel(H2V9, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1], true) },
   { id: "Reel1HookV8Receipt", ...makeReel(H1V8, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0], true) },
   { id: "Reel3HookV8Ad", ...makeReel(H3V8, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2], true) },
   { id: "Reel4HookV8Camping", ...makeReel(H4V8, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3], true) },
