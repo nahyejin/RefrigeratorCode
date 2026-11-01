@@ -107,9 +107,7 @@ const COOK_START = [...OPEN, ...PREP, ...STORY].reduce((a, s) => a + shotLen(s),
 // 앱 화면·기능 소개 동안 화면 맨 아래 가운데에 「앱스토어·플레이스토어에서 검색」 안내(셀카형 릴스와 같은 디자인, 사용자 2026-11-01).
 // 쿡매치 앱 화면 동안(레시피 카드·이 편 슬로건·「그 밖에도」 기능 칩 화면은 겹쳐서 뺀다). 이 편 CTA·끝 화면에는 검색창이 따로 있어 뺀다
 const BANNER_FROM = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
-// 자막 아래, 화면 맨 아래 가운데(사용자 2026-11-01 최종). 셀카형 릴스와 같은 안내(SearchBanner).
-// 흰 앱 화면 위에서도 읽히게 반투명 검은 바탕. 자막 상자(1400~ 약 1560)와 붙지 않게 더 아래(사용자: 최하단 쪽으로)
-export const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: "auto", top: 1700, transform: "translateX(-50%)", padding: "12px 34px 14px", borderRadius: 28, backgroundColor: "rgba(0,0,0,0.6)" };
+// 자막 아래, 화면 맨 아래 가운데(사용자 2026-11-01 「하단 중앙 최하단」) — 후킹 릴스와 같은 SearchBanner(bottom 120 · 0.82배 · 반투명 검은 판)
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
@@ -290,7 +288,7 @@ export const CookingCampPasta: React.FC = () => {
         <Hook />
       </Sequence>
       <Sequence from={BANNER_FROM} durationInFrames={CTA_AT - BANNER_FROM}>
-        <SearchBanner style={BANNER_STYLE} />
+        <SearchBanner bottom={120} scale={0.82} panel />
       </Sequence>
       <Bgm />
     </AbsoluteFill>

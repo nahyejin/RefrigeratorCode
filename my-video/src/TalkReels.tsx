@@ -201,9 +201,13 @@ const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = (
 const MUTED = "#FFFFFF";
 const SHADOW_STRONG = "0 2px 8px rgba(0,0,0,0.85), 0 0 3px rgba(0,0,0,0.9)";
 // 위치: 아래 가운데(사용자 2026-10-25 최종). 아래 아이디·본문 줄보다 위.
-// style 로 위치를 바꿔 다른 릴스에서도 쓴다(요리 릴스 3편: 오른쪽 위)
-export const SearchBanner: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
-  <div style={{ position: "absolute", left: 0, right: 0, bottom: 330, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, fontFamily: FONT_FAMILY, ...style }}>
+// 후킹 릴스(ReelHooksV2 makeReel 의 banner)도 기능 데모 동안 같은 안내를 쓴다 — 흰 앱 화면 위라 흰 글자가 안 읽혀
+// 데모 자막과 같은 반투명 검은 판(panel)을 깐다.
+// 후킹 릴스 데모에서는 데모 자막(top 1400) 아래, 화면 맨 아래 가운데에 조금 줄여서 둔다(사용자 2026-11-01: 「하단 중앙 최하단」).
+export const SearchBanner: React.FC<{ bottom?: number; panel?: boolean; scale?: number }> = ({ bottom = 330, panel = false, scale = 1 }) => (
+  <div style={{ position: "absolute", left: 0, right: 0, bottom, display: "flex", justifyContent: "center", fontFamily: FONT_FAMILY,
+    transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: "bottom center" }}>
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, ...(panel ? { background: "rgba(17,17,19,0.88)", borderRadius: 28, padding: "18px 30px" } : {}) }}>
     <div style={{ fontSize: 32, fontWeight: 700, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서 검색하세요</div>
     <div style={{ width: 360, height: 68, borderRadius: 999, border: "2px solid #1A1A1E", background: WHITE, display: "flex", alignItems: "center", gap: 14, padding: "0 26px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
       <svg width="32" height="32" viewBox="0 0 46 46" fill="none">
@@ -213,6 +217,7 @@ export const SearchBanner: React.FC<{ style?: React.CSSProperties }> = ({ style 
       <div style={{ fontSize: 38, fontWeight: 700, color: "#1A1A1E" }}>쿡매치</div>
     </div>
     <div style={{ fontSize: 29, fontWeight: 600, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>프로필 링크에서도 시작할 수 있어요</div>
+  </div>
   </div>
 );
 

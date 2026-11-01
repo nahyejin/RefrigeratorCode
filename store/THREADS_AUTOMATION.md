@@ -14,17 +14,18 @@
 | `status` | `pending` 검토 전 → 사용자가 `approved`(올리기) 또는 `skip` → 실행이 `posted` / `failed` |
 | `draft` | Claude 초안. 사용자가 고친 최종본은 `text`(있으면 이걸 올림) |
 | reply 전용 | 문서 id = 스레드 답글 id, `username` `comment` `timestamp` `post_id` `post_first_line` `permalink` `parent_text` |
-| post 전용 | 문서 id = `post-w1-01` 식, `slot` `type` `photo_hint` `first_reply`(최종 `first_reply_text`) `order`, 사진 `images: [{asset, url}]`(검토함에 올린 사진들, 순서대로, 최대 20장) → 공개 주소 목록 `image_publics`. 옛 문서는 한 장짜리 `image_asset` → `image_public` |
+| post 전용 | 문서 id = `post-w1-01` 식, `slot` `type` `photo_hint` `first_reply`(최종 `first_reply_text`) `order`, 사진·영상 `images: [{asset, url, type}]`(검토함에 올린 것들, 순서대로, 최대 20개, type = image|video) → 공개 주소 목록 `image_publics`. 옛 문서는 한 장짜리 `image_asset` → `image_public` |
 | 결과 | `posted_link` `posted_at` `media_id` `error` |
 
 ## 순서
 1. **올리기** — `status == approved` 를 읽는다(쿼리).
    - reply: 바로 올린다. `{"id", "kind":"reply", "text": text or draft, "reply_to": 문서 id}`
-   - post: **아침 7~8시(출근길), 낮 12~13시(점심), 밤 20시~0시대(퇴근·아이 재운 뒤)에만**, 하루 최대 2개·한 시간대에 1개. 그 밖이면 다음 실행으로 미룬다. (2026-10-30 사용자: 엄마들이 폰 보는 시간 = 출근길·점심·밤 8시~새벽 12시, 본인도 그렇다)
+   - post: **승인되면 바로 올린다**(시간대 제한 없음, 2026-11-01 사용자: 「특정 시간 기다리지 말고 내가 승인할 때 바로」). 예전 규칙(7~8·12~13·20~0시대만, 하루 2개)은 폐지. 한 번 실행에 승인된 글이 여럿이면 order 순으로 모두.
      - `images` 가 있고 `image_publics` 가 없으면: 사진마다 Artifact `read`(url=https://claude.ai/artifact/BGyobmSLq8o69qkFQWhSkK, path=asset id)로 받아서
-       `frontend/public/threads/<문서id>-<N>.<확장자>`(N = 1부터 순서) 로 복사 → 한 번에 커밋·푸시 → 모든 `https://refrigerator-code.vercel.app/threads/<파일>` 이 200이 될 때까지(최대 5분) 기다림 → 순서대로 `image_publics` 에 저장.
+       `frontend/public/threads/<문서id>-<N>.<확장자>`(N = 1부터 순서, 영상은 .mp4/.mov 확장자를 지켜야 스크립트가 영상으로 올림) 로 복사하면서 **위치정보(GPS) 등 메타데이터를 지운다**(사진: `ffmpeg -i 원본 -map_metadata -1 -vf scale=긴 변 최대 2048 -q:v 3`, 영상: `-map_metadata -1 -c copy`; 2026-11-01 아이폰 사진에 집 GPS가 들어 있었음) → 한 번에 커밋·푸시 → 모든 `https://refrigerator-code.vercel.app/threads/<파일>` 이 **Content-Type image/·video/** 로 올 때까지(최대 10분) 기다림 — 배포 전엔 사이트 기본 페이지가 200 text/html 로 와서 200만 보면 안 됨(스레드가 「알 수 없는 이미지 형식」으로 거절) → 순서대로 `image_publics` 에 저장.
        (옛 문서: `image_asset` 이 있고 `image_public` 이 없으면 같은 방법으로 `<문서id>.<확장자>` 한 장 → `image_public`.)
-     - `{"id", "kind":"post", "text", "image_urls": image_publics (옛 문서는 [image_public]), "first_reply": first_reply_text or first_reply}` — 2장 이상이면 스크립트가 캐러셀로 올린다.
+     - `{"id", "kind":"post", "text", "image_urls": image_publics (옛 문서는 [image_public]), "first_reply": first_reply_text or first_reply}` — 2개 이상이면 스크립트가 캐러셀로 올린다(영상 섞여도 됨, 영상 처리에 1~2분).
+   - `post_after`(ISO 시각)가 있으면 그 시각 전에는 승인됐어도 올리지 않고 다음 실행으로 미룬다(이어지는 글을 다음 날 올리기 — 2026-11-01 사용자: 소분 글 오늘, 요리 후기 내일).
    - 본문에 `[대괄호]` 가 남아 있으면 올리지 말고 `failed`, error = "대괄호를 실제 내용으로 바꿔 주세요".
    - 항목들을 JSON 파일(스크래치 폴더)로 써서 `post` 실행 → 결과대로 `posted`(posted_link·media_id·posted_at) / `failed`(error) 업데이트. 읽은 version 을 if_version 으로.
 2. **새 댓글** — `fetch` 결과 중 items 에 같은 id 문서가 **없는** 것만 답글 초안을 써서 `pending` 으로 넣는다.
@@ -42,3 +43,8 @@
 - 토큰·시크릿 출력. `.env.threads` 커밋.
 - 남의 글에 답글 달기(우리 글의 대화 안에서만).
 - 토큰 오류(만료, 190 코드)면 아무것도 올리지 말고 요약에 「토큰 갱신 필요」.
+
+## 예약 작업이 멈추지 않게 (2026-11-01)
+- 10/31 밤 예약 실행이 PowerShell 명령 승인 창에서 멈춰, 승인한 답글이 몇 시간 동안 안 올라갔다(멈춘 실행이 있으면 다음 실행도 시작되지 않는다).
+- 예약 작업은 Bash 로 `PYTHONIOENCODING=utf-8 python scripts/threads_bot.py ...` 처럼 허용 목록(.claude/settings.local.json)에 있는 모양 그대로만 실행한다. PowerShell 은 쓰지 않는다.
+- 사진·영상 처리(메타데이터 지우기·public 복사·배포 확인)가 필요한 새 글은 예약 작업이 건너뛴다. 대화에서 미리 처리해 `image_publics` 를 채워 두면 예약 작업은 올리기만 한다(예: post-camp-20261101).

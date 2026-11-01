@@ -2970,6 +2970,7 @@ const SOURCE_GUIDE: { tag: string; means: string; link?: string }[] = [
   { tag: 'ig_profile', means: '계정 구분 없이 붙였던 인스타 프로필 링크(세 계정이 섞여 있어요)', link: '/download?utm_source=ig_profile' },
   { tag: 'threads', means: '스레드 글에 붙인 링크', link: '/?utm_source=threads' },
   { tag: 'instagram', means: '인스타그램 릴스·스토리·게시물 글에 붙인 링크', link: '/?utm_source=instagram' },
+  { tag: 'recipe_pdf_shrimp_alioolio', means: '레시피 PDF(새우 알리오올리오) 맨 아래 「여기를 누르면 쿡매치 받기」. 레시피마다 recipe_pdf_요리이름', link: '/download?utm_source=recipe_pdf_shrimp_alioolio&utm_medium=pdf&utm_campaign=recipe_pdf' },
 ];
 
 function sourceLabel(src: string): string {
@@ -2983,6 +2984,7 @@ function sourceLabel(src: string): string {
   if (t === 'ig_profile_main') return '인스타 본계정 프로필 링크';
   if (t === 'ig_profile_cookmatch') return '인스타 쿡매치 계정 프로필 링크';
   if (t === 'ig_profile_ddong') return '인스타 똥글이 계정 프로필 링크';
+  if (t.startsWith('recipe_pdf')) return '레시피 PDF의 「쿡매치 받기」 링크' + (t.length > 11 ? ` (${t.slice(11)})` : '');
   if (t === 'ig_ad') return '인스타그램 광고';
   if (t.startsWith('ig_') || t.startsWith('instagram')) return '인스타그램 글에 붙인 링크';
   if (t.startsWith('threads')) return '스레드 글에 붙인 링크';

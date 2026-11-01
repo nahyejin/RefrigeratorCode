@@ -24,10 +24,12 @@ import gen_reel_hooks_v7 as hooks  # noqa: E402
 import gen_reel_talk_v2 as talk  # noqa: E402
 import gen_threads_posts as threads  # noqa: E402
 import gen_reel_hooks_v8 as hooks5  # noqa: E402
+import gen_reel_hooks_v9 as hooks6  # noqa: E402
 
 # 다 만든 편(영상이 out/ 에 있음). 새로 만들면 여기에 번호를 더한다.
 HOOK_DONE = {"02", "03", "04", "05", "06", "06B", "07", "08"}
-HOOK5_DONE = set()  # 5벌(gen_reel_hooks_v8.py)
+HOOK5_DONE = {"01", "02", "03", "04"}  # 5벌(gen_reel_hooks_v8.py)
+HOOK6_DONE = set()  # 6벌(gen_reel_hooks_v9.py, 4벌식 받아치기)
 TALK_DONE = {"01", "02", "03"}
 
 ROUND_NAME = {"-1": "총정리", "0": "1벌", "1": "2벌", "2": "3벌", "3": "직접 요리", "4": "4벌"}
@@ -48,13 +50,17 @@ def hook_card(c, done, hooks=hooks):
 def make_data():
     hook_cards = [hook_card(c, HOOK_DONE) for c in hooks.CLIPS]
     # 5벌은 사진을 먼저 만들므로 「첫 장면 이미지」를 첫 버튼으로
-    hook5_cards = []
-    for c in hooks5.CLIPS:
-        h = hook_card(c, HOOK5_DONE)
-        h["copies"] = [{"label": "① 첫 장면 사진", "text": hooks.image_prompt(c), "main": True},
-                       {"label": "② 영상 프롬프트", "text": hooks.clip_prompt(c), "main": True},
-                       {"label": "대사 없는 버전", "text": hooks.clip_prompt(c, True)}]
-        hook5_cards.append(h)
+    def photo_first(clips, done):
+        out = []
+        for c in clips:
+            h = hook_card(c, done)
+            h["copies"] = [{"label": "① 첫 장면 사진", "text": hooks.image_prompt(c), "main": True},
+                           {"label": "② 영상 프롬프트", "text": hooks.clip_prompt(c), "main": True},
+                           {"label": "대사 없는 버전", "text": hooks.clip_prompt(c, True)}]
+            out.append(h)
+        return out
+    hook5_cards = photo_first(hooks5.CLIPS, HOOK5_DONE)
+    hook6_cards = photo_first(hooks6.CLIPS, HOOK6_DONE)
     talk_cards = []
     for e in talk.EPISODES:
         p = talk.presenter(e)
@@ -65,7 +71,7 @@ def make_data():
             "copies": [{"label": "① 출연자 사진", "text": talk.photo_prompt(e), "main": True}]
             + [{"label": f"클립 {i + 1}", "text": talk.clip_prompt(e, i)} for i in range(3)],
         })
-    return {"hooks5": hook5_cards, "hooks": hook_cards, "talks": talk_cards}
+    return {"hooks6": hook6_cards, "hooks5": hook5_cards, "hooks": hook_cards, "talks": talk_cards}
 
 
 def plan_items():
@@ -76,6 +82,9 @@ def plan_items():
         attr = lambda k: (re.search(k + r'="([^"]*)"', a) or [None, ""])[1]
         txt = lambda pat: html.unescape(re.sub(r"<[^>]+>", "", (re.search(pat, b, re.S) or [None, ""])[1])).strip()
         rnd = attr("data-round")
+        # 직접 요리는 편마다 내용이 달라 빈 형식 카드(「촬영 후」)는 두지 않는다(2026-11-01 사용자). 실제로 만든 편만 COOKING_POSTS 로.
+        if rnd == "3" and attr("data-id") not in COOKING_POSTS:
+            continue
         out.append({
             "id": attr("data-id"), "ch": "reel", "kind": ROUND_NAME.get(rnd, ""), "date": attr("data-date"),
             "time": txt(r'class="time">(.*?)<'), "title": txt(r"<h3>(.*?)</h3>"), "scene": txt(r'<p class="scene">(.*?)</p>'),
@@ -83,6 +92,10 @@ def plan_items():
             "music": txt(r'<span class="mood">(.*?)</span>'), "body": html.unescape(re.search(r'<pre class="cap">(.*?)</pre>', b, re.S).group(1)),
         })
     return out
+
+
+# 직접 요리 편의 올리기 카드(본문·DM 답장·DM 으로 보낼 PDF). PDF 는 hub_post_files/dm/ 에 두고 아티팩트 files 로 같이 올린다.
+COOKING_POSTS = json.loads((ROOT / "scripts/hub_post_files/cooking_posts.json").read_text(encoding="utf-8"))
 
 
 def cooking_items():
@@ -164,7 +177,7 @@ def thread_items():
 
 
 def post_data():
-    items = plan_items() + EXTRA_REELS + cooking_items() + talk_items() + thread_items()
+    items = [COOKING_POSTS.get(it["id"], it) for it in plan_items()] + EXTRA_REELS + cooking_items() + talk_items() + thread_items()
     # 묶음 탭(2026-10-29 사용자: 릴스가 너무 많아 1벌·2벌… 유형별로 고르게)
     grp = {"총정리": "총정리", "1벌": "연기형 1벌", "2벌": "연기형 2벌", "3벌": "연기형 3벌", "4벌": "연기형 4벌", "직접 요리": "직접 요리", "셀카형": "출연자 셀카형"}
     for it in items:

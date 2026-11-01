@@ -6,8 +6,8 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const LABEL = { pending: "검토 전", approved: "올리기 대기", posted: "올림", skip: "안 달기", failed: "실패" };
 const ORDER = ["pending", "failed", "approved", "posted", "skip"];
 const HOW = {
-  reply: `<b>답글 검토</b><ol><li>새 댓글이 오면 Claude가 답글 초안을 넣어요.</li><li>고칠 곳을 고치고 「이대로 답글 달기」, 안 달 거면 「안 달기」.</li><li>승인한 답글은 다음 정각 7분에 올라가요.</li></ol>`,
-  post: `<b>새 글 검토</b><ol><li>[대괄호]를 실제 이야기로 바꾸고, 직접 찍은 사진을 한 장 올려요.</li><li>「이대로 올리기」를 누르면 아침 7~8시·점심 12~13시·밤 8시~새벽 12시 중 다음 시간에 올라가요.</li><li>올리자마자 「첫 답글」도 같이 달려요.</li></ol>`,
+  reply: `<b>답글 검토</b><ol><li>새 댓글이 오면 Claude가 답글 초안을 넣어요.</li><li>고칠 곳을 고치고 「이대로 답글 달기」, 안 달 거면 「안 달기」.</li><li>승인한 답글은 15분 안에 올라가요.</li></ol>`,
+  post: `<b>새 글 검토</b><ol><li>[대괄호]를 실제 이야기로 바꾸고, 직접 찍은 사진을 한 장 올려요.</li><li>「이대로 올리기」를 누르면 15분 안에 올라가요(PC·Claude 앱이 켜져 있을 때).</li><li>올리자마자 「첫 답글」도 같이 달려요.</li></ol>`,
 };
 let kind = "reply", docs = [], db = null, assets = null, ready = false;
 try { kind = localStorage.getItem("tr_kind") || "reply"; } catch (e) {}
@@ -31,12 +31,14 @@ function card(d) {
     ? `<div class="tmeta"><span>${esc(d.post_first_line)}</span>${d.permalink ? `<a href="${esc(d.permalink)}" target="_blank" rel="noopener">글 보기</a>` : ""}<span>${when(d.timestamp)}</span></div>
        ${d.parent_text ? `<div class="quote">내 답글: ${esc(d.parent_text)}</div>` : ""}
        <div class="comment"><span class="who">@${esc(d.username)}</span> ${esc(d.comment)}</div>`
-    : `<div class="tmeta"><span>${esc(d.slot)}</span><span>${esc(d.type)}</span></div>${d.photo_hint ? `<div class="quote">사진: ${esc(d.photo_hint)}</div>` : ""}`;
-  // 사진은 여러 장(스레드 캐러셀, 최대 20장). 옛 문서는 image_url 한 장.
+    : `<div class="tmeta"><span>${esc(d.slot)}</span><span>${esc(d.type)}</span>${d.post_after ? `<span>${when(d.post_after)} 이후에 올라가요</span>` : ""}</div>${d.photo_hint ? `<div class="quote">사진: ${esc(d.photo_hint)}</div>` : ""}`;
+  // 사진·영상 여러 장(스레드 캐러셀, 최대 20개). 옛 문서는 image_url 한 장.
   const imgs = d.images || (d.image_url ? [{ url: d.image_url }] : []);
   const photo = d.kind === "post"
-    ? `<div class="photo">${imgs.length ? `<div class="pics">${imgs.map((m, i) => `<img src="${esc(m.url)}" alt="올릴 사진 ${i + 1}">`).join("")}</div>` : ""}
-       ${editable && assets ? `<label for="ph-${d.id}">사진 고르기 — 여러 장은 한 번에 같이 골라요(최대 20장, 고른 순서대로 올라가요)</label><input type="file" accept="image/*" multiple id="ph-${d.id}" data-photo="${d.id}"><span class="feat" id="phs-${d.id}">${imgs.length ? `지금 ${imgs.length}장` : ""}</span>` : ""}</div>` : "";
+    ? `<div class="photo">${imgs.length ? `<div class="pics">${imgs.map((m, i) => m.type === "video"
+      ? `<video src="${esc(m.url)}" muted playsinline controls preload="metadata" aria-label="올릴 영상 ${i + 1}"></video>`
+      : `<img src="${esc(m.url)}" alt="올릴 사진 ${i + 1}">`).join("")}</div>` : ""}
+       ${editable && assets ? `<label for="ph-${d.id}">사진·영상 고르기 — 여러 개는 한 번에 같이 골라요(최대 20개, 고른 순서대로 올라가요)</label><input type="file" accept="image/*,video/*" multiple id="ph-${d.id}" data-photo="${d.id}"><span class="feat" id="phs-${d.id}">${imgs.length ? `지금 ${imgs.length}개` : ""}</span>` : ""}</div>` : "";
   const first = d.kind === "post"
     ? `<div><label for="fr-${d.id}">올리자마자 달 첫 답글</label><textarea id="fr-${d.id}" data-first="${d.id}" ${editable ? "" : "readonly"} style="min-height:56px">${esc(d.first_reply_text ?? d.first_reply ?? "")}</textarea></div>` : "";
   const bracket = editable && /\[[^\]]*\]/.test(text);
@@ -44,7 +46,7 @@ function card(d) {
     ? `<div class="trow"><button class="btn main" type="button" data-go="${d.id}" ${bracket ? "disabled" : ""}>${d.kind === "reply" ? "이대로 답글 달기" : "이대로 올리기"}</button>
        <button class="btn" type="button" data-skip="${d.id}">${d.kind === "reply" ? "안 달기" : "이 글 빼기"}</button></div>`
     : `<div class="trow"><span class="state ${d.status}">${LABEL[d.status]}</span>
-       ${d.status === "approved" ? `<span class="feat">${d.kind === "reply" ? "다음 정각 7분에 올라가요" : "다음 올리는 시간에 올라가요"}</span>` : ""}
+       ${d.status === "approved" ? `<span class="feat">${d.kind === "reply" ? "15분 안에 올라가요" : (d.post_after && new Date(d.post_after) > new Date() ? "정한 날짜가 되면 올라가요" : "15분 안에 올라가요")}</span>` : ""}
        ${d.status === "approved" || d.status === "skip" ? `<button class="btn" type="button" data-undo="${d.id}">되돌리기</button>` : ""}
        ${d.posted_link ? `<a href="${esc(d.posted_link)}" target="_blank" rel="noopener">스레드에서 보기</a>` : ""}</div>`;
   return `<article class="tcard ${d.status}">${head}
@@ -106,7 +108,7 @@ $("#tlist").addEventListener("change", async e => {
       for (const [i, file] of files.entries()) {
         if (st) st.textContent = `올리는 중… ${i + 1}/${files.length}`;
         const a = await assets.upload(file);
-        images.push({ asset: a.id, url: a.url });
+        images.push({ asset: a.id, url: a.url, type: (a.contentType || file.type).startsWith("video/") ? "video" : "image" });
       }
       // 새로 고르면 통째로 바꾼다. 옛 한 장 필드는 비운다.
       await db.collection("items").doc(id).update({ images, image_publics: null, image_asset: null, image_url: null, image_public: null });

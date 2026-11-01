@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, useCurrentFrame } from "remotion";
 import { FONT_FAMILY, WHITE, useCustomFont, Caption } from "./shared";
 import { RestFeatures, restLen, REST_EXCL } from "./RestFeatures";
+import { SearchBanner } from "./TalkReels";
 import { Reel1Demo, Reel1Cta, REEL1_DEMO_LEN, REEL1_CTA_LEN } from "./Reel1Receipt";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
@@ -131,7 +132,9 @@ const HookV2: React.FC<{ spec: HookSpec }> = ({ spec }) => {
 
 const CTA2_LEN = 120; // 끝 화면 한 번 더(무음) 4s
 
-export const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, restIdx: number) => {
+// banner: 기능 데모 동안 하단 검색 안내(「앱스토어·플레이스토어에서 검색하세요 / 🔍 쿡매치 / 프로필 링크에서도…」)를 띄운다.
+// 셀카형(TalkReels)에서 쓰던 것과 같은 모양(사용자 2026-11-01: 후킹 릴스 기능 영상에도 넣어 달라). 5벌부터 켠다.
+export const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, restIdx: number, banner = false) => {
   const hLen = hookLen(spec);
   const rLen = restLen(restIdx); // 끝 화면 뒤 「이 밖의 기능 7가지」 빠른 훑기 + 끝 화면 한 번 더(2026-10-12 사용자 지시)
   const Comp: React.FC = () => {
@@ -143,6 +146,7 @@ export const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: R
         </Sequence>
         <Sequence from={hLen} durationInFrames={demoLen} name="Demo">
           <Demo />
+          {banner && <SearchBanner bottom={120} scale={0.82} panel />}
         </Sequence>
         <Sequence from={hLen + demoLen} durationInFrames={ctaLen} name="CTA">
           <Cta />

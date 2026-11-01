@@ -53,7 +53,14 @@ details > summary::-webkit-details-marker { display: none; }
 details[open] > summary { margin-bottom: 10px; }
 .list { display: grid; gap: 12px; }
 .card.isdone { opacity: .62; }
-.card.isdone pre, .card.isdone .btns { display: none; }
+/* DM 으로 보내는 정리 파일(PDF 한 개) */
+.pdf { appearance: none; font: inherit; text-align: left; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--cap); color: var(--ink); text-decoration: none; min-width: 0; }
+.pdf b { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.pdf small { display: block; font-size: 12.5px; color: var(--muted); }
+.pdf-ic { flex: none; font: 700 12px var(--sans); color: var(--paper); background: var(--late); border-radius: 6px; padding: 8px 7px; }
+.pdf:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card.isdone pre, .card.isdone .btns, .card.isdone .pdf { display: none; }
+.card.isdone.open .pdf { display: flex; }
 .card.isdone.open pre, .card.isdone.open .btns { display: block; }
 .card.isdone.open .btns { display: flex; }
 .more { font: 500 12.5px var(--sans); color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; justify-self: start; }
@@ -114,6 +121,21 @@ async function setDone(id, on) {
   }
 }
 
+// DM 으로 보낼 PDF: 아티팩트 안에서는 링크로 못 받으니 downloads 로 저장 창을 띄운다
+async function savePdf(pdf) {
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) {}
+  try {
+    const blob = await (await fetch(pdf.src)).blob();
+    if (!dl) { window.open(URL.createObjectURL(blob), "_blank"); return; }
+    await dl.save({ filename: pdf.name, data: blob });
+    say("저장했어요");
+  } catch (e) {
+    if (e && e.code === "declined") return;
+    say("저장하지 못했어요. 다시 눌러 주세요");
+  }
+}
+
 function card(it) {
   const el = document.createElement("article");
   const isDone = !!posted[it.id];
@@ -137,12 +159,14 @@ function card(it) {
     </div>
     ${it.body ? `<pre class="b">${marked(it.body)}</pre>` : ""}
     ${it.reply ? `<pre class="r">${marked(it.reply)}</pre>` : ""}
-    ${(it.body || it.reply) ? `<div class="btns">${it.body ? '<button class="btn" type="button" data-a="b">본문 복사</button>' : ""}${it.reply ? '<button class="btn ghost" type="button" data-a="r">첫 답글 복사</button>' : ""}</div>` : ""}
+    ${(it.body || it.reply) ? `<div class="btns">${it.body ? '<button class="btn" type="button" data-a="b">본문 복사</button>' : ""}${it.reply ? `<button class="btn ghost" type="button" data-a="r">${esc(it.replyLabel || "첫 답글 복사")}</button>` : ""}</div>` : ""}
+    ${it.pdf ? `<button class="pdf" type="button" data-a="pdf"><span class="pdf-ic" aria-hidden="true">PDF</span><span><b>${esc(it.pdf.name)}</b><small>${esc(it.pdf.info || "")} · 눌러서 저장</small></span></button>` : ""}
     ${it.note ? `<div class="note">${marked(it.note)}</div>` : ""}
     ${isDone && it.body ? '<button class="more" type="button">본문 다시 보기</button>' : ""}`;
   $("input", el).addEventListener("change", e => setDone(it.id, e.target.checked));
   const b = $("button[data-a=b]", el); if (b) b.addEventListener("click", () => copy(it.body, $("pre.b", el)));
   const r = $("button[data-a=r]", el); if (r) r.addEventListener("click", () => copy(it.reply, $("pre.r", el)));
+  const pf = $("button[data-a=pdf]", el); if (pf) pf.addEventListener("click", () => savePdf(it.pdf));
   const m = $(".more", el); if (m) m.addEventListener("click", () => el.classList.toggle("open"));
   return el;
 }

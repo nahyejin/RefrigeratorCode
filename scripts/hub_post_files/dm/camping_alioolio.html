@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>버너 하나로 캠핑 새우 알리오올리오 — 쿡매치</title>
+<!-- DM 으로 보내는 PDF 원본. 고친 뒤: python scripts/make_dm_pdf.py scripts/hub_post_files/dm/camping_alioolio.html -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+@page { size: 120mm 250mm; margin: 9mm 8mm; }
+:root {
+  --ink: #1b1d1a; --muted: #5f655c; --line: #dfe2da; --brand: #ffd600;
+  --leaf: #3f7d4e; --leaf-soft: #e7f1e8; --chip: #fff3a6; --chip-ink: #5a4a00;
+  --display: 'Do Hyeon', 'IBM Plex Sans KR', sans-serif;
+  --body: 'IBM Plex Sans KR', 'Malgun Gothic', sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; color: var(--ink); font: 10.5pt/1.6 var(--body); }
+h1 { font: 400 22pt/1.2 var(--display); margin: 0 0 3mm; }
+h2 { font: 400 15pt/1.3 var(--display); margin: 0 0 1.5mm; }
+.meta { display: flex; flex-wrap: wrap; gap: 1.5mm; margin-bottom: 4.5mm; }
+.meta span { font-size: 8.5pt; font-weight: 700; color: var(--chip-ink); background: var(--chip); border-radius: 99px; padding: .6mm 3mm; }
+.sub { margin: 0 0 3mm; color: var(--muted); font-size: 9pt; }
+section { margin-bottom: 7mm; }
+/* 쪽 나눔은 직접 정한다: 1쪽 소분 · 2쪽 순서와 이유 · 3쪽 원래 레시피와 쿡매치 받기. 쪽 안에서는 자르지 않는다 */
+.pg { break-after: page; break-inside: avoid; }
+.pg:last-child { break-after: auto; }
+.pack { border: 1px dashed #c9cdc3; border-radius: 3mm; padding: 2mm 3.5mm .5mm; margin-bottom: 2.5mm; }
+.pack li { break-inside: avoid; }
+.pack b { display: block; color: var(--leaf); font-size: 9pt; margin-bottom: 1mm; }
+.pack ul { list-style: none; margin: 0; padding: 0; }
+.pack li { display: grid; grid-template-columns: 4.2mm 1fr auto; gap: 2.5mm; align-items: baseline; padding: 1mm 0; border-top: 1px solid var(--line); }
+.pack li:first-child { border-top: 0; }
+.pack li::before { content: ""; width: 3.6mm; height: 3.6mm; border: 1.2px solid #8a9086; border-radius: .8mm; transform: translateY(.5mm); }
+.pack .amt { color: var(--ink); font-size: 9.5pt; font-weight: 500; text-align: right; }
+.pack .amt small { font-weight: 400; }
+.pack small { display: block; color: var(--muted); font-size: 8pt; line-height: 1.3; }
+.note { margin: 0; color: var(--muted); font-size: 8.5pt; }
+ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 6.5mm 1fr; gap: 2.5mm; margin-bottom: 2.2mm; break-inside: avoid; }
+ol.steps li::before { content: counter(s); width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); font-weight: 700; font-size: 9pt; display: grid; place-items: center; }
+.swap { background: var(--leaf-soft); border-radius: 3mm; padding: 3.5mm 4mm; break-inside: avoid; }
+.swap b { color: var(--leaf); font-size: 9.5pt; }
+.swap ul { margin: 1.5mm 0 2mm; padding-left: 4.5mm; }
+.swap li { margin-bottom: 1.6mm; }
+.orig { margin-bottom: 0; }
+.ings { margin: 0 0 3mm; }
+.cta { margin-top: 6mm; background: var(--brand); border-radius: 3.5mm; padding: 4.5mm 5mm; text-align: center; break-inside: avoid; }
+.cta .t { font: 400 17pt/1.25 var(--display); margin: 0; }
+.cta .s { margin: 1.5mm 0 0; font-size: 10.5pt; font-weight: 700; }
+.cta { display: block; color: var(--ink); text-decoration: none; }
+.cta .btn { display: inline-block; margin: 3mm 0 0; background: var(--ink); color: #fff; font-weight: 700; font-size: 10.5pt; border-radius: 99px; padding: 1.8mm 5mm; }
+</style>
+</head>
+<body>
+
+<div class="pg">
+<h1>버너 하나로 캠핑 새우 알리오올리오</h1>
+<div class="meta"><span>3인분</span><span>캠핑 버너 1개 · 프라이팬 1개 (1.5~1.6L)</span><span>캠핑장에서 약 30분</span></div>
+
+<section>
+  <h2>집에서 소분해 가요</h2>
+  <p class="sub">캠핑장에서는 썰고 계량할 일이 없게 집에서 미리 나눠 담아요. 짐을 줄이려고 양념은 겹치는 걸 빼고 한 가지씩만 챙겼어요.</p>
+  <div class="pack">
+    <b>양념 · 작은 통과 소스통</b>
+    <ul>
+      <li><span>올리브오일<small>오일 파스타라 넉넉히. 3통도 됐지만 조금 모자랐어요.</small></span><span class="amt">60ml<small>(15ml 통 4개)</small></span></li>
+      <li><span>코인육수</span><span class="amt">1알</span></li>
+      <li><span>갈릭솔트 <small>소금 대신</small></span><span class="amt">약 1큰술<small>(엄지손가락만큼)</small></span></li>
+      <li><span>후춧가루</span><span class="amt">약 1/4작은술<small>(손톱만큼)</small></span></li>
+      <li><span>페퍼론치노</span><span class="amt">약 1큰술<small>(엄지손가락만큼)</small></span></li>
+    </ul>
+  </div>
+  <div class="pack">
+    <b>재료 · 하나씩 지퍼백</b>
+    <ul>
+      <li><span>파스타면</span><span class="amt">약 250g<small>(한 줌 쥐면 500원 동전 2개 반 굵기)</small></span></li>
+      <li><span>냉동 흰다리 새우살</span><span class="amt">200g</span></li>
+      <li><span>편마늘 <small>집에서 미리 썰기</small></span><span class="amt">마늘 10알 이상</span></li>
+      <li><span>다진 마늘 <small>냉동 큐브</small></span><span class="amt">약 2~3큰술<small>(큐브 8개)</small></span></li>
+      <li><span>방울토마토 <small>반 잘라서</small></span><span class="amt">10알</span></li>
+      <li><span>어린잎 채소 믹스</span><span class="amt">50g</span></li>
+      <li><span>파마산 치즈가루 <small>작은 통에 덜어서</small></span><span class="amt">약 1큰술<small>(엄지손가락만큼)</small></span></li>
+    </ul>
+  </div>
+  <p class="note">소금은 따로 챙기지 않았어요. 면 삶는 물도 갈릭솔트로 간했어요.</p>
+</section>
+</div>
+
+<div class="pg">
+<section>
+  <h2>캠핑장에서 이 순서로</h2>
+  <ol class="steps">
+    <li>팬에 물을 붓고 갈릭솔트를 조금 넣어, 파스타면을 8분 삶아 건져 둬요.</li>
+    <li>새우살 200g은 살짝 데쳐서 한쪽에 둬요.</li>
+    <li>팬에 올리브오일 3통(45ml)을 두르고 편마늘과 다진 마늘을 약한 불에 데워 향을 내요.</li>
+    <li>새우를 넣고 단단해질 때까지 볶다가 코인육수 1알을 넣어요.</li>
+    <li>코인육수가 풀리면 면을 넣고 남은 올리브오일 1통을 둘러 섞어요. 갈릭솔트로 간하고, 맛을 보며 후추를 넣어요.</li>
+    <li>페퍼론치노를 부수어 넣고, 반 자른 방울토마토가 살짝 물러질 때까지 볶아요.</li>
+    <li>파마산 치즈가루를 넣고 비빈 뒤 어린잎 채소를 올리면 끝.</li>
+  </ol>
+</section>
+
+<section class="swap">
+  <b>원래 레시피와 다르게 한 이유</b>
+  <ul>
+    <li><strong>면과 새우를 따로 먼저 익혔어요.</strong> 캠핑 버너는 불꽃이 가운데에만 세게 올라와서 팬 전체가 고르게 데워지지 않아요. 게다가 캠핑·백패킹용 프라이팬은 1.5~1.6L가 가장 큰 편이라, 3인분을 한꺼번에 넣으면 가장자리의 새우와 면이 덜 익을 수 있어요. 그래서 이 크기 팬 하나로 되는 순서로 골랐어요.</li>
+    <li><strong>소금 대신 갈릭솔트.</strong> 캠핑 짐은 가벼워야 해서 하나만 챙겼어요. 마늘이 모자랄 때도 갈릭솔트가 마늘 맛을 채워 줘요.</li>
+    <li><strong>참치액 대신 코인육수.</strong> 집에 참치액이 없었어요. 코인육수 한 알이면 감칠맛을 대신할 수 있어요.</li>
+  </ul>
+  <p class="note">불이 고르게 오르는 집 가스레인지라면 원래 레시피처럼 한 팬에 한 번에 끓여도 돼요. 불이 가운데만 센 캠핑 버너에서 여러 인분을 만들 때는 이 순서가 안전해요.</p>
+</section>
+</div>
+
+<div class="pg">
+<section class="orig">
+  <h2>원래 레시피 (쿡매치 ‘원팬 파스타’, 1인분)</h2>
+  <p class="ings">파스타면 90g · 마늘 3개 · 토마토 1개 · 새우 큰 사이즈 4마리 · 잎채소 약간 · 치즈 약간 · 올리브오일 3T · 물 500ml · 참치액 1T · 후춧가루 톡톡</p>
+  <ol class="steps">
+    <li>마늘은 슬라이스하고 토마토는 먹기 좋게 썰고, 냉동새우는 흐르는 물에 씻어 물기를 털어요.</li>
+    <li>프라이팬에 올리브오일 3T를 두르고 마늘을 중약불에서 노릇노릇 구워요.</li>
+    <li>새우를 넣어 볶다가 빨갛게 익어 가면 토마토를 넣고 볶아요.</li>
+    <li>물 500ml, 파스타면 90g, 참치액 1T를 넣어요.</li>
+    <li>삐져나온 면은 살살 눌러 물에 잠기게 하고 센불로 끓여요.</li>
+    <li>면이 엉겨 붙지 않게 골고루 저어 가며 10~12분 끓여요.</li>
+    <li>2분쯤 남았을 때 소금 한 꼬집으로 간을 맞춰요.</li>
+    <li>소스가 자작하게 남으면 불을 꺼요.</li>
+    <li>잎채소, 후춧가루, 치즈를 곁들여 완성해요.</li>
+  </ol>
+  <a class="cta" href="https://refrigerator-code.vercel.app/download?utm_source=recipe_pdf_shrimp_alioolio&amp;utm_medium=pdf&amp;utm_campaign=recipe_pdf">
+    <p class="t">앱스토어 · Play 스토어에서<br>‘쿡매치’ 검색</p>
+    <p class="s">‘알리오올리오’를 검색하면 이 레시피와<br>내 재료에 맞춘 대체 재료를 볼 수 있어요</p>
+    <p class="btn">👉 여기를 누르면 쿡매치 받기</p>
+  </a>
+</section>
+</div>
+
+</body>
+</html>
