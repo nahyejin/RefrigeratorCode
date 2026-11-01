@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, INK, WHITE, YELLOW, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 import { Intro, INTRO, CTA_LEN, Mark, OverviewSegments, OverviewCta, SEGS_LEN } from "./ReelOverview";
+import { SearchBanner } from "./TalkReels";
 
 // 요리 릴스 3편 — 캠핑 새우 알리오올리오(2026-10-31, 캠핑장 버너 하나로).
 // ① 완성 사진 + 후킹(궁금증: 「이것」이 뭔지는 ③에서 풀린다) → ② 도아랑 캠핑, 텐트 → ③ 집에서 해 온 양념·재료 소분
@@ -66,11 +67,8 @@ const COOK: Shot[] = [
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "방울토마토 · 파마산 치즈\n잎채소 올려 완성!", origin: "50% 55%" }];
 
-// 레시피는 쿡매치에서 — 앱 작업본(880x1784, 상태바 잘라 냄, 17.3~24.7s 알림 흐림) 시각
-const APP: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 7.6, rate: 1.6, app: true, step: "레시피는 쿡매치에서 찾고\n캠핑에 맞게 살짝 바꿨어요" },
-  { kind: "video", src: "app_raw.mp4", from: 24.8, to: 35.0, rate: 2, app: true, step: "없는 재료는 있는 걸로\n새우 → 새우살 · 치킨스톡 → 코인육수" },
-  { kind: "video", src: "app_raw.mp4", from: 36.0, to: 40.0, rate: 1.2, app: true, step: "버너 하나라\n「원팬 파스타」로" },
+// 완성 바로 뒤 — 원래 레시피 → 캠핑에서 바꾼 점(사용자 2026-11-01: 너무 늦게 나와서 완성 직후로)
+const RECIPE: Shot[] = [
   // 원래 레시피(읽어 주기 화면의 조리 순서) 요약 → 캠핑에서 바꾼 점(사용자 2026-11-01)
   { kind: "video", src: "app_raw.mp4", from: 40.5, to: 48.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
     { at: 0.3, text: "마늘 슬라이스, 토마토 썰기" }, { at: 0.8, text: "올리브오일 3T에 마늘 노릇하게" },
@@ -83,6 +81,13 @@ const APP: Shot[] = [
     { at: 1.9, text: "캠핑장에서", head: true }, { at: 2.2, text: "면은 물에 먼저 삶고" }, { at: 2.8, text: "참치액 대신 코인육수 · 갈릭솔트" },
     { at: 3.4, text: "페퍼론치노 · 파마산 치즈 추가" },
   ] } },
+];
+
+// 레시피는 쿡매치에서 — 앱 작업본(880x1784, 상태바 잘라 냄, 17.3~24.7s 알림 흐림) 시각
+const APP: Shot[] = [
+  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 7.6, rate: 1.6, app: true, step: "레시피는 쿡매치에서 찾고\n캠핑에 맞게 살짝 바꿨어요" },
+  { kind: "video", src: "app_raw.mp4", from: 24.8, to: 35.0, rate: 2, app: true, step: "없는 재료는 있는 걸로\n새우 → 새우살 · 치킨스톡 → 코인육수" },
+  { kind: "video", src: "app_raw.mp4", from: 36.0, to: 40.0, rate: 1.2, app: true, step: "버너 하나라\n「원팬 파스타」로" },
   { kind: "video", src: "app_raw.mp4", from: 49.0, to: 53.0, rate: 1.2, app: true, step: "먹을 날을 골라\n캘린더에 담고" },
   { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
 ];
@@ -92,10 +97,17 @@ const TAIL: Shot[] = [
   { kind: "features", len: SEGS_LEN },
   { kind: "finalCta", len: CTA_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...APP, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE, ...APP, ...TAIL];
 export const COOKING_CAMP_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(3.4);
 const COOK_START = [...OPEN, ...PREP, ...STORY].reduce((a, s) => a + shotLen(s), 0);
+// 앱 화면·기능 소개 동안 아래 가운데(자막 바로 위)에 「앱스토어·플레이스토어에서 검색」 안내(셀카형 릴스와 같은 디자인, 사용자 2026-11-01).
+// 쿡매치 앱 화면부터 8개 기능 영상 끝까지(레시피 카드·「그 밖에도」 기능 칩 화면은 겹쳐서 뺀다). 이 편 CTA·끝 화면에는 검색창이 따로 있어 뺀다
+const BANNER_FROM = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
+const BANNER_TO = COOKING_CAMP_PASTA_TOTAL - CTA_LEN;
+// 흰 앱 화면 위에서도 읽히게 반투명 검은 바탕. 오른쪽 위는 앱 검색창과 겹쳐서 아래 가운데로
+const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: 545, transform: "translateX(-50%) scale(0.9)", transformOrigin: "bottom center", padding: "14px 34px 16px", borderRadius: 30, backgroundColor: "rgba(0,0,0,0.55)" };
+const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
   Math.min(
@@ -264,6 +276,12 @@ export const CookingCampPasta: React.FC = () => {
       </Sequence>
       <Sequence from={f(HOOK.at)} durationInFrames={f(HOOK.len)}>
         <Hook />
+      </Sequence>
+      <Sequence from={BANNER_FROM} durationInFrames={CTA_AT - BANNER_FROM}>
+        <SearchBanner style={BANNER_STYLE} />
+      </Sequence>
+      <Sequence from={CTA_AT + CTA_LEN + INTRO} durationInFrames={BANNER_TO - CTA_AT - CTA_LEN - INTRO}>
+        <SearchBanner style={BANNER_STYLE} />
       </Sequence>
       <Bgm />
     </AbsoluteFill>

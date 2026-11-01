@@ -201,8 +201,9 @@ const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = (
 const MUTED = "#FFFFFF";
 const SHADOW_STRONG = "0 2px 8px rgba(0,0,0,0.85), 0 0 3px rgba(0,0,0,0.9)";
 // 위치: 아래 가운데(사용자 2026-10-25 최종). 아래 아이디·본문 줄보다 위.
-const SearchBanner: React.FC = () => (
-  <div style={{ position: "absolute", left: 0, right: 0, bottom: 330, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, fontFamily: FONT_FAMILY }}>
+// style 로 위치를 바꿔 다른 릴스에서도 쓴다(요리 릴스 3편: 오른쪽 위)
+export const SearchBanner: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
+  <div style={{ position: "absolute", left: 0, right: 0, bottom: 330, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, fontFamily: FONT_FAMILY, ...style }}>
     <div style={{ fontSize: 32, fontWeight: 700, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서 검색하세요</div>
     <div style={{ width: 360, height: 68, borderRadius: 999, border: "2px solid #1A1A1E", background: WHITE, display: "flex", alignItems: "center", gap: 14, padding: "0 26px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
       <svg width="32" height="32" viewBox="0 0 46 46" fill="none">
