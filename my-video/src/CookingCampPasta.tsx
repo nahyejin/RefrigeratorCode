@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, INK, WHITE, YELLOW, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 import { Intro, INTRO, CTA_LEN, Mark, OverviewSegments, OverviewCta, SEGS_LEN } from "./ReelOverview";
+import { SearchBanner } from "./TalkReels";
 
 // 요리 릴스 3편 — 캠핑 새우 알리오올리오(2026-10-31, 캠핑장 버너 하나로).
 // ① 완성 사진 + 후킹(궁금증: 「이것」이 뭔지는 ③에서 풀린다) → ② 도아랑 캠핑, 텐트 → ③ 집에서 해 온 양념·재료 소분
@@ -100,25 +101,13 @@ const SHOTS: Shot[] = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE,
 export const COOKING_CAMP_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(3.4);
 const COOK_START = [...OPEN, ...PREP, ...STORY].reduce((a, s) => a + shotLen(s), 0);
-// 앱 화면·기능 소개 동안 오른쪽 위에 「앱스토어·플레이스토어에서 검색」 안내(셀카형 릴스와 같은 디자인, 사용자 2026-11-01).
+// 앱 화면·기능 소개 동안 화면 맨 아래 가운데에 「앱스토어·플레이스토어에서 검색」 안내(셀카형 릴스와 같은 디자인, 사용자 2026-11-01).
 // 쿡매치 앱 화면부터 8개 기능 영상 끝까지(레시피 카드·「그 밖에도」 기능 칩 화면은 겹쳐서 뺀다). 이 편 CTA·끝 화면에는 검색창이 따로 있어 뺀다
 const BANNER_FROM = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
 const BANNER_TO = COOKING_CAMP_PASTA_TOTAL - CTA_LEN;
-// 오른쪽 위(사용자 2026-11-01): 인스타 위쪽 아이콘 아래, 앱 머리줄 오른쪽(이름·로그아웃)을 덮는 자리.
-// 셀카형 SearchBanner 를 줄이면 글자가 너무 작아서, 같은 디자인(안내 한 줄 + 「🔍 쿡매치」 검색창)을 모서리용으로 짧게 다시 짰다.
-// 아래쪽은 인스타 아이디·본문 줄에 가리고, 자막 바로 위는 화면 가운데를 가려서 뺐다
-const CornerSearch: React.FC = () => (
-  <div style={{ position: "absolute", top: 150, right: 26, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "14px 22px 16px", borderRadius: 26, backgroundColor: "rgba(0,0,0,0.62)", fontFamily: FONT_FAMILY }}>
-    <div style={{ fontSize: 30, fontWeight: 700, color: WHITE, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서</div>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, height: 62, padding: "0 30px", borderRadius: 999, background: WHITE, border: `2px solid ${INK}` }}>
-      <svg width="30" height="30" viewBox="0 0 46 46" fill="none">
-        <circle cx="19" cy="19" r="13" stroke={INK} strokeWidth="5" />
-        <line x1="29" y1="29" x2="41" y2="41" stroke={INK} strokeWidth="5" strokeLinecap="round" />
-      </svg>
-      <div style={{ fontSize: 38, fontWeight: 800, color: INK }}>쿡매치</div>
-    </div>
-  </div>
-);
+// 자막 아래, 화면 맨 아래 가운데(사용자 2026-11-01 최종). 셀카형 릴스와 같은 안내(SearchBanner).
+// 흰 앱 화면 위에서도 읽히게 반투명 검은 바탕. 자막 상자(1400~ 약 1560)와 겹치지 않게 그 아래에 둔다
+const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: "auto", top: 1590, transform: "translateX(-50%)", padding: "12px 34px 14px", borderRadius: 28, backgroundColor: "rgba(0,0,0,0.6)" };
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
@@ -290,10 +279,10 @@ export const CookingCampPasta: React.FC = () => {
         <Hook />
       </Sequence>
       <Sequence from={BANNER_FROM} durationInFrames={CTA_AT - BANNER_FROM}>
-        <CornerSearch />
+        <SearchBanner style={BANNER_STYLE} />
       </Sequence>
       <Sequence from={CTA_AT + CTA_LEN + INTRO} durationInFrames={BANNER_TO - CTA_AT - CTA_LEN - INTRO}>
-        <CornerSearch />
+        <SearchBanner style={BANNER_STYLE} />
       </Sequence>
       <Bgm />
     </AbsoluteFill>
