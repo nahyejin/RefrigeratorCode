@@ -181,7 +181,13 @@ def thread_items():
 
 
 def post_data():
+    # k20261031(COOKING_REEL_CAPTIONS 의 캠핑 편)은 c3 과 같은 릴스라 c3 하나만 둔다
     items = [COOKING_POSTS.get(it["id"], it) for it in plan_items()] + EXTRA_REELS + cooking_items() + talk_items() + thread_items() + THREADS_POSTS
+    items = [it for it in items if it["id"] != "k20261031"]
+    # 인스타 본문에는 URL 줄을 넣지 않는다(2026-11-01, REEL_FORMATS 공통 규칙) — 옛 원본(REEL_UPLOAD_PLAN.html)에 남은 줄도 여기서 뺀다
+    for it in items:
+        if it["ch"] == "reel" and it.get("body"):
+            it["body"] = "\n".join(l for l in it["body"].split("\n") if "refrigerator-code.vercel.app" not in l)
     # 묶음 탭(2026-10-29 사용자: 릴스가 너무 많아 1벌·2벌… 유형별로 고르게)
     grp = {"총정리": "총정리", "1벌": "연기형 1벌", "2벌": "연기형 2벌", "3벌": "연기형 3벌", "4벌": "연기형 4벌", "직접 요리": "직접 요리", "셀카형": "출연자 셀카형"}
     for it in items:
