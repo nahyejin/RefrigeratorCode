@@ -82,6 +82,9 @@ def plan_items():
         attr = lambda k: (re.search(k + r'="([^"]*)"', a) or [None, ""])[1]
         txt = lambda pat: html.unescape(re.sub(r"<[^>]+>", "", (re.search(pat, b, re.S) or [None, ""])[1])).strip()
         rnd = attr("data-round")
+        # 직접 요리는 편마다 내용이 달라 빈 형식 카드(「촬영 후」)는 두지 않는다(2026-11-01 사용자). 실제로 만든 편만 COOKING_POSTS 로.
+        if rnd == "3" and attr("data-id") not in COOKING_POSTS:
+            continue
         out.append({
             "id": attr("data-id"), "ch": "reel", "kind": ROUND_NAME.get(rnd, ""), "date": attr("data-date"),
             "time": txt(r'class="time">(.*?)<'), "title": txt(r"<h3>(.*?)</h3>"), "scene": txt(r'<p class="scene">(.*?)</p>'),
@@ -89,6 +92,10 @@ def plan_items():
             "music": txt(r'<span class="mood">(.*?)</span>'), "body": html.unescape(re.search(r'<pre class="cap">(.*?)</pre>', b, re.S).group(1)),
         })
     return out
+
+
+# 직접 요리 편의 올리기 카드(본문·DM 답장·DM 으로 보낼 PDF). PDF 는 hub_post_files/dm/ 에 두고 아티팩트 files 로 같이 올린다.
+COOKING_POSTS = json.loads((ROOT / "scripts/hub_post_files/cooking_posts.json").read_text(encoding="utf-8"))
 
 
 def cooking_items():
@@ -170,7 +177,7 @@ def thread_items():
 
 
 def post_data():
-    items = plan_items() + EXTRA_REELS + cooking_items() + talk_items() + thread_items()
+    items = [COOKING_POSTS.get(it["id"], it) for it in plan_items()] + EXTRA_REELS + cooking_items() + talk_items() + thread_items()
     # 묶음 탭(2026-10-29 사용자: 릴스가 너무 많아 1벌·2벌… 유형별로 고르게)
     grp = {"총정리": "총정리", "1벌": "연기형 1벌", "2벌": "연기형 2벌", "3벌": "연기형 3벌", "4벌": "연기형 4벌", "직접 요리": "직접 요리", "셀카형": "출연자 셀카형"}
     for it in items:
