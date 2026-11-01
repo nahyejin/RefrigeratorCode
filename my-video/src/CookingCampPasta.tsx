@@ -14,7 +14,7 @@ const DIR = "cooking/새우알리오올리오_20261031/work/";
 const f = (s: number) => Math.round(s * 30);
 
 // 소분 체크리스트 — 항목이 at 초에 하나씩 체크되며 나타난다(사용자 2026-11-01: 무엇을 챙겼는지 구체적으로)
-type PackList = { title: string; items: { at: number; text: string }[]; bottom?: boolean };
+type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean };
 
 type Shot =
   | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList }
@@ -77,9 +77,11 @@ const APP: Shot[] = [
     { at: 1.3, text: "새우 볶다가 토마토" }, { at: 1.8, text: "물 500ml · 면 90g · 참치액 1T" },
     { at: 2.3, text: "저어 가며 10~12분, 소금 간" }, { at: 2.8, text: "잎채소 · 후추 · 치즈 올려 완성" },
   ] } },
-  { kind: "photo", src: "hook.jpg", len: f(5.0), origin: "50% 60%", list: { title: "캠핑에서는 이렇게 바꿨어요", items: [
-    { at: 0.3, text: "면은 물에 먼저 삶고" }, { at: 0.9, text: "참치액 대신 코인육수 · 갈릭솔트" },
-    { at: 1.5, text: "페퍼론치노로 살짝 매콤하게" }, { at: 2.1, text: "마지막에 파마산 치즈가루" },
+  // 바꾼 점은 집에서 미리 소분한 것부터(사용자 2026-11-01)
+  { kind: "photo", src: "hook.jpg", len: f(6.5), origin: "50% 60%", list: { title: "캠핑에서는 이렇게 바꿨어요", small: true, items: [
+    { at: 0.2, text: "집에서 미리", head: true }, { at: 0.5, text: "마늘 슬라이스 · 토마토 반 자르기" }, { at: 1.1, text: "면 · 새우살 · 채소 · 치즈 지퍼백 소분" },
+    { at: 1.9, text: "캠핑장에서", head: true }, { at: 2.2, text: "면은 물에 먼저 삶고" }, { at: 2.8, text: "참치액 대신 코인육수 · 갈릭솔트" },
+    { at: 3.4, text: "페퍼론치노 · 파마산 치즈 추가" },
   ] } },
   { kind: "video", src: "app_raw.mp4", from: 49.0, to: 53.0, rate: 1.2, app: true, step: "먹을 날을 골라\n캘린더에 담고" },
   { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
@@ -156,9 +158,9 @@ const PackCard: React.FC<{ list: PackList }> = ({ list }) => {
       {list.items.map((it, k) => {
         const q = spring({ frame: frame - f(it.at), fps, config: { damping: 14, mass: 0.5 } });
         return (
-          <div key={k} style={{ display: "flex", alignItems: "center", gap: 18, color: WHITE, fontSize: 54, fontWeight: 800, lineHeight: 1.45, opacity: q, transform: `translateX(${(1 - q) * -30}px)` }}>
-            <span style={{ color: YELLOW }}>✓</span>
-            {it.text}
+          <div key={k} style={{ display: "flex", alignItems: "center", gap: 18, color: it.head ? YELLOW : WHITE, fontSize: it.head ? 40 : list.small ? 46 : 54, fontWeight: 800, lineHeight: 1.45, marginTop: it.head && k > 0 ? 14 : 0, opacity: q, transform: `translateX(${(1 - q) * -30}px)` }}>
+            {!it.head && <span style={{ color: YELLOW }}>✓</span>}
+            {it.head ? `― ${it.text}` : it.text}
           </div>
         );
       })}
