@@ -47,7 +47,15 @@ const H8: HookSpec = { src: "reel8_hook_v7_chicken.mp4", segs: [[0, 10.0]], capt
 // 06B 요리 AI ← 남편 「자기야 두부랑 김치 있는데 이걸로 뭐 해 먹지?」 0~4.1s → 아내 「그거 오늘만 세 번째야… 나 말고 폰한테 물어봐. 걔가 더 잘 알아」 4.44~8.46s
 const H6B: HookSpec = { src: "reel6_hook_v7_askphone.mp4", segs: [[0, 10.0]], captionAt: 6.2, caption: "뭐 해 먹지는\n이제 폰한테 물어봐요" };
 
+// v8(5벌, 부부 연기 유머형 — store/REEL_HOOKS_V8.md) 2026-11-01. 클립 10.0s 통째, 표식 두 개(별)만 지움.
+// 01 사진 인식 ← 「영수증은 왜 아직 들고 있어?」 「이거 버리면 우리 집 냉장고에 뭐 있는지 아무도 몰라」 → 「맞아(7.42s) 나 지금도 몰라」
+const H1V8: HookSpec = { src: "reel1_hook_v8_receipt.mp4", segs: [[0, 10.0]], captionAt: 7.4, caption: "영수증 버리면\n뭐 샀는지 아무도 몰라요" };
+// 02 매칭 ← 「자기야 굴소스 없는데 어떡해?」 「없으면 빼」 → 「없는 거 다 빼고 나니까 물이랑(7.38s) 소금만 남아」
+const H2V8: HookSpec = { src: "reel2_hook_v8_oyster.mp4", segs: [[0, 10.0]], captionAt: 7.3, caption: "재료 하나 없다고\n요리 포기했죠?" };
+
 export const REELS_HOOK_V6 = [
+  { id: "Reel1HookV8Receipt", ...makeReel(H1V8, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
+  { id: "Reel2HookV8Oyster", ...makeReel(H2V8, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
   { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
