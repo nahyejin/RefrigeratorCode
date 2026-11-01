@@ -52,7 +52,8 @@ ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:
 ol.steps li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--brand);color:var(--brand-ink);font-weight:700;font-size:14px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
 .swap{background:var(--leaf-soft);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
 .swap b{color:var(--leaf);font-size:14px}
-.swap ul{margin:0;padding-left:18px}
+.swap ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.swap strong{color:var(--ink)}
 details{border-top:1px solid var(--line);padding-top:14px}
 details>summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:12px}
 details>summary::-webkit-details-marker{display:none}
@@ -85,45 +86,45 @@ html{scroll-behavior:smooth}
     <div class="ep-head">
       <span class="ep-no">3편 · 2026.10.31 · 캠핑</span>
       <h2 id="t3">버너 하나로 캠핑 새우 알리오올리오</h2>
-      <div class="meta"><span>1인분 기준</span><span>버너 1개 · 팬 1개</span><span>캠핑장에서 약 30분</span></div>
+      <div class="meta"><span>3인분</span><span>캠핑 버너 1개 · 작은 프라이팬 1개</span><span>캠핑장에서 약 30분</span></div>
     </div>
 
     <section aria-labelledby="pack3">
       <div>
         <h3 id="pack3">집에서 소분해 가요</h3>
-        <p class="sub">캠핑장에서는 썰고 계량할 일이 없게, 집에서 미리 나눠 담아요. 인원수만큼 곱하세요.</p>
+        <p class="sub">캠핑장에서는 썰고 계량할 일이 없게, 집에서 미리 나눠 담아요. 짐을 줄이려고 양념은 겹치는 걸 빼고 한 가지씩만 챙겼어요.</p>
       </div>
       <div class="packs">
         <div class="pack">
           <b>양념 · 작은 통과 소스통</b>
           <ul>
-            <li><label><input type="checkbox" id="p3-oil"><span>올리브오일 (소스통)</span><span class="amt">3큰술</span></label></li>
+            <li><label><input type="checkbox" id="p3-oil"><span>올리브오일 (소스통)</span><span class="amt">넉넉히</span></label></li>
             <li><label><input type="checkbox" id="p3-stock"><span>코인육수</span><span class="amt">1알</span></label></li>
-            <li><label><input type="checkbox" id="p3-garlicsalt"><span>갈릭솔트</span><span class="amt">약간</span></label></li>
-            <li><label><input type="checkbox" id="p3-salt"><span>소금 (면 삶는 물)</span><span class="amt">한 꼬집</span></label></li>
-            <li><label><input type="checkbox" id="p3-pepper"><span>후춧가루</span><span class="amt">약간</span></label></li>
-            <li><label><input type="checkbox" id="p3-chili"><span>페퍼론치노</span><span class="amt">3~4개</span></label></li>
+            <li><label><input type="checkbox" id="p3-garlicsalt"><span>갈릭솔트 (소금 대신)</span><span class="amt">작은 통 1개</span></label></li>
+            <li><label><input type="checkbox" id="p3-pepper"><span>후춧가루</span><span class="amt">손톱만큼</span></label></li>
+            <li><label><input type="checkbox" id="p3-chili"><span>페퍼론치노</span><span class="amt">엄지손가락만큼</span></label></li>
           </ul>
         </div>
         <div class="pack">
           <b>재료 · 하나씩 지퍼백</b>
           <ul>
-            <li><label><input type="checkbox" id="p3-pasta"><span>파스타면</span><span class="amt">90g</span></label></li>
-            <li><label><input type="checkbox" id="p3-shrimp"><span>냉동 흰다리 새우살</span><span class="amt">한 줌</span></label></li>
-            <li><label><input type="checkbox" id="p3-garlic"><span>편마늘 · 다진 마늘</span><span class="amt">마늘 3쪽</span></label></li>
-            <li><label><input type="checkbox" id="p3-tomato"><span>방울토마토 (반 잘라서)</span><span class="amt">6~8개</span></label></li>
-            <li><label><input type="checkbox" id="p3-leaf"><span>잎채소</span><span class="amt">한 줌</span></label></li>
-            <li><label><input type="checkbox" id="p3-cheese"><span>파마산 치즈가루</span><span class="amt">2큰술</span></label></li>
+            <li><label><input type="checkbox" id="p3-pasta"><span>파스타면</span><span class="amt">3인분</span></label></li>
+            <li><label><input type="checkbox" id="p3-shrimp"><span>냉동 흰다리 새우살</span><span class="amt">3인분</span></label></li>
+            <li><label><input type="checkbox" id="p3-garlic"><span>편마늘 (집에서 미리 썰기)</span><span class="amt">마늘 10알 이상</span></label></li>
+            <li><label><input type="checkbox" id="p3-mince"><span>다진 마늘 (냉동 큐브)</span><span class="amt">8조각쯤</span></label></li>
+            <li><label><input type="checkbox" id="p3-tomato"><span>방울토마토 (반 잘라서)</span><span class="amt">한 팩</span></label></li>
+            <li><label><input type="checkbox" id="p3-leaf"><span>잎채소</span><span class="amt">한 봉</span></label></li>
+            <li><label><input type="checkbox" id="p3-cheese"><span>파마산 치즈가루</span><span class="amt">통째로</span></label></li>
           </ul>
         </div>
       </div>
-      <p class="note">새우살은 얼린 채로 아이스박스에 넣어 가면 가는 동안 녹아요. 잎채소는 물기를 빼서 담아야 덜 물러요.</p>
+      <p class="note">소금은 따로 챙기지 않았어요. 면 삶는 물도 갈릭솔트로 간했어요.</p>
     </section>
 
     <section aria-labelledby="cook3">
       <h3 id="cook3">캠핑장에서 이 순서로</h3>
       <ol class="steps">
-        <li>팬에 물을 붓고 소금 한 꼬집, 파스타면부터 8분 삶아 건져 둬요.</li>
+        <li>팬에 물을 붓고 갈릭솔트를 조금 넣어 파스타면부터 8분 삶아 건져 둬요.</li>
         <li>새우살은 살짝 데쳐서 한쪽에 둬요.</li>
         <li>팬에 올리브오일을 두르고 편마늘·다진 마늘을 데워 향을 내요.</li>
         <li>새우를 넣고 단단해질 때까지 볶다가 코인육수 1알을 넣어요.</li>
@@ -133,17 +134,19 @@ html{scroll-behavior:smooth}
       </ol>
     </section>
 
-    <div class="swap">
-      <b>원래 레시피에서 바꾼 점</b>
+    <section class="swap" aria-labelledby="why3">
+      <b id="why3">원래 레시피와 다르게 한 이유</b>
       <ul>
-        <li>면은 물에 먼저 삶았어요</li>
-        <li>참치액 대신 코인육수와 갈릭솔트</li>
-        <li>페퍼론치노로 살짝 매콤하게, 마지막에 파마산 치즈가루</li>
+        <li><strong>면과 새우를 따로 먼저 익혔어요.</strong> 캠핑 버너는 불꽃이 가운데에만 세게 올라와서 프라이팬 전체가 고르게 데워지지 않아요. 작은 팬에 3인분을 한꺼번에 넣으면 가장자리의 새우와 면이 덜 익을 수 있어요.</li>
+        <li><strong>참치액 대신 코인육수.</strong> 집에 참치액이 없었어요. 코인육수 한 알이면 감칠맛을 대신할 수 있어요.</li>
+        <li><strong>소금 대신 갈릭솔트.</strong> 캠핑 짐은 가벼워야 해서 소금과 갈릭솔트 중 하나만 챙겼어요. 소분해 간 마늘이 모자랄 때도 갈릭솔트가 마늘 맛을 채워 줘요.</li>
+        <li><strong>파마산 치즈가루</strong>는 원래 레시피의 치즈 그대로예요.</li>
       </ul>
-    </div>
+      <p class="note">큰 냄비에 불이 고르게 오르는 집 가스레인지라면 원래 레시피처럼 원팬으로 한 번에 끓여도 돼요. 불이 가운데만 세고 팬이 작은 캠핑 버너라면, 특히 여러 인분을 만들 때는 이 순서가 안전해요.</p>
+    </section>
 
     <details>
-      <summary>원래 레시피 보기 (쿡매치 「원팬 파스타」)</summary>
+      <summary>원래 레시피 보기 (쿡매치 「원팬 파스타」, 1인분)</summary>
       <div class="inner">
         <p class="ings">파스타면 90g · 마늘 3개 · 토마토 1개 · 새우 큰 사이즈 4마리 · 잎채소 약간 · 치즈 약간 · 올리브오일 3T · 물 500ml · 참치액 1T · 후춧가루 톡톡</p>
         <ol class="steps">
