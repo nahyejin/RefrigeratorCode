@@ -1,0 +1,220 @@
+<title>쿡매치 레시피 노트</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: 폰 한 단 — 편마다 레시피 카드 하나, 최신 편이 맨 위. 소분 목록은 체크하며 챙길 수 있는 장보기 메모 모양 */
+:root{
+  --bg:#f5f6f2; --surface:#ffffff; --ink:#1b1d1a; --muted:#5f655c; --line:#dfe2da;
+  --brand:#ffd600; --brand-ink:#1b1d1a; --leaf:#3f7d4e; --leaf-soft:#e7f1e8; --chip:#fff3a6; --chip-ink:#5a4a00;
+  --display:'Do Hyeon','IBM Plex Sans KR','Apple SD Gothic Neo',sans-serif;
+  --body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121411; --surface:#1b1e1a; --ink:#eef0ea; --muted:#a3aa9f; --line:#2e332c;
+  --leaf:#86c495; --leaf-soft:#1f2c22; --chip:#3a3410; --chip-ink:#ffe66b; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#121411; --surface:#1b1e1a; --ink:#eef0ea; --muted:#a3aa9f; --line:#2e332c;
+  --leaf:#86c495; --leaf-soft:#1f2c22; --chip:#3a3410; --chip-ink:#ffe66b; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.page{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:10px}
+.brand{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:.04em;color:var(--muted)}
+.brand i{display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--brand)}
+h1{font-family:var(--display);font-weight:400;font-size:34px;line-height:1.15;margin:0;text-wrap:balance}
+.lede{margin:0;color:var(--muted);font-size:15px}
+nav{display:flex;flex-wrap:wrap;gap:8px}
+nav a{font-size:14px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none}
+nav a:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--leaf);outline-offset:2px}
+article{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 20px 26px;display:flex;flex-direction:column;gap:22px;min-width:0;scroll-margin-top:16px}
+.ep-head{display:flex;flex-direction:column;gap:6px}
+.ep-no{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.06em}
+h2{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.2;margin:0;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.meta span{font-size:13px;font-weight:600;color:var(--chip-ink);background:var(--chip);border-radius:999px;padding:3px 10px}
+h3{font-family:var(--display);font-weight:400;font-size:22px;margin:0}
+.sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+section{display:flex;flex-direction:column;gap:12px}
+.packs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:600px){.packs{grid-template-columns:1fr}}
+.pack{border:1px dashed var(--line);border-radius:14px;padding:14px 14px 10px;min-width:0}
+.pack b{display:block;font-size:14px;color:var(--leaf);margin-bottom:6px}
+.pack ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pack li{border-top:1px solid var(--line)}
+.pack li:first-child{border-top:0}
+.pack label{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:baseline;padding:8px 0;cursor:pointer}
+.pack input{width:18px;height:18px;accent-color:var(--leaf);margin:0;transform:translateY(3px)}
+.pack .amt{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pack input:checked ~ span{text-decoration:line-through;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin:0}
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start}
+ol.steps li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--brand);color:var(--brand-ink);font-weight:700;font-size:14px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.swap{background:var(--leaf-soft);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.swap b{color:var(--leaf);font-size:14px}
+.swap ul{margin:0;padding-left:18px}
+details{border-top:1px solid var(--line);padding-top:14px}
+details>summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"펼치기";font-size:13px;font-weight:600;color:var(--muted)}
+details[open]>summary::after{content:"접기"}
+details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
+.ings{margin:0;color:var(--ink);font-size:15px}
+.app{font-size:14px;color:var(--muted);margin:0}
+.app strong{color:var(--ink)}
+article.old{gap:14px}
+footer{font-size:13px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="page">
+  <header>
+    <span class="brand"><i aria-hidden="true"></i>COOKMATCH</span>
+    <h1>쿡매치 레시피 노트</h1>
+    <p class="lede">릴스에 나온 요리의 소분 기준과 레시피를 모아 둔 곳이에요. 소분 목록은 체크하면서 챙길 수 있어요.</p>
+    <nav aria-label="편 바로가기">
+      <a href="#ep3">3편 캠핑 새우 알리오올리오</a>
+      <a href="#ep2">2편 황태미역국</a>
+      <a href="#ep1">1편 소세지야채볶음</a>
+    </nav>
+  </header>
+
+  <!-- 새 편은 이 아래, 기존 편 위에 추가한다 -->
+  <article id="ep3" aria-labelledby="t3">
+    <div class="ep-head">
+      <span class="ep-no">3편 · 2026.10.31 · 캠핑</span>
+      <h2 id="t3">버너 하나로 캠핑 새우 알리오올리오</h2>
+      <div class="meta"><span>1인분 기준</span><span>버너 1개 · 팬 1개</span><span>캠핑장에서 약 30분</span></div>
+    </div>
+
+    <section aria-labelledby="pack3">
+      <div>
+        <h3 id="pack3">집에서 소분해 가요</h3>
+        <p class="sub">캠핑장에서는 썰고 계량할 일이 없게, 집에서 미리 나눠 담아요. 인원수만큼 곱하세요.</p>
+      </div>
+      <div class="packs">
+        <div class="pack">
+          <b>양념 · 작은 통과 소스통</b>
+          <ul>
+            <li><label><input type="checkbox" id="p3-oil"><span>올리브오일 (소스통)</span><span class="amt">3큰술</span></label></li>
+            <li><label><input type="checkbox" id="p3-stock"><span>코인육수</span><span class="amt">1알</span></label></li>
+            <li><label><input type="checkbox" id="p3-garlicsalt"><span>갈릭솔트</span><span class="amt">약간</span></label></li>
+            <li><label><input type="checkbox" id="p3-salt"><span>소금 (면 삶는 물)</span><span class="amt">한 꼬집</span></label></li>
+            <li><label><input type="checkbox" id="p3-pepper"><span>후춧가루</span><span class="amt">약간</span></label></li>
+            <li><label><input type="checkbox" id="p3-chili"><span>페퍼론치노</span><span class="amt">3~4개</span></label></li>
+          </ul>
+        </div>
+        <div class="pack">
+          <b>재료 · 하나씩 지퍼백</b>
+          <ul>
+            <li><label><input type="checkbox" id="p3-pasta"><span>파스타면</span><span class="amt">90g</span></label></li>
+            <li><label><input type="checkbox" id="p3-shrimp"><span>냉동 흰다리 새우살</span><span class="amt">한 줌</span></label></li>
+            <li><label><input type="checkbox" id="p3-garlic"><span>편마늘 · 다진 마늘</span><span class="amt">마늘 3쪽</span></label></li>
+            <li><label><input type="checkbox" id="p3-tomato"><span>방울토마토 (반 잘라서)</span><span class="amt">6~8개</span></label></li>
+            <li><label><input type="checkbox" id="p3-leaf"><span>잎채소</span><span class="amt">한 줌</span></label></li>
+            <li><label><input type="checkbox" id="p3-cheese"><span>파마산 치즈가루</span><span class="amt">2큰술</span></label></li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">새우살은 얼린 채로 아이스박스에 넣어 가면 가는 동안 녹아요. 잎채소는 물기를 빼서 담아야 덜 물러요.</p>
+    </section>
+
+    <section aria-labelledby="cook3">
+      <h3 id="cook3">캠핑장에서 이 순서로</h3>
+      <ol class="steps">
+        <li>팬에 물을 붓고 소금 한 꼬집, 파스타면부터 8분 삶아 건져 둬요.</li>
+        <li>새우살은 살짝 데쳐서 한쪽에 둬요.</li>
+        <li>팬에 올리브오일을 두르고 편마늘·다진 마늘을 데워 향을 내요.</li>
+        <li>새우를 넣고 단단해질 때까지 볶다가 코인육수 1알을 넣어요.</li>
+        <li>코인육수가 풀리면 면을 넣고 갈릭솔트, 맛을 보며 후추를 넣어요.</li>
+        <li>페퍼론치노를 조금 부수어 넣고, 방울토마토가 살짝 물러질 때까지 볶아요.</li>
+        <li>파마산 치즈가루를 넣고 비빈 뒤 잎채소를 올리면 끝.</li>
+      </ol>
+    </section>
+
+    <div class="swap">
+      <b>원래 레시피에서 바꾼 점</b>
+      <ul>
+        <li>면은 물에 먼저 삶았어요</li>
+        <li>참치액 대신 코인육수와 갈릭솔트</li>
+        <li>페퍼론치노로 살짝 매콤하게, 마지막에 파마산 치즈가루</li>
+      </ul>
+    </div>
+
+    <details>
+      <summary>원래 레시피 보기 (쿡매치 「원팬 파스타」)</summary>
+      <div class="inner">
+        <p class="ings">파스타면 90g · 마늘 3개 · 토마토 1개 · 새우 큰 사이즈 4마리 · 잎채소 약간 · 치즈 약간 · 올리브오일 3T · 물 500ml · 참치액 1T · 후춧가루 톡톡</p>
+        <ol class="steps">
+          <li>마늘은 슬라이스하고 토마토는 먹기 좋게 썰고, 냉동새우는 흐르는 물에 씻어 물기를 털어요.</li>
+          <li>프라이팬에 올리브오일 3T를 두르고 마늘을 중약불에서 노릇노릇 구워요.</li>
+          <li>새우를 넣어 볶다가 빨갛게 익어 가면 토마토를 넣고 볶아요.</li>
+          <li>물 500ml, 파스타면 90g, 참치액 1T를 넣어요.</li>
+          <li>삐져나온 면은 살살 눌러 물에 잠기게 하고 센불로 끓여요.</li>
+          <li>면이 엉겨 붙지 않게 골고루 저어 가며 10~12분 끓여요.</li>
+          <li>2분쯤 남았을 때 소금 한 꼬집으로 간을 맞춰요.</li>
+          <li>소스가 자작하게 남으면 불을 꺼요.</li>
+          <li>잎채소, 후춧가루, 치즈를 곁들여 완성해요.</li>
+        </ol>
+        <p class="app">쿡매치에서 <strong>알리오올리오</strong>를 검색하면 이 레시피와 내 재료 맞춤 대체 재료를 볼 수 있어요.</p>
+      </div>
+    </details>
+  </article>
+
+  <article id="ep2" class="old" aria-labelledby="t2">
+    <div class="ep-head">
+      <span class="ep-no">2편 · 2026.10.17</span>
+      <h2 id="t2">고기 없이 부드러운 황태미역국</h2>
+    </div>
+    <details>
+      <summary>레시피 보기</summary>
+      <div class="inner">
+        <p class="ings">건미역 11g · 황태 20g · 들기름 1~1.5큰술 · 물 1.2L · 국간장 2큰술 · 참치액 1.5큰술 · 다진 마늘 1/2큰술 · 소금 약간 · 후추</p>
+        <ol class="steps">
+          <li>미역은 물에 10~15분 불려 바락바락 씻고 먹기 좋게 잘라요.</li>
+          <li>황태는 물 두어 큰술에 살짝 적셔 부드럽게, 꾹 짜서 물기를 빼요.</li>
+          <li>냄비에 들기름 1.5큰술, 황태를 넣고 고소하게 볶아요.</li>
+          <li>불린 미역을 넣고 부드러워질 때까지 볶아요.</li>
+          <li>물 1.2L, 국간장 2큰술 넣고 센 불에 끓여요.</li>
+          <li>끓어오르면 뚜껑 덮고 중불로 30분.</li>
+          <li>참치액 1.5큰술·다진 마늘 1/2큰술 넣고 한소끔, 모자란 간은 소금으로.</li>
+        </ol>
+      </div>
+    </details>
+  </article>
+
+  <article id="ep1" class="old" aria-labelledby="t1">
+    <div class="ep-head">
+      <span class="ep-no">1편 · 2026.10.15</span>
+      <h2 id="t1">5분 소세지야채볶음</h2>
+    </div>
+    <details>
+      <summary>레시피 보기</summary>
+      <div class="inner">
+        <p class="ings">비엔나소시지 · 양파 1/2개(당근 대신) · 마늘 · 식용유 2스푼 · 케첩 4 · 간장 2 · 설탕 2 · 식초 1 (스푼) · 후추 약간 · 통깨</p>
+        <ol class="steps">
+          <li>소시지는 칼집 내고, 양파는 큼직하게 썰어요.</li>
+          <li>식용유 2스푼에 마늘을 먼저 볶아 향을 내요.</li>
+          <li>양파를 넣고 투명해질 때까지 볶아요.</li>
+          <li>소시지를 넣고 함께 볶아요.</li>
+          <li>케첩·간장·설탕·식초를 넣고 후추 톡톡.</li>
+          <li>양념이 고루 배면 통깨 솔솔, 완성.</li>
+        </ol>
+      </div>
+    </details>
+  </article>
+
+  <footer>앱스토어·Play 스토어에서 「쿡매치」를 검색하세요 · refrigerator-code.vercel.app/download</footer>
+</div>
+
+<script>
+// 소분 체크 상태는 이 폰에만 저장(다른 사람과 공유되지 않음)
+document.querySelectorAll('.pack input[type=checkbox]').forEach(function (box) {
+  var key = 'cm-pack-' + box.id;
+  try { box.checked = localStorage.getItem(key) === '1'; } catch (e) {}
+  box.addEventListener('change', function () {
+    try { localStorage.setItem(key, box.checked ? '1' : '0'); } catch (e) {}
+  });
+});
+</script>
