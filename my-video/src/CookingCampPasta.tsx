@@ -14,10 +14,10 @@ const DIR = "cooking/새우알리오올리오_20261031/work/";
 const f = (s: number) => Math.round(s * 30);
 
 // 소분 체크리스트 — 항목이 at 초에 하나씩 체크되며 나타난다(사용자 2026-11-01: 무엇을 챙겼는지 구체적으로)
-type PackList = { title: string; items: { at: number; text: string }[] };
+type PackList = { title: string; items: { at: number; text: string }[]; bottom?: boolean };
 
 type Shot =
-  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean }
+  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList }
   | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number }
@@ -71,6 +71,16 @@ const APP: Shot[] = [
   { kind: "video", src: "app_raw.mp4", from: 2.0, to: 7.6, rate: 1.6, app: true, step: "레시피는 쿡매치에서 찾고\n캠핑에 맞게 살짝 바꿨어요" },
   { kind: "video", src: "app_raw.mp4", from: 24.8, to: 35.0, rate: 2, app: true, step: "없는 재료는 있는 걸로\n새우 → 새우살 · 치킨스톡 → 코인육수" },
   { kind: "video", src: "app_raw.mp4", from: 36.0, to: 40.0, rate: 1.2, app: true, step: "버너 하나라\n「원팬 파스타」로" },
+  // 원래 레시피(읽어 주기 화면의 조리 순서) 요약 → 캠핑에서 바꾼 점(사용자 2026-11-01)
+  { kind: "video", src: "app_raw.mp4", from: 40.5, to: 48.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
+    { at: 0.3, text: "마늘 슬라이스, 토마토 썰기" }, { at: 0.8, text: "올리브오일 3T에 마늘 노릇하게" },
+    { at: 1.3, text: "새우 볶다가 토마토" }, { at: 1.8, text: "물 500ml · 면 90g · 참치액 1T" },
+    { at: 2.3, text: "저어 가며 10~12분, 소금 간" }, { at: 2.8, text: "잎채소 · 후추 · 치즈 올려 완성" },
+  ] } },
+  { kind: "photo", src: "hook.jpg", len: f(5.0), origin: "50% 60%", list: { title: "캠핑에서는 이렇게 바꿨어요", items: [
+    { at: 0.3, text: "면은 물에 먼저 삶고" }, { at: 0.9, text: "참치액 대신 코인육수 · 갈릭솔트" },
+    { at: 1.5, text: "페퍼론치노로 살짝 매콤하게" }, { at: 2.1, text: "마지막에 파마산 치즈가루" },
+  ] } },
   { kind: "video", src: "app_raw.mp4", from: 49.0, to: 53.0, rate: 1.2, app: true, step: "먹을 날을 골라\n캘린더에 담고" },
   { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
 ];
@@ -111,6 +121,7 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
         video
       )}
       {s.step && <Caption from={6} len={len - 8} text={s.step} />}
+      {s.list && <PackCard list={s.list} />}
     </AbsoluteFill>
   );
 };
@@ -140,7 +151,7 @@ const PackCard: React.FC<{ list: PackList }> = ({ list }) => {
   const { fps } = useVideoConfig();
   const p = spring({ frame, fps, config: { damping: 16, mass: 0.6 } });
   return (
-    <div style={{ position: "absolute", top: 150, left: 56, right: 56, padding: "30px 40px 34px", borderRadius: 36, backgroundColor: "rgba(0,0,0,0.62)", opacity: p, transform: `translateY(${(1 - p) * -20}px)`, fontFamily: FONT_FAMILY }}>
+    <div style={{ position: "absolute", top: list.bottom ? 960 : 150, left: 56, right: 56, padding: "30px 40px 34px", borderRadius: 36, backgroundColor: list.bottom ? "rgba(0,0,0,0.86)" : "rgba(0,0,0,0.62)", opacity: p, transform: `translateY(${(1 - p) * -20}px)`, fontFamily: FONT_FAMILY }}>
       <div style={{ color: YELLOW, fontSize: 62, fontWeight: 900, marginBottom: 14 }}>{list.title}</div>
       {list.items.map((it, k) => {
         const q = spring({ frame: frame - f(it.at), fps, config: { damping: 14, mass: 0.5 } });
