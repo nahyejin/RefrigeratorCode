@@ -26,8 +26,9 @@ type Shot =
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
 // 첫 장면 = 다음 날 파스타를 먹는 도아 + 큰 노란 후킹(썸네일 겸용)
-const HOOK = { at: 0, len: 2.8, text: "캠핑에서 못 먹은 파스타\n다음날 도아 반응은?" };
-const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(2.8), origin: "50% 40%" }];
+// 사용자 2026-11-01: 「캠핑에서 못 먹은 파스타 / 다음날 도아 반응은?」은 노관심 → 육아 캠핑 공감 + 냉털 정보
+const HOOK = { at: 0, len: 3.4, text: "아이 데리고 캠핑 갔다가\n파스타 면 3인분\n싸 들고 온 날", sub: "남은 면 3인분 살리기" };
+const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(3.4), origin: "50% 40%" }];
 
 // 어젯밤 캠핑 — 3편 장면을 다시 쓴다
 const RECAP: Shot[] = [
@@ -340,8 +341,11 @@ const Hook: React.FC = () => {
   // 썸네일로 쓰므로 첫 프레임부터 꽉 보이게 — 사라질 때만 페이드(COOKING_REEL_GUIDE 0-1)
   const o = interpolate(frame, [len - 6, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", top: 1060, left: 40, right: 40, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
-      <span style={{ display: "inline-block", whiteSpace: "pre-line", fontSize: 118, fontWeight: 900, lineHeight: 1.18, color: YELLOW, textShadow: "0 6px 22px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.8)" }}>{HOOK.text}</span>
+    <div style={{ position: "absolute", top: 930, left: 30, right: 30, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
+      <span style={{ display: "inline-block", whiteSpace: "pre-line", wordBreak: "keep-all", fontSize: 108, fontWeight: 900, lineHeight: 1.16, color: YELLOW, textShadow: "0 6px 22px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.8)" }}>{HOOK.text}</span>
+      <div style={{ marginTop: 26 }}>
+        <span style={{ display: "inline-block", backgroundColor: WHITE, color: INK, fontSize: 64, fontWeight: 900, padding: "10px 36px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.35)" }}>{HOOK.sub}</span>
+      </div>
     </div>
   );
 };
