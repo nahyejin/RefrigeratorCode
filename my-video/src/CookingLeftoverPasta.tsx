@@ -12,7 +12,6 @@ import { SearchBanner } from "./TalkReels";
 // 원본은 public/cooking/남은면파스타_20261101/ (git 제외). 작업본은 ffmpeg 로 미리 9:16·배속(k1~k9, 원본 24분 요리 영상).
 
 const DIR = "cooking/남은면파스타_20261101/work/";
-const DIR3 = "cooking/새우알리오올리오_20261031/work/";
 const f = (s: number) => Math.round(s * 30);
 
 type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean; hint?: string };
@@ -34,7 +33,7 @@ const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(3.4), origin: "50
 const RECAP: Shot[] = [
   // 3편에서 실제로 만든 파스타 사진(완성 후 10/31 19:33 사진 — 그 무렵 영상은 새우 볶는 장면까지뿐)(사용자 2026-11-01: 알리오올리오 얘기에 풍경 말고 그 파스타를)
   { kind: "photo", src: "camp_pasta.jpg", len: f(2.6), origin: "50% 60%", caption: "어젯밤 캠핑에서 만든\n새우 알리오올리오" },
-  { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.8), origin: "50% 55%", lines: [
+  { kind: "photo", src: "camp_plate.jpg", len: f(3.8), origin: "50% 55%", lines: [
     { at: 0.2, len: 3.4, text: "도아가 방울토마토도, 새우도, 면도\n좋아해서 건강하게 만든 건데..." },
   ] },
   // 텐트 속 거위털 옷 영상(20261031_083400, 68초). 받아쓰기(Whisper) 기준 시각 — 도아 중얼중얼 14.8~17초,
