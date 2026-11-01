@@ -38,28 +38,28 @@ const STORY: Shot[] = [
 ];
 // 후킹이 약속한 「무엇을 소분하나」 — 후킹 바로 뒤에 보여 준다(사용자 2026-11-01: 이 콘텐츠가 소분 정보라는 게 드러나야 이탈이 없다)
 const PREP: Shot[] = [
-  { kind: "photo", src: "prep_sauce.jpg", len: f(3.2), caption: "① 양념은 작은 통에\n올리브오일 같은 액체는 소스통으로", origin: "40% 75%" },
-  { kind: "photo", src: "prep_bags.jpg", len: f(3.4), caption: "② 새우살·마늘·파스타면·채소는\n하나씩 지퍼백에", origin: "55% 45%" },
+  { kind: "photo", src: "prep_sauce.jpg", len: f(3.2), caption: "① 올리브오일은 소스통에\n후추·페퍼론치노는 작은 통에", origin: "40% 75%" },
+  { kind: "photo", src: "prep_bags.jpg", len: f(3.4), caption: "② 마늘·방울토마토는 썰어서\n새우살·면·잎채소와 지퍼백에", origin: "55% 45%" },
 ];
 
-// 버너 하나로 요리 — 분량은 쿡매치 레시피 카드 그대로, 순서는 실제로 한 순서
+// 버너 하나로 요리 — 사용자가 실제로 한 순서(2026-11-01 사용자 설명). 쿡매치 「원팬 파스타」를 캠핑에 맞게 바꿨다
 const COOK: Shot[] = [
   // 18:05 캠핑장 야경(같은 영상 뒷부분, 9:16 으로 잘라 냄) — 요리 제목이 이 위에 뜬다
   { kind: "video", src: "n_090542.mp4", from: 0, to: 2.8, rate: 1.2, step: "해가 지면\n버너 하나로 저녁 준비" },
-  { kind: "video", src: "c_095555.mp4", from: 0, to: 7.0, rate: 2, step: "물 500ml 끓이고" },
-  { kind: "video", src: "c_095638.mp4", from: 0, to: 9.4, rate: 2, step: "파스타면 90g · 참치액 1T" },
-  { kind: "video", src: "c_100012.mp4", from: 2, to: 30, rate: 4, step: "면이 엉겨 붙지 않게\n저어 가며 10~12분" },
-  { kind: "video", src: "c_100443.mp4", from: 30, to: 70, rate: 4, step: "새우살은 따로 익혀 두고" },
-  { kind: "video", src: "c_101422.mp4", from: 48, to: 123, rate: 5, step: "올리브오일 3T에 마늘 슬라이스\n노릇노릇 고소하게" },
-  { kind: "video", src: "c_101422.mp4", from: 124, to: 142, rate: 3, step: "재료를 넣고 함께 볶아요" },
+  { kind: "video", src: "c_095555.mp4", from: 0, to: 7.0, rate: 2, step: "팬에 물 붓고\n소금 조금" },
+  { kind: "video", src: "c_095638.mp4", from: 0, to: 9.4, rate: 2, step: "파스타면부터 삶아요" },
+  { kind: "video", src: "c_100012.mp4", from: 2, to: 30, rate: 4, step: "저어 가며 8분" },
+  { kind: "video", src: "c_100443.mp4", from: 30, to: 70, rate: 4, step: "새우는 살짝 데쳐서\n한켠에" },
+  { kind: "video", src: "c_101422.mp4", from: 48, to: 123, rate: 5, step: "올리브오일에 편마늘·다진 마늘\n데워서 향 내기" },
+  { kind: "video", src: "c_101422.mp4", from: 124, to: 142, rate: 3, step: "새우 → 코인육수 → 면\n갈릭솔트·후추·페퍼론치노" },
 ];
-const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "잎채소·토마토 올려 완성!\n버너 하나로 캠핑 파스타", origin: "50% 55%" }];
+const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "방울토마토 · 파마산 치즈\n잎채소 올려 완성!", origin: "50% 55%" }];
 
 // 레시피는 쿡매치에서 — 앱 작업본(880x1784, 상태바 잘라 냄, 17.3~24.7s 알림 흐림) 시각
 const APP: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 7.6, rate: 1.6, app: true, step: "레시피는 쿡매치에서 찾았어요\n「알리오올리오」 검색" },
+  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 7.6, rate: 1.6, app: true, step: "레시피는 쿡매치에서 찾고\n캠핑에 맞게 살짝 바꿨어요" },
   { kind: "video", src: "app_raw.mp4", from: 24.8, to: 35.0, rate: 2, app: true, step: "없는 재료는 있는 걸로\n새우 → 새우살 · 치킨스톡 → 코인육수" },
-  { kind: "video", src: "app_raw.mp4", from: 36.0, to: 40.0, rate: 1.2, app: true, step: "버너 하나로 되는\n「원팬 파스타」" },
+  { kind: "video", src: "app_raw.mp4", from: 36.0, to: 40.0, rate: 1.2, app: true, step: "버너 하나라\n「원팬 파스타」로" },
   { kind: "video", src: "app_raw.mp4", from: 49.0, to: 53.0, rate: 1.2, app: true, step: "먹을 날을 골라\n캘린더에 담고" },
   { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
 ];
