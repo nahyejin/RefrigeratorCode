@@ -18,7 +18,7 @@ const f = (s: number) => Math.round(s * 30);
 type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean; hint?: string };
 
 type Shot =
-  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[]; talk?: { at: number; len: number; text: string; who: string }[] }
+  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[]; talk?: { at: number; len: number; text: string; who: string }[]; think?: { at: number; len: number; text: string }[] }
   | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[] }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number };
@@ -45,12 +45,19 @@ const RECAP: Shot[] = [
     { at: 5.1, len: 1.9, text: "거위털 옷이야", who: "엄마" },
     { at: 8.0, len: 1.9, text: "추울까 봐", who: "엄마" },
     { at: 10.1, len: 3.0, text: "이번에 사 왔어", who: "엄마" },
+  ], think: [
+    { at: 2.4, len: 2.5, text: "(...)" },
+    { at: 5.3, len: 2.6, text: "(그래도 추운데…)" },
+    { at: 10.3, len: 2.8, text: "(...)" },
   ] },
   { kind: "video", src: "coatA3.mp4", from: 0, to: 3.8, audio: true, talk: [
     { at: 0.1, len: 1.9, text: "이거 폭신폭신하지?", who: "엄마" },
     { at: 2.1, len: 1.6, text: "춥지 않지?", who: "엄마" },
+  ], think: [
+    { at: 0.4, len: 1.6, text: "(...)" },
+    { at: 2.2, len: 1.6, text: "(추워 죽겠어요 엄마…)" },
   ] },
-  { kind: "video", src: "coat2.mp4", from: 0, to: 6.4, audio: true },
+  { kind: "video", src: "coat2.mp4", from: 0, to: 6.4, audio: true, think: [{ at: 0.6, len: 5.6, text: "(집에 가고 싶다…)" }] },
   { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, talk: [{ at: 2.0, len: 1.7, text: "발라덩~", who: "엄마" }] },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
@@ -166,6 +173,7 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
       {s.step && <Caption from={6} len={len - 8} text={s.step} />}
       {s.lines?.map((l, k) => <Caption key={k} from={f(l.at)} len={f(l.len)} text={l.text} />)}
       {s.talk?.map((t, k) => <Sequence key={k} from={f(t.at)} durationInFrames={f(t.len)}><Talk text={t.text} who={t.who} len={f(t.len)} /></Sequence>)}
+      {s.think?.map((t, k) => <Sequence key={"t" + k} from={f(t.at)} durationInFrames={f(t.len)}><Think text={t.text} len={f(t.len)} /></Sequence>)}
       {s.list && <PackCard list={s.list} />}
     </AbsoluteFill>
   );
@@ -199,6 +207,19 @@ const Talk: React.FC<{ text: string; who: string; len: number }> = ({ text, who,
           );
         })}
       </div>
+    </div>
+  );
+};
+
+// 아이 속마음 — 엄마 말 아래에 괄호로(사용자 2026-11-01: 엄마는 신나서 설명하는데 아이는 한마디도 없다 → 「허탕 친 캠핑」 이야기).
+// 말 자막과 구분되게 연한 하늘색, 단어 튀기 없이 살짝 떠오름
+const Think: React.FC<{ text: string; len: number }> = ({ text, len }) => {
+  const frame = useCurrentFrame();
+  const o = Math.min(interpolate(frame, [0, 8], [0, 1], { extrapolateRight: "clamp" }), interpolate(frame, [len - 6, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
+  const y = interpolate(frame, [0, 10], [14, 0], { extrapolateRight: "clamp" });
+  return (
+    <div style={{ position: "absolute", top: 700, left: 60, right: 60, textAlign: "center", opacity: o, transform: `translateY(${y}px)`, fontFamily: FONT_FAMILY }}>
+      <span style={{ fontSize: 74, fontWeight: 900, color: "#BFE6FF", WebkitTextStroke: "12px #000", paintOrder: "stroke fill", whiteSpace: "pre-line", wordBreak: "keep-all", lineHeight: 1.25 } as React.CSSProperties}>{text}</span>
     </div>
   );
 };
