@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, INK, WHITE, YELLOW, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
-import { Intro, INTRO, CTA_LEN, Mark, OverviewSegments, OverviewCta, SEGS_LEN } from "./ReelOverview";
+import { Intro, INTRO, CTA_LEN, Mark } from "./ReelOverview";
 import { SearchBanner } from "./TalkReels";
 
 // 요리 릴스 3편 — 캠핑 새우 알리오올리오(2026-10-31, 캠핑장 버너 하나로).
@@ -21,9 +21,7 @@ type Shot =
   | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList }
   | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList }
   | { kind: "cta"; len: number }
-  | { kind: "transition"; len: number }
-  | { kind: "features"; len: number }
-  | { kind: "finalCta"; len: number };
+  | { kind: "transition"; len: number };
 
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
@@ -95,20 +93,19 @@ const APP: Shot[] = [
   { kind: "video", src: "app_raw.mp4", from: 49.0, to: 53.0, rate: 1.2, app: true, step: "먹을 날을 골라\n캘린더에 담고" },
   { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
 ];
+// 끝: 이 편 슬로건 → 「그 밖에도 이런 기능이 있어요」(기능 칩 한 장)에서 끝낸다. 8개 기능을 하나씩 설명하는 영상은 붙이지 않는다
+// (사용자 2026-11-01: 릴스 3분 미만, 요리 릴스는 짧게). 칩을 읽을 수 있게 1초 더 둔다
 const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
-  { kind: "transition", len: INTRO },
-  { kind: "features", len: SEGS_LEN },
-  { kind: "finalCta", len: CTA_LEN },
+  { kind: "transition", len: INTRO + 30 },
 ];
 const SHOTS: Shot[] = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE, ...APP, ...TAIL];
 export const COOKING_CAMP_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(3.4);
 const COOK_START = [...OPEN, ...PREP, ...STORY].reduce((a, s) => a + shotLen(s), 0);
 // 앱 화면·기능 소개 동안 화면 맨 아래 가운데에 「앱스토어·플레이스토어에서 검색」 안내(셀카형 릴스와 같은 디자인, 사용자 2026-11-01).
-// 쿡매치 앱 화면부터 8개 기능 영상 끝까지(레시피 카드·「그 밖에도」 기능 칩 화면은 겹쳐서 뺀다). 이 편 CTA·끝 화면에는 검색창이 따로 있어 뺀다
+// 쿡매치 앱 화면 동안(레시피 카드·이 편 슬로건·「그 밖에도」 기능 칩 화면은 겹쳐서 뺀다). 이 편 CTA·끝 화면에는 검색창이 따로 있어 뺀다
 const BANNER_FROM = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
-const BANNER_TO = COOKING_CAMP_PASTA_TOTAL - CTA_LEN;
 // 자막 아래, 화면 맨 아래 가운데(사용자 2026-11-01 최종). 셀카형 릴스와 같은 안내(SearchBanner).
 // 흰 앱 화면 위에서도 읽히게 반투명 검은 바탕. 자막 상자(1400~ 약 1560)와 붙지 않게 더 아래(사용자: 최하단 쪽으로)
 export const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: "auto", top: 1700, transform: "translateX(-50%)", padding: "12px 34px 14px", borderRadius: 28, backgroundColor: "rgba(0,0,0,0.6)" };
@@ -242,8 +239,7 @@ const Shots: React.FC = () => {
               }
             />
           );
-        else if (s.kind === "features") body = <OverviewSegments />;
-        else body = <OverviewCta />;
+        else body = null;
         return (
           <Sequence key={i} from={from} durationInFrames={len} name={`${i + 1}-${s.kind}${s.kind === "video" || s.kind === "photo" ? "-" + s.src : ""}`}>
             {body}
@@ -292,9 +288,6 @@ export const CookingCampPasta: React.FC = () => {
         <Hook />
       </Sequence>
       <Sequence from={BANNER_FROM} durationInFrames={CTA_AT - BANNER_FROM}>
-        <SearchBanner style={BANNER_STYLE} />
-      </Sequence>
-      <Sequence from={CTA_AT + CTA_LEN + INTRO} durationInFrames={BANNER_TO - CTA_AT - CTA_LEN - INTRO}>
         <SearchBanner style={BANNER_STYLE} />
       </Sequence>
       <Bgm />
