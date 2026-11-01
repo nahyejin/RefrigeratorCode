@@ -40,6 +40,10 @@ const RECAP: Shot[] = [
   { kind: "video", src: "coat1.mp4", from: 0, to: 10.0, audio: true, lines: [
     { at: 0.2, len: 4.6, text: "갑자기 추워져서" },
     { at: 5.0, len: 4.8, text: "도아가 울어서" },
+  ], talk: [
+    // 엄마 말(사용자가 알려 준 내용, 2026-11-01). 원본 3.1~6.3s · 7.0~10.5s 말소리 구간에 맞춤
+    { at: 0.2, len: 3.6, text: "엄마가 추울까 봐\n이 캠핑을 위해서\n거위털 패딩을 구해 왔단다", who: "엄마" },
+    { at: 4.0, len: 3.6, text: "춥지는 않지?", who: "엄마" },
   ] },
   { kind: "video", src: "coat2.mp4", from: 0, to: 3.0, audio: true, lines: [{ at: 0.1, len: 2.8, text: "급하게 집으로 오느라\n한 입도 못 먹였어요" }] },
 ];
