@@ -81,7 +81,6 @@ const LEFT: Shot[] = [
     { at: 2.2, len: 1.9, text: "해 줄까? 먹을래?", who: "엄마" },
     { at: 4.2, len: 0.9, text: "응!", who: "도아" },
   ] },];
-const COMMENT_HINT = "상세 레시피가 필요하면\n팔로우 + 댓글에 「쿡매치」\nDM으로 보내 드릴게요 💌";
 
 // 요리 — 원본 24분을 단계마다 잘라 배속해 둔 작업본(k1~k9)
 const COOK: Shot[] = [
@@ -107,12 +106,12 @@ const EAT: Shot[] = [// 먹는 장면 받아쓰기: 「도아, 먹어」 68.9s �
 
 // 원래 레시피(앱 조리 순서 화면) → 이렇게 바꿨어요
 const RECIPE: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 18.0, to: 26.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, hint: COMMENT_HINT, items: [
+  { kind: "video", src: "app_raw.mp4", from: 18.0, to: 26.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
     { at: 0.3, text: "물 · 소금에 면 삶기" }, { at: 0.9, text: "올리브유에 편 마늘 · 페퍼론치노" },
     { at: 1.5, text: "간 마늘 넣고 노릇하게" }, { at: 2.1, text: "면 넣고 면수 부어 센 불에" },
     { at: 2.7, text: "쪽파 · 파마산 치즈로 완성" },
   ] } },
-  { kind: "photo", src: "done.jpg", len: f(7.0), origin: "50% 65%", list: { title: "이렇게 바꿨어요", small: true, hint: COMMENT_HINT, items: [
+  { kind: "photo", src: "done.jpg", len: f(7.0), origin: "50% 65%", list: { title: "이렇게 바꿨어요", small: true, items: [
     { at: 0.2, text: "면은 어제 삶아 둔 면", head: true }, { at: 0.5, text: "삶기 · 면수 없이 바로 볶기" },
     { at: 1.2, text: "있는 재료로", head: true }, { at: 1.5, text: "쪽파 대신 대파" },
     { at: 1.9, text: "소금 대신 갈릭솔트" }, { at: 2.3, text: "페퍼론치노 대신 레드페퍼" },
