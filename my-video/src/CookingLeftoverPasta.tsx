@@ -38,20 +38,20 @@ const RECAP: Shot[] = [
   ] },
   // 텐트 속 거위털 옷 영상(20261031_083400, 68초). 받아쓰기(Whisper) 기준 시각 — 도아 중얼중얼 14.8~17초,
   // 엄마 「이거 따뜻하지 옷 / 거위털이야 / 추울까 봐 이번에 사 왔어」 24~37초, 「폭신폭신하지? 춥지 않지?」 40~43초, 앉아서 밖 보기 45~52초, 「발라덩」 56초
-  { kind: "video", src: "coatA1.mp4", from: 0, to: 2.6, audio: true, lines: [{ at: 0.1, len: 2.5, text: "갑자기 추워져서" }], talk: [{ at: 0.1, len: 2.4, text: "(중얼중얼)", who: "도아" }] },
-  { kind: "video", src: "coatA2.mp4", from: 0, to: 13.2, audio: true, lines: [{ at: 0, len: 13.1, text: "갑자기 추워져서" }], talk: [
+  { kind: "video", src: "coatA1.mp4", from: 0, to: 2.6, audio: true, talk: [{ at: 0.1, len: 2.4, text: "(중얼중얼)", who: "도아" }] },
+  { kind: "video", src: "coatA2.mp4", from: 0, to: 13.2, audio: true, talk: [
     { at: 0.1, len: 1.9, text: "이거 따뜻하지, 옷", who: "엄마" },
     { at: 2.1, len: 2.8, text: "이거 거위털이야 거위털", who: "엄마" },
     { at: 5.1, len: 1.9, text: "거위털 옷이야", who: "엄마" },
     { at: 8.0, len: 1.9, text: "추울까 봐", who: "엄마" },
     { at: 10.1, len: 3.0, text: "이번에 사 왔어", who: "엄마" },
   ] },
-  { kind: "video", src: "coatA3.mp4", from: 0, to: 3.8, audio: true, lines: [{ at: 0, len: 3.7, text: "갑자기 추워져서" }], talk: [
+  { kind: "video", src: "coatA3.mp4", from: 0, to: 3.8, audio: true, talk: [
     { at: 0.1, len: 1.9, text: "이거 폭신폭신하지?", who: "엄마" },
     { at: 2.1, len: 1.6, text: "춥지 않지?", who: "엄마" },
   ] },
-  { kind: "video", src: "coat2.mp4", from: 0, to: 6.4, audio: true, lines: [{ at: 0.2, len: 6.0, text: "도아가 울어서" }] },
-  { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, lines: [{ at: 0.1, len: 3.6, text: "급하게 집으로 오느라\n한 입도 못 먹였어요" }], talk: [{ at: 2.0, len: 1.7, text: "발라덩~", who: "엄마" }] },
+  { kind: "video", src: "coat2.mp4", from: 0, to: 6.4, audio: true },
+  { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, talk: [{ at: 2.0, len: 1.7, text: "발라덩~", who: "엄마" }] },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
 const LEFT: Shot[] = [
@@ -128,6 +128,11 @@ const TAIL: Shot[] = [
 const SHOTS: Shot[] = [...OPEN, ...RECAP, ...LEFT, ...COOK, ...PLATE, ...EAT, ...RECIPE, ...APP, ...TAIL];
 export const COOKING_LEFTOVER_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(4.2);
+// 텐트 장면 전체(coatA1~coat3)에 이야기 자막 하나를 통으로 길게(사용자 2026-11-01: 세 조각으로 끊겨 어색하다)
+const TENT_SRC = ["coatA1.mp4", "coatA2.mp4", "coatA3.mp4", "coat2.mp4", "coat3.mp4"];
+const TENT_FROM = (() => { let c = 0; for (const x of SHOTS) { if ((x.kind === "video") && x.src === "coatA1.mp4") return c; c += shotLen(x); } return 0; })();
+const TENT_LEN = SHOTS.filter((x) => x.kind === "video" && TENT_SRC.includes(x.src)).reduce((a, x) => a + shotLen(x), 0);
+const TENT_CAPTION = "갑자기 날이 추워져서 도아가 울기 시작했고,\n급하게 집으로 돌아오느라\n한 입도 못 먹였어요 ㅠㅠ";
 const COOK_START = [...OPEN, ...RECAP, ...LEFT].reduce((a, s) => a + shotLen(s), 0);
 const BANNER_FROM = [...OPEN, ...RECAP, ...LEFT, ...COOK, ...PLATE, ...EAT, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
@@ -325,6 +330,9 @@ export const CookingLeftoverPasta: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT_FAMILY }}>
       <Shots />
+      <Sequence from={TENT_FROM} durationInFrames={TENT_LEN}>
+        <Caption from={4} len={TENT_LEN - 6} text={TENT_CAPTION} />
+      </Sequence>
       <Sequence from={COOK_START} durationInFrames={TITLE_LEN}>
         <RecipeTitle />
       </Sequence>
