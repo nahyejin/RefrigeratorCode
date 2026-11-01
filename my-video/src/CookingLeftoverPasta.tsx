@@ -36,15 +36,22 @@ const RECAP: Shot[] = [
   { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.8), origin: "50% 55%", lines: [
     { at: 0.2, len: 3.4, text: "도아가 방울토마토도, 새우도, 면도 좋아해서\n건강하게 만든 건데..." },
   ] },
-  // 텐트 속 거위털 옷 영상(20261031_083400, 68초). 목소리 분석: 3~12초는 주변 소음(옆 텐트 수다), 도아 종알종알 14.5~16.8초, 엄마 설명 17~28.5초
-  // → 앉아서 텐트 밖을 보다가(45~54초) 벌러덩 눕는(55.3~56.5초) 장면. 사용자 2026-11-01
-  { kind: "video", src: "coat1.mp4", from: 0, to: 14.8, audio: true, lines: [{ at: 0.2, len: 14.4, text: "갑자기 추워져서" }], talk: [
-    { at: 0.4, len: 2.4, text: "(종알종알)", who: "도아" },
-    { at: 3.0, len: 6.2, text: "엄마가 추울까 봐 / 이 캠핑을 위해서 / 거위털 패딩을 구해 왔단다", who: "엄마" },
-    { at: 9.5, len: 4.6, text: "춥지는 않지?", who: "엄마" },
+  // 텐트 속 거위털 옷 영상(20261031_083400, 68초). 받아쓰기(Whisper) 기준 시각 — 도아 중얼중얼 14.8~17초,
+  // 엄마 「이거 따뜻하지 옷 / 거위털이야 / 추울까 봐 이번에 사 왔어」 24~37초, 「폭신폭신하지? 춥지 않지?」 40~43초, 앉아서 밖 보기 45~52초, 「발라덩」 56초
+  { kind: "video", src: "coatA1.mp4", from: 0, to: 2.6, audio: true, lines: [{ at: 0.1, len: 2.5, text: "갑자기 추워져서" }], talk: [{ at: 0.1, len: 2.4, text: "(중얼중얼)", who: "도아" }] },
+  { kind: "video", src: "coatA2.mp4", from: 0, to: 13.2, audio: true, lines: [{ at: 0, len: 13.1, text: "갑자기 추워져서" }], talk: [
+    { at: 0.1, len: 1.9, text: "이거 따뜻하지, 옷", who: "엄마" },
+    { at: 2.1, len: 2.8, text: "이거 거위털이야 거위털", who: "엄마" },
+    { at: 5.1, len: 1.9, text: "거위털 옷이야", who: "엄마" },
+    { at: 8.0, len: 1.9, text: "추울까 봐", who: "엄마" },
+    { at: 10.1, len: 3.0, text: "이번에 사 왔어", who: "엄마" },
+  ] },
+  { kind: "video", src: "coatA3.mp4", from: 0, to: 3.8, audio: true, lines: [{ at: 0, len: 3.7, text: "갑자기 추워져서" }], talk: [
+    { at: 0.1, len: 1.9, text: "이거 폭신폭신하지?", who: "엄마" },
+    { at: 2.1, len: 1.6, text: "춥지 않지?", who: "엄마" },
   ] },
   { kind: "video", src: "coat2.mp4", from: 0, to: 6.4, audio: true, lines: [{ at: 0.2, len: 6.0, text: "도아가 울어서" }] },
-  { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, lines: [{ at: 0.1, len: 3.6, text: "급하게 집으로 오느라\n한 입도 못 먹였어요" }] },
+  { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, lines: [{ at: 0.1, len: 3.6, text: "급하게 집으로 오느라\n한 입도 못 먹였어요" }], talk: [{ at: 2.0, len: 1.7, text: "발라덩~", who: "엄마" }] },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
 const LEFT: Shot[] = [
@@ -54,11 +61,19 @@ const LEFT: Shot[] = [
     { at: 2.9, len: 2.6, text: "소스 넣기 전에 따로 삶아 둔\n깨끗한 면이에요" },
     { at: 5.5, len: 2.6, text: "집에 오자마자 바로 냉장 보관했다가\n센 불에 한 번 더 볶았어요" },
   ] },
-  // 도아가 먼저 「이거 뭐지?」 하는 부분부터(사용자 2026-11-01). 원본 7.2s 무렵 짧은 아이 목소리 — 받아쓰기가 막혀 목소리 높이로 찾은 자리
-  { kind: "video", src: "pan.mp4", from: 2.8, to: 14.2, audio: true, lines: [
-    { at: 0.1, len: 4.2, text: "남은 면을 본 도아" },
-  ], talk: [{ at: 4.4, len: 2.4, text: "이거 뭐지?", who: "도아" }] },
-];
+  // 면 보여 주기(20261101_010527) 받아쓰기: 「이게 뭐게?」 0s, 「이거 어제 파스타 도아 캠핑 가서 해 주려고 했는데 남았어」 7~14s,
+  // 「이거 해 줄까? 또? / 해 줄까? 먹을래?」 19~22.6s, 도아 「응」 23s
+  { kind: "video", src: "pan.mp4", from: 0, to: 14.1, audio: true, lines: [{ at: 1.0, len: 5.8, text: "남은 면을 본 도아" }], talk: [
+    { at: 0, len: 1.0, text: "이게 뭐게?", who: "엄마" },
+    { at: 6.9, len: 2.0, text: "이거 어제 파스타", who: "엄마" },
+    { at: 9.0, len: 3.6, text: "도아 캠핑 가서 해 주려고 했는데", who: "엄마" },
+    { at: 12.7, len: 1.4, text: "남았어", who: "엄마" },
+  ] },
+  { kind: "video", src: "pan.mp4", from: 18.7, to: 23.8, audio: true, talk: [
+    { at: 0.1, len: 1.6, text: "이거 해 줄까? 또?", who: "엄마" },
+    { at: 2.2, len: 1.9, text: "해 줄까? 먹을래?", who: "엄마" },
+    { at: 4.2, len: 0.9, text: "응!", who: "도아" },
+  ] },];
 const COMMENT_HINT = "상세 레시피가 필요하면\n팔로우 + 댓글에 「쿡매치」\nDM으로 보내 드릴게요 💌";
 
 // 요리 — 원본 24분을 단계마다 잘라 배속해 둔 작업본(k1~k9)
@@ -75,7 +90,13 @@ const COOK: Shot[] = [
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "done.jpg", len: f(2.6), caption: "햄 알리오올리오 완성!", origin: "50% 60%" }];
 // 먹는 도아(원래 소리)
-const EAT: Shot[] = [{ kind: "video", src: "eat.mp4", from: 3.0, to: 13.0, audio: true, lines: [{ at: 5.0, len: 4.8, text: "오늘은\n맛있게 냠냠" }], talk: [{ at: 1.0, len: 3.2, text: "도아가 먹을 거야!", who: "도아" }] }];
+const EAT: Shot[] = [// 먹는 장면 받아쓰기: 「도아, 먹어」 68.9s · 「엄마가 먹여 줘?」 70.9s · 도아 「아니요」 72.4s · 「도아가 먹을 거예요」 74.7s
+  { kind: "video", src: "eat.mp4", from: 2.6, to: 13.0, audio: true, lines: [{ at: 7.9, len: 2.4, text: "오늘은\n맛있게 냠냠" }], talk: [
+    { at: 0.2, len: 1.6, text: "도아, 먹어", who: "엄마" },
+    { at: 2.2, len: 1.6, text: "엄마가 먹여 줄까?", who: "엄마" },
+    { at: 3.8, len: 1.2, text: "아니요", who: "도아" },
+    { at: 6.1, len: 1.8, text: "도아가 먹을 거예요!", who: "도아" },
+  ] }];
 
 // 원래 레시피(앱 조리 순서 화면) → 이렇게 바꿨어요
 const RECIPE: Shot[] = [
