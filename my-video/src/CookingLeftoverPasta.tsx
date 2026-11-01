@@ -146,8 +146,7 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
 };
 
 // 사람이 실제로 한 말 — 요즘 릴스식 말 자막(사용자 2026-11-01: 말풍선이 촌스럽다). 상자 없이 굵은 흰 글씨 + 검은 외곽선,
-// 단어가 하나씩 톡톡 튀어나오고 지금 단어만 노랗게(캡컷 자동 자막 느낌). 말한 사람은 작은 색 글씨로 위에
-const WHO_COLOR: Record<string, string> = { 도아: "#FF9EC7", 엄마: "#8FD3FF" };
+// 단어가 하나씩 톡톡 튀어나오고 지금 단어만 노랗게(캡컷 자동 자막 느낌). 말한 사람 이름은 쓰지 않는다(사용자 2026-11-01)
 const Talk: React.FC<{ text: string; who: string; len: number }> = ({ text, who, len }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -163,7 +162,6 @@ const Talk: React.FC<{ text: string; who: string; len: number }> = ({ text, who,
   const stroke = { WebkitTextStroke: "14px #000", paintOrder: "stroke fill" } as React.CSSProperties;
   return (
     <div style={{ position: "absolute", top: 470, left: 60, right: 60, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
-      <div style={{ fontSize: 40, fontWeight: 900, color: WHO_COLOR[who] ?? YELLOW, marginBottom: 10, ...stroke, WebkitTextStroke: "8px #000" }}>{who}</div>
       <div style={{ fontSize: 84, fontWeight: 900, lineHeight: 1.22, wordBreak: "keep-all" }}>
         {words.map((w, k) => {
           const at = (k / words.length) * span;
