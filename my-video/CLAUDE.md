@@ -12,3 +12,4 @@
   - 말소리 구간은 음악이 자동으로 -16dB 로 내려간다(`add_bgm.py` 기본). 따로 끄지 않는다.
 - **① 훅의 웃음 포인트 자막은 최소 3.5초** 보이게 — 모자라면 대사 뒤 꼬리를 `scripts/slow_hook_tail.py` 로 슬로.
 - **① 훅 릴스의 기능 데모 동안 하단 중앙 검색 안내**(`makeReel(..., true)`).
+- **레시피를 DM·댓글로 보내는 PDF**는 [../store/RECIPE_PDF_GUIDE.md](../store/RECIPE_PDF_GUIDE.md) 형식 그대로(3쪽, 단위+괄호, 쪽 직접 나눔, 노란 「쿡매치 검색 · 여기를 누르면 쿡매치 받기」 링크, `utm_source=recipe_pdf_<요리이름>`).
