@@ -6,7 +6,7 @@
 ## 만드는 순서
 
 1. 본보기 HTML 을 `scripts/hub_post_files/dm/<요리이름>.html` 로 복사해 내용을 바꾼다.
-2. `python scripts/make_dm_pdf.py scripts/hub_post_files/dm/<요리이름>.html` → 같은 이름 `.pdf`(크롬 헤드리스 인쇄, 링크가 살아 있음).
+2. `python scripts/make_dm_pdf.py scripts/hub_post_files/dm/<요리이름>.html` → 같은 이름 `.pdf`(크롬 헤드리스 인쇄, 링크가 살아 있음). 클라우드 세션(윈도 크롬 없음)에서는 playwright `page.pdf({ preferCSSPageSize: true, printBackground: true })` 로 같은 결과.
 3. 쪽마다 그림으로 뽑아 **직접 보고** 잘린 데가 없는지 확인한다(아래 「쪽 나눔」).
 4. 올리기 아티팩트: `scripts/hub_post_files/cooking_posts.json` 의 해당 편에 `pdf` 필드(`src`·`name`·`info`)를 넣고 `gen_hub.py` → 아티팩트를 `files` 에 PDF 를 붙여 다시 올린다. 카드에 「PDF 저장」 버튼이 생긴다.
 5. OneDrive `쿡매치_요리영상` 에도 `쿡매치_<요리>_DM.pdf` 로 복사.
@@ -58,3 +58,4 @@
 | 요리 | HTML / PDF | 꼬리표 |
 |---|---|---|
 | 버너 하나로 캠핑 새우 알리오올리오 (2026-11-01) | `scripts/hub_post_files/dm/camping_alioolio.*` | `recipe_pdf_shrimp_alioolio` |
+| 캠핑 다음날 남은 면 햄 알리오올리오 (2026-11-01, 4편) — 양은 사용자 표현(듬뿍·조금·살짝)만, 숫자 양 받으면 갱신 | `scripts/hub_post_files/dm/leftover_ham_alioolio.*` | `recipe_pdf_ham_alioolio` |

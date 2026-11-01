@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>캠핑 다음날, 남은 면으로 햄 알리오올리오 — 쿡매치</title>
+<!-- DM 으로 보내는 PDF 원본. 고친 뒤: python scripts/make_dm_pdf.py scripts/hub_post_files/dm/leftover_ham_alioolio.html -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+@page { size: 120mm 250mm; margin: 9mm 8mm; }
+:root {
+  --ink: #1b1d1a; --muted: #5f655c; --line: #dfe2da; --brand: #ffd600;
+  --leaf: #3f7d4e; --leaf-soft: #e7f1e8; --chip: #fff3a6; --chip-ink: #5a4a00;
+  --display: 'Do Hyeon', 'IBM Plex Sans KR', sans-serif;
+  --body: 'IBM Plex Sans KR', 'Malgun Gothic', sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; color: var(--ink); font: 10.5pt/1.6 var(--body); }
+h1 { font: 400 22pt/1.2 var(--display); margin: 0 0 3mm; }
+h2 { font: 400 15pt/1.3 var(--display); margin: 0 0 1.5mm; }
+.meta { display: flex; flex-wrap: wrap; gap: 1.5mm; margin-bottom: 4.5mm; }
+.meta span { font-size: 8.5pt; font-weight: 700; color: var(--chip-ink); background: var(--chip); border-radius: 99px; padding: .6mm 3mm; }
+.sub { margin: 0 0 3mm; color: var(--muted); font-size: 9pt; }
+section { margin-bottom: 7mm; }
+/* 쪽 나눔은 직접 정한다: 1쪽 소분 · 2쪽 순서와 이유 · 3쪽 원래 레시피와 쿡매치 받기. 쪽 안에서는 자르지 않는다 */
+.pg { break-after: page; break-inside: avoid; }
+.pg:last-child { break-after: auto; }
+.pack { border: 1px dashed #c9cdc3; border-radius: 3mm; padding: 2mm 3.5mm .5mm; margin-bottom: 2.5mm; }
+.pack li { break-inside: avoid; }
+.pack b { display: block; color: var(--leaf); font-size: 9pt; margin-bottom: 1mm; }
+.pack ul { list-style: none; margin: 0; padding: 0; }
+.pack li { display: grid; grid-template-columns: 4.2mm 1fr auto; gap: 2.5mm; align-items: baseline; padding: 1mm 0; border-top: 1px solid var(--line); }
+.pack li:first-child { border-top: 0; }
+.pack li::before { content: ""; width: 3.6mm; height: 3.6mm; border: 1.2px solid #8a9086; border-radius: .8mm; transform: translateY(.5mm); }
+.pack .amt { color: var(--ink); font-size: 9.5pt; font-weight: 500; text-align: right; }
+.pack .amt small { font-weight: 400; }
+.pack small { display: block; color: var(--muted); font-size: 8pt; line-height: 1.3; }
+.note { margin: 0; color: var(--muted); font-size: 8.5pt; }
+ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 6.5mm 1fr; gap: 2.5mm; margin-bottom: 2.2mm; break-inside: avoid; }
+ol.steps li::before { content: counter(s); width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); font-weight: 700; font-size: 9pt; display: grid; place-items: center; }
+.swap { background: var(--leaf-soft); border-radius: 3mm; padding: 3.5mm 4mm; break-inside: avoid; }
+.swap b { color: var(--leaf); font-size: 9.5pt; }
+.swap ul { margin: 1.5mm 0 2mm; padding-left: 4.5mm; }
+.swap li { margin-bottom: 1.6mm; }
+.orig { margin-bottom: 0; }
+.ings { margin: 0 0 3mm; }
+.cta { margin-top: 6mm; background: var(--brand); border-radius: 3.5mm; padding: 4.5mm 5mm; text-align: center; break-inside: avoid; }
+.cta .t { font: 400 17pt/1.25 var(--display); margin: 0; }
+.cta .s { margin: 1.5mm 0 0; font-size: 10.5pt; font-weight: 700; }
+.cta { display: block; color: var(--ink); text-decoration: none; }
+.cta .btn { display: inline-block; margin: 3mm 0 0; background: var(--ink); color: #fff; font-weight: 700; font-size: 10.5pt; border-radius: 99px; padding: 1.8mm 5mm; }
+</style>
+</head>
+<body>
+<div class="pg">
+<h1>남은 면으로 햄 알리오올리오</h1>
+<div class="meta"><span>어제 삶아 둔 파스타면</span><span>프라이팬 1개</span><span>손질 포함 약 25분</span></div>
+
+<section>
+  <h2>먼저 준비해 두기</h2>
+  <p class="sub">캠핑에서 남아 싸 온 면으로, 다음 날 아침 집에서 다시 만들었어요. 불 켜기 전에 재료를 다 썰어 두면 볶을 때 정신없지 않아요.</p>
+  <div class="pack">
+    <b>재료 · 썰어 두기</b>
+    <ul>
+      <li><span>삶아 둔 파스타면<small>캠핑에서 남은 면</small></span><span class="amt">3인분</span></li>
+      <li><span>통마늘 <small>편으로 썰기</small></span><span class="amt">넉넉히</span></li>
+      <li><span>다진 마늘 <small>냉동 큐브</small></span><span class="amt">준비해 두기</span></li>
+      <li><span>대파 <small>얇게 송송</small></span><span class="amt">조금</span></li>
+      <li><span>방울토마토 <small>반으로</small></span><span class="amt">한 줌</span></li>
+      <li><span>햄 <small>조각조각</small></span><span class="amt">도아가 좋아하는 만큼</span></li>
+    </ul>
+  </div>
+  <div class="pack">
+    <b>양념</b>
+    <ul>
+      <li><span>올리브유</span><span class="amt">듬뿍</span></li>
+      <li><span>갈릭솔트 <small>소금 대신, 두 번 나눠서</small></span><span class="amt">조금</span></li>
+      <li><span>후추</span><span class="amt">살짝</span></li>
+      <li><span>파마산 치즈가루</span><span class="amt">솔솔</span></li>
+      <li><span>레드페퍼</span><span class="amt">조금</span></li>
+      <li><span>파슬리 가루 <small>마지막에</small></span><span class="amt">솔솔</span></li>
+    </ul>
+  </div>
+  <p class="note">면을 미리 삶아 둔 상태라 냄비 없이 프라이팬 하나면 돼요.</p>
+</section>
+</div>
+
+<div class="pg">
+<section>
+  <h2>이 순서로 볶아요</h2>
+  <ol class="steps">
+    <li>프라이팬에 올리브유를 듬뿍 두르고 다진 마늘을 넣어 향을 내요.</li>
+    <li>편마늘을 넣고, 얇게 썬 대파도 올려요.</li>
+    <li>갈릭솔트를 조금 뿌려요.</li>
+    <li>편마늘이 얼추 익어 가면 햄을 넣어요.</li>
+    <li>삶아 둔 면과 방울토마토를 넣고 잘 섞어요.</li>
+    <li>후추를 살짝, 갈릭솔트를 조금 더 뿌리고 섞어요.</li>
+    <li>파마산 치즈가루와 레드페퍼를 넣어 섞어요.</li>
+    <li>마지막에 파슬리 가루를 얹으면 끝.</li>
+  </ol>
+</section>
+
+<section class="swap">
+  <b>원래 레시피와 다르게 한 것</b>
+  <ul>
+    <li><strong>면은 어제 삶아 둔 면.</strong> 캠핑에서 3인분이 남아서 싸 왔어요. 면 삶기와 면수 넣는 단계 없이 바로 볶았어요.</li>
+    <li><strong>쪽파 대신 대파.</strong> 집에 쪽파가 없었어요. 쿡매치에서도 「쪽파 → 대파」로 바꿔 쓰라고 알려 줬어요.</li>
+    <li><strong>소금 대신 갈릭솔트, 페퍼론치노 대신 레드페퍼.</strong> 어제 캠핑에서 쓰던 그대로 썼어요.</li>
+    <li><strong>햄 · 방울토마토 · 파슬리 추가.</strong> 도아 입맛에 맞췄어요.</li>
+  </ul>
+  <p class="note">처음부터 만든다면 원래 레시피처럼 면을 삶고, 면수로 볶아 촉촉하게 마무리해도 좋아요.</p>
+</section>
+</div>
+
+<div class="pg">
+<section class="orig">
+  <h2>원래 레시피 (쿡매치 ‘백종원 K-알리오올리오’, 1인분)</h2>
+  <p class="ings">정수물 약6컵(1L) · 파스타면 100g · 꽃소금 1/3큰술(4g) · 면수 약1/3컵(70ml) · 올리브유 약1/3컵(55g) · 간 마늘 2큰술(40g) · 통마늘 약 4개(21g) · 쪽파 약간(4g) · 페퍼론치노 5개(2g) · 꽃소금 약간 · 파마산치즈가루 약간</p>
+  <ol class="steps">
+    <li>냄비에 정수물, 꽃소금을 넣고 강 불에 올려 끓인다.</li>
+    <li>물이 끓어 오르면 스파게티면을 펼쳐 넣고 약 7~8분 정도 삶는다.</li>
+    <li>삶아 진 스파게티면은 체에 밭쳐 건져내어 준비한다.</li>
+    <li>통마늘은 0.2cm 두께로 편 썰고, 쪽파는 0.3cm 두께로 송송 썰어 준비한다.</li>
+    <li>프라이팬에 올리브유를 두르고 편 마늘을 넣은 후 중 약 불에 올려 볶는다.</li>
+    <li>기름이 지글지글 거리기 시작하면 페퍼론치노를 1/2정도 크기로 부숴 넣는다.</li>
+    <li>편 마늘이 노릇노릇해지기 시작하면 간 마늘을 넣고 함께 볶는다.</li>
+    <li>간 마늘이 노릇하게 색이나면 면을 면수에 가볍게 헹궈 물기를 털고 팬에 넣는다.</li>
+    <li>마늘과 면을 가볍게 볶은 후 면수를 넣고 강 불로 키워 볶는다.</li>
+    <li>면수와 올리브오일이 골고루 섞이고 면에 간이 배이면 불을 끈다.</li>
+    <li>접시에 스파게티를 옮겨 담은 후 쪽파를 올린다.</li>
+    <li>파마산치즈가루를 뿌려 완성한다.</li>
+  </ol>
+  <a class="cta" href="https://refrigerator-code.vercel.app/download?utm_source=recipe_pdf_ham_alioolio&amp;utm_medium=pdf&amp;utm_campaign=recipe_pdf">
+    <p class="t">앱스토어 · Play 스토어에서<br>‘쿡매치’ 검색</p>
+    <p class="s">‘알리오올리오’를 검색하면 이 레시피와<br>내 재료에 맞춘 대체 재료를 볼 수 있어요</p>
+    <p class="btn">👉 여기를 누르면 쿡매치 받기</p>
+  </a>
+</section>
+</div>
+
+</body>
+</html>

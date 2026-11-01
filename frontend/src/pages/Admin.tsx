@@ -2971,6 +2971,7 @@ const SOURCE_GUIDE: { tag: string; means: string; link?: string }[] = [
   { tag: 'threads', means: '스레드 글에 붙인 링크', link: '/?utm_source=threads' },
   { tag: 'instagram', means: '인스타그램 릴스·스토리·게시물 글에 붙인 링크', link: '/?utm_source=instagram' },
   { tag: 'recipe_pdf_shrimp_alioolio', means: '레시피 PDF(새우 알리오올리오) 맨 아래 「여기를 누르면 쿡매치 받기」. 레시피마다 recipe_pdf_요리이름', link: '/download?utm_source=recipe_pdf_shrimp_alioolio&utm_medium=pdf&utm_campaign=recipe_pdf' },
+  { tag: 'recipe_pdf_ham_alioolio', means: '레시피 PDF(남은 면 햄 알리오올리오) 맨 아래 「여기를 누르면 쿡매치 받기」. 레시피마다 recipe_pdf_요리이름', link: '/download?utm_source=recipe_pdf_ham_alioolio&utm_medium=pdf&utm_campaign=recipe_pdf' },
 ];
 
 function sourceLabel(src: string): string {
