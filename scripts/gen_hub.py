@@ -24,10 +24,12 @@ import gen_reel_hooks_v7 as hooks  # noqa: E402
 import gen_reel_talk_v2 as talk  # noqa: E402
 import gen_threads_posts as threads  # noqa: E402
 import gen_reel_hooks_v8 as hooks5  # noqa: E402
+import gen_reel_hooks_v9 as hooks6  # noqa: E402
 
 # 다 만든 편(영상이 out/ 에 있음). 새로 만들면 여기에 번호를 더한다.
 HOOK_DONE = {"02", "03", "04", "05", "06", "06B", "07", "08"}
 HOOK5_DONE = {"01", "02"}  # 5벌(gen_reel_hooks_v8.py)
+HOOK6_DONE = set()  # 6벌(gen_reel_hooks_v9.py, 4벌식 받아치기)
 TALK_DONE = {"01", "02", "03"}
 
 ROUND_NAME = {"-1": "총정리", "0": "1벌", "1": "2벌", "2": "3벌", "3": "직접 요리", "4": "4벌"}
@@ -48,13 +50,17 @@ def hook_card(c, done, hooks=hooks):
 def make_data():
     hook_cards = [hook_card(c, HOOK_DONE) for c in hooks.CLIPS]
     # 5벌은 사진을 먼저 만들므로 「첫 장면 이미지」를 첫 버튼으로
-    hook5_cards = []
-    for c in hooks5.CLIPS:
-        h = hook_card(c, HOOK5_DONE)
-        h["copies"] = [{"label": "① 첫 장면 사진", "text": hooks.image_prompt(c), "main": True},
-                       {"label": "② 영상 프롬프트", "text": hooks.clip_prompt(c), "main": True},
-                       {"label": "대사 없는 버전", "text": hooks.clip_prompt(c, True)}]
-        hook5_cards.append(h)
+    def photo_first(clips, done):
+        out = []
+        for c in clips:
+            h = hook_card(c, done)
+            h["copies"] = [{"label": "① 첫 장면 사진", "text": hooks.image_prompt(c), "main": True},
+                           {"label": "② 영상 프롬프트", "text": hooks.clip_prompt(c), "main": True},
+                           {"label": "대사 없는 버전", "text": hooks.clip_prompt(c, True)}]
+            out.append(h)
+        return out
+    hook5_cards = photo_first(hooks5.CLIPS, HOOK5_DONE)
+    hook6_cards = photo_first(hooks6.CLIPS, HOOK6_DONE)
     talk_cards = []
     for e in talk.EPISODES:
         p = talk.presenter(e)
@@ -65,7 +71,7 @@ def make_data():
             "copies": [{"label": "① 출연자 사진", "text": talk.photo_prompt(e), "main": True}]
             + [{"label": f"클립 {i + 1}", "text": talk.clip_prompt(e, i)} for i in range(3)],
         })
-    return {"hooks5": hook5_cards, "hooks": hook_cards, "talks": talk_cards}
+    return {"hooks6": hook6_cards, "hooks5": hook5_cards, "hooks": hook_cards, "talks": talk_cards}
 
 
 def plan_items():
