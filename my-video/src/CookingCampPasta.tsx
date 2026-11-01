@@ -68,7 +68,7 @@ const COOK: Shot[] = [
 const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "방울토마토 · 파마산 치즈\n잎채소 올려 완성!", origin: "50% 55%" }];
 
 // 레시피 카드가 나오는 동안 댓글 유도(사용자 2026-11-01). 댓글이 달리면 사용자가 DM 으로 레시피를 보낸다
-const COMMENT_HINT = "상세 레시피가 궁금하면\n댓글에 「쿡매치」 남겨 주세요\nDM으로 바로 보내 드릴게요 💌";
+const COMMENT_HINT = "소분 기준 · 상세 레시피가 궁금하면\n댓글에 「쿡매치」 남겨 주세요\nDM으로 바로 보내 드릴게요 💌";
 
 // 완성 바로 뒤 — 원래 레시피 → 캠핑에서 바꾼 점(사용자 2026-11-01: 너무 늦게 나와서 완성 직후로)
 const RECIPE: Shot[] = [
