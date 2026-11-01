@@ -44,6 +44,8 @@ const PREP: Shot[] = [
 
 // 버너 하나로 요리 — 분량은 쿡매치 레시피 카드 그대로, 순서는 실제로 한 순서
 const COOK: Shot[] = [
+  // 18:05 캠핑장 야경(같은 영상 뒷부분, 9:16 으로 잘라 냄) — 요리 제목이 이 위에 뜬다
+  { kind: "video", src: "n_090542.mp4", from: 0, to: 2.8, rate: 1.2, step: "해가 지면\n버너 하나로 저녁 준비" },
   { kind: "video", src: "c_095555.mp4", from: 0, to: 7.0, rate: 2, step: "물 500ml 끓이고" },
   { kind: "video", src: "c_095638.mp4", from: 0, to: 9.4, rate: 2, step: "파스타면 90g · 참치액 1T" },
   { kind: "video", src: "c_100012.mp4", from: 2, to: 30, rate: 4, step: "면이 엉겨 붙지 않게\n저어 가며 10~12분" },
