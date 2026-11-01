@@ -40,15 +40,18 @@ const STORY: Shot[] = [
   { kind: "video", src: "d_090542.mp4", from: 0, to: 3.0, step: "해 질 녘, 배고픈 도아는\n먼저 냠냠" },
   { kind: "video", src: "d_090542b.mp4", from: 0, to: 2.2 },
 ];
+// 소분 체크리스트·레시피 카드가 나오는 동안 댓글 유도(사용자 2026-11-01, B안 + 문구는 사용자 지정). 레시피는 본문에 다 있고, DM 은 저장용 정리 이미지(분량 포함 소분 체크리스트 + 원래 레시피)라는 「덤」
+const COMMENT_HINT = "캠핑용 소분 체크리스트와\n상세 레시피가 필요하면\n댓글에 「쿡매치」 남겨 주세요\nDM으로 보내 드릴게요 💌";
+
 // 후킹이 약속한 「무엇을 소분하나」 — 후킹 바로 뒤에 보여 준다(사용자 2026-11-01: 이 콘텐츠가 소분 정보라는 게 드러나야 이탈이 없다)
 const PREP: Shot[] = [
   // prep_sauce.jpg 는 「설탕」 라벨을 흐리게 한 사본(원본 prep_sauce_orig.jpg) — 설탕은 이 요리에 안 쓴다
-  { kind: "photo", src: "prep_sauce.jpg", len: f(4.4), origin: "40% 75%", list: { title: "① 양념은 작은 통에", items: [
+  { kind: "photo", src: "prep_sauce.jpg", len: f(4.4), origin: "40% 75%", list: { title: "① 양념은 작은 통에", hint: COMMENT_HINT, items: [
     { at: 0.3, text: "올리브오일 (소스통)" }, { at: 0.9, text: "갈릭솔트 · 소금" }, { at: 1.5, text: "후춧가루" },
     { at: 2.1, text: "페퍼론치노" }, { at: 2.7, text: "코인육수 1알" },
   ] } },
   // 가로 사진 — 양옆이 잘리지 않게 왼쪽 끝에서 오른쪽 끝까지 천천히 훑는다(사용자 2026-11-01)
-  { kind: "photo", src: "prep_bags.jpg", len: f(6.0), pan: true, list: { title: "② 재료는 지퍼백에", items: [
+  { kind: "photo", src: "prep_bags.jpg", len: f(6.0), pan: true, list: { title: "② 재료는 지퍼백에", hint: COMMENT_HINT, items: [
     { at: 0.4, text: "냉동 흰다리 새우살" }, { at: 1.2, text: "편마늘 · 다진 마늘" }, { at: 2.4, text: "잎채소" },
     { at: 3.0, text: "방울토마토 (반 잘라서)" }, { at: 3.9, text: "파스타면" }, { at: 4.8, text: "파마산 치즈가루" },
   ] } },
@@ -67,8 +70,6 @@ const COOK: Shot[] = [
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "방울토마토 · 파마산 치즈\n잎채소 올려 완성!", origin: "50% 55%" }];
 
-// 레시피 카드가 나오는 동안 댓글 유도(사용자 2026-11-01, B안). 레시피는 본문에 다 있고, DM 은 저장용 정리 이미지(분량 포함 소분 체크리스트 + 원래 레시피)라는 「덤」
-const COMMENT_HINT = "캠핑용 소분 체크리스트가 필요하면\n댓글에 「쿡매치」 남겨 주세요\nDM으로 보내 드릴게요 💌";
 
 // 완성 바로 뒤 — 원래 레시피 → 캠핑에서 바꾼 점(사용자 2026-11-01: 너무 늦게 나와서 완성 직후로)
 const RECIPE: Shot[] = [
