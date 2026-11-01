@@ -15,7 +15,7 @@ const f = (s: number) => Math.round(s * 30);
 
 type Shot =
   | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean }
-  | { kind: "photo"; src: string; len: number; caption?: string; origin?: string }
+  | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number }
   | { kind: "features"; len: number }
@@ -39,7 +39,8 @@ const STORY: Shot[] = [
 // 후킹이 약속한 「무엇을 소분하나」 — 후킹 바로 뒤에 보여 준다(사용자 2026-11-01: 이 콘텐츠가 소분 정보라는 게 드러나야 이탈이 없다)
 const PREP: Shot[] = [
   { kind: "photo", src: "prep_sauce.jpg", len: f(3.2), caption: "① 올리브오일은 소스통에\n후추·페퍼론치노는 작은 통에", origin: "40% 75%" },
-  { kind: "photo", src: "prep_bags.jpg", len: f(3.4), caption: "② 마늘·방울토마토는 썰어서\n새우살·면·잎채소와 지퍼백에", origin: "55% 45%" },
+  // 가로 사진 — 양옆이 잘리지 않게 왼쪽 끝에서 오른쪽 끝까지 천천히 훑는다(사용자 2026-11-01)
+  { kind: "photo", src: "prep_bags.jpg", len: f(5.0), caption: "② 마늘·방울토마토는 썰어서\n새우살·면·잎채소와 지퍼백에", pan: true },
 ];
 
 // 버너 하나로 요리 — 사용자가 실제로 한 순서(2026-11-01 사용자 설명). 쿡매치 「원팬 파스타」를 캠핑에 맞게 바꿨다
@@ -104,14 +105,20 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
   );
 };
 
-// 사진 — 천천히 다가간다. 첫 장면(후킹)은 첫 프레임부터 보이게 페이드 없이 시작
+// 사진 — 천천히 다가간다. 첫 장면(후킹)은 첫 프레임부터 보이게 페이드 없이 시작.
+// pan: 가로 사진을 높이에 맞추고 왼쪽 끝 → 오른쪽 끝으로 훑어 사진 전체를 보여 준다
 const Photo: React.FC<{ s: Extract<Shot, { kind: "photo" }>; len: number; first: boolean }> = ({ s, len, first }) => {
   const frame = useCurrentFrame();
   const z = interpolate(frame, [0, len], [1.0, 1.12], { easing: Easing.inOut(Easing.cubic) });
+  const x = interpolate(frame, [4, len - 4], [0, 100], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.sin) });
   const o = first ? interpolate(frame, [len - 4, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : fadeInOut(frame, len, 4);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", opacity: o }}>
-      <Img src={staticFile(DIR + s.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: s.origin ?? "50% 50%", transform: `scale(${z})`, transformOrigin: s.origin ?? "50% 50%" }} />
+      {s.pan ? (
+        <Img src={staticFile(DIR + s.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${x}% 50%` }} />
+      ) : (
+        <Img src={staticFile(DIR + s.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: s.origin ?? "50% 50%", transform: `scale(${z})`, transformOrigin: s.origin ?? "50% 50%" }} />
+      )}
       {s.caption && <Caption from={6} len={len - 8} text={s.caption} />}
     </AbsoluteFill>
   );
