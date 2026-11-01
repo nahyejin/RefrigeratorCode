@@ -18,7 +18,7 @@ const f = (s: number) => Math.round(s * 30);
 type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean; hint?: string };
 
 type Shot =
-  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[] }
+  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[]; talk?: { at: number; len: number; text: string; who: string }[] }
   | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[] }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number };
@@ -33,10 +33,15 @@ const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(2.8), origin: "50
 const RECAP: Shot[] = [
   // 3편에서 실제로 만든 파스타 사진(완성 후 10/31 19:33 사진 — 그 무렵 영상은 새우 볶는 장면까지뿐)(사용자 2026-11-01: 알리오올리오 얘기에 풍경 말고 그 파스타를)
   { kind: "photo", src: "camp_pasta.jpg", len: f(2.6), origin: "50% 60%", caption: "어젯밤 캠핑에서 만든\n새우 알리오올리오" },
-  { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(7.4), origin: "50% 55%", lines: [
+  { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.8), origin: "50% 55%", lines: [
     { at: 0.2, len: 3.4, text: "도아가 방울토마토도, 새우도, 면도 좋아해서\n건강하게 만든 건데..." },
-    { at: 3.7, len: 3.6, text: "갑자기 추워져서 도아가 울어서\n급하게 집으로 오느라\n한 입도 못 먹였어요" },
   ] },
+  // 사용자 2026-11-01: 「갑자기 추워져서…」를 나눠 텐트 속 거위털 옷 영상(20261031_083400, 3초부터 · 끝부분)에 배분. 엄마 설명 원래 소리
+  { kind: "video", src: "coat1.mp4", from: 0, to: 10.0, audio: true, lines: [
+    { at: 0.2, len: 4.6, text: "갑자기 추워져서" },
+    { at: 5.0, len: 4.8, text: "도아가 울어서" },
+  ] },
+  { kind: "video", src: "coat2.mp4", from: 0, to: 3.0, audio: true, lines: [{ at: 0.1, len: 2.8, text: "급하게 집으로 오느라\n한 입도 못 먹였어요" }] },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
 const LEFT: Shot[] = [
@@ -49,8 +54,7 @@ const LEFT: Shot[] = [
   // 도아가 먼저 「이거 뭐지?」 하는 부분부터(사용자 2026-11-01). 원본 7.2s 무렵 짧은 아이 목소리 — 받아쓰기가 막혀 목소리 높이로 찾은 자리
   { kind: "video", src: "pan.mp4", from: 2.8, to: 12.5, audio: true, lines: [
     { at: 0.1, len: 4.2, text: "남은 면을 본 도아" },
-    { at: 4.4, len: 2.2, text: "「이거 뭐지?」" },
-  ] },
+  ], talk: [{ at: 4.4, len: 2.4, text: "이거 뭐지?", who: "도아" }] },
 ];
 const COMMENT_HINT = "상세 레시피가 필요하면\n팔로우 + 댓글에 「쿡매치」\nDM으로 보내 드릴게요 💌";
 
@@ -68,7 +72,7 @@ const COOK: Shot[] = [
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "done.jpg", len: f(2.6), caption: "햄 알리오올리오 완성!", origin: "50% 60%" }];
 // 먹는 도아(원래 소리)
-const EAT: Shot[] = [{ kind: "video", src: "eat.mp4", from: 3.0, to: 13.0, audio: true, step: "오늘은\n맛있게 냠냠" }];
+const EAT: Shot[] = [{ kind: "video", src: "eat.mp4", from: 3.0, to: 13.0, audio: true, lines: [{ at: 5.0, len: 4.8, text: "오늘은\n맛있게 냠냠" }], talk: [{ at: 1.0, len: 3.2, text: "도아가 먹을 거야!", who: "도아" }] }];
 
 // 원래 레시피(앱 조리 순서 화면) → 이렇게 바꿨어요
 const RECIPE: Shot[] = [
@@ -132,8 +136,26 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
       )}
       {s.step && <Caption from={6} len={len - 8} text={s.step} />}
       {s.lines?.map((l, k) => <Caption key={k} from={f(l.at)} len={f(l.len)} text={l.text} />)}
+      {s.talk?.map((t, k) => <Sequence key={k} from={f(t.at)} durationInFrames={f(t.len)}><Talk text={t.text} who={t.who} len={f(t.len)} /></Sequence>)}
       {s.list && <PackCard list={s.list} />}
     </AbsoluteFill>
+  );
+};
+
+// 사람이 실제로 한 말 — 설명 자막과 다른 말풍선(사용자 2026-11-01: 사람이 말하는 건 말하는 형태의 자막으로)
+const Talk: React.FC<{ text: string; who: string; len: number }> = ({ text, who, len }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const p = spring({ frame, fps, config: { damping: 12, mass: 0.5 } });
+  const o = interpolate(frame, [len - 5, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <div style={{ position: "absolute", top: 300, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: Math.min(p, o), transform: `scale(${interpolate(p, [0, 1], [0.7, 1])})`, transformOrigin: "50% 100%", fontFamily: FONT_FAMILY }}>
+      <div style={{ position: "relative", backgroundColor: WHITE, color: INK, borderRadius: 48, padding: "26px 46px 30px", boxShadow: "0 12px 30px rgba(0,0,0,0.35)", textAlign: "center" }}>
+        <div style={{ position: "absolute", top: -26, left: 34, backgroundColor: YELLOW, color: INK, fontSize: 34, fontWeight: 900, padding: "4px 20px", borderRadius: 999 }}>{who}</div>
+        <div style={{ fontSize: 76, fontWeight: 900, lineHeight: 1.2, whiteSpace: "pre-line" }}>{text}</div>
+        <div style={{ position: "absolute", bottom: -28, left: "50%", marginLeft: -20, width: 0, height: 0, borderLeft: "20px solid transparent", borderRight: "20px solid transparent", borderTop: `30px solid ${WHITE}` }} />
+      </div>
+    </div>
   );
 };
 
