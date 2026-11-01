@@ -4,9 +4,10 @@ import { FONT_FAMILY, INK, WHITE, YELLOW, LINE, useCustomFont, CtaOutro, Caption
 import { Intro, INTRO, CTA_LEN, Mark, OverviewSegments, OverviewCta, SEGS_LEN } from "./ReelOverview";
 
 // 요리 릴스 3편 — 캠핑 새우 알리오올리오(2026-10-31, 캠핑장 버너 하나로).
-// ① 완성 사진 + 후킹 → ② 쿡매치에서 「알리오올리오」 검색 · 재료매칭순 · 대체 재료 → 「원팬 파스타」 레시피 → 캘린더 · 장 봐야 할 재료
-// → ③ 집에서 양념·재료 소분 → ④ 캠핑장 도착, 도아랑 텐트 → ⑤ 버너 하나로 요리(단계 자막) → ⑥ 완성
+// ① 완성 사진 + 후킹(궁금증: 「이것」이 뭔지는 ③에서 풀린다) → ② 도아랑 캠핑, 텐트 → ③ 집에서 해 온 양념·재료 소분
+// → ④ 버너 하나로 요리(단계 자막) → ⑤ 완성 → ⑥ 레시피는 쿡매치에서: 검색 · 대체 재료 → 「원팬 파스타」 → 캘린더 · 장 봐야 할 재료
 // → ⑦ 이 편 슬로건(4편 장보기) → ⑧ 그 밖에도 → ⑨ 8개 기능 → ⑩ 대표 슬로건. 먹는 영상은 없다.
+// 사용자 요청(2026-11-01): 사진 한 장 뒤 바로 앱 화면이면 이탈이 많다 → 이야기·요리를 앞에, 앱은 완성 뒤로. 아빠는 화면에 안 나오게(흐림 말고 잘라 냄).
 // 원본은 public/cooking/새우알리오올리오_20261031/ (git 제외). 가이드 my-video/COOKING_REEL_GUIDE.md.
 
 const DIR = "cooking/새우알리오올리오_20261031/work/";
@@ -23,26 +24,19 @@ type Shot =
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
 // 첫 장면 = 완성 사진 + 큰 노란 후킹(썸네일 겸용)
-const HOOK = { at: 0, len: 2.8, text: "캠핑 요리는\n집에서 끝내요" };
+const HOOK = { at: 0, len: 2.8, text: "캠핑 가기 전\n이것만 해 두세요" };
 const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(2.8), origin: "50% 55%" }];
 
-// 쿡매치에서 찾기 — 앱 작업본(880x1784, 상태바 잘라 냄, 17.3~24.7s 알림 흐림) 시각
-const APP: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 7.6, rate: 1.6, app: true, step: "캠핑 메뉴는 쿡매치에서\n「알리오올리오」 검색" },
-  { kind: "video", src: "app_raw.mp4", from: 8.0, to: 11.6, rate: 1.2, app: true, step: "내 재료와 잘 맞는 순서로" },
-  { kind: "video", src: "app_raw.mp4", from: 24.8, to: 35.0, rate: 2, app: true, step: "없는 재료는 있는 걸로\n새우 → 새우살 · 치킨스톡 → 코인육수" },
-  { kind: "video", src: "app_raw.mp4", from: 36.0, to: 40.0, rate: 1.2, app: true, step: "버너 하나로 되는\n「원팬 파스타」" },
-  { kind: "video", src: "app_raw.mp4", from: 40.5, to: 48.0, rate: 2.5, app: true, step: "재료·조리 순서 그대로\n따라 하면 돼요" },
-  { kind: "video", src: "app_raw.mp4", from: 49.0, to: 53.0, rate: 1.2, app: true, step: "먹을 날을 골라\n캘린더에 담고" },
-  { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
+// 도아랑 캠핑 — 가로 영상에서 도아만 9:16 으로 잘라 냄(d_*.mp4, 아빠는 화면 밖)
+const STORY: Shot[] = [
+  { kind: "video", src: "d_072234.mp4", from: 0, to: 2.6, step: "도아랑 캠핑 온 날\n폴대 들고 텐트 치기 거들기" },
+  { kind: "video", src: "d_072359.mp4", from: 0, to: 2.6 },
+  { kind: "video", src: "d_074745.mp4", from: 0, to: 5.0, rate: 1.3, step: "도아는 텐트가 신기해요" },
 ];
-
-// 집에서 소분 → 캠핑장 도착(텐트 영상은 가로 → 흐린 배경 위 가운데로 미리 합성)
+// 후킹의 「이것」 = 집에서 해 온 소분
 const PREP: Shot[] = [
-  { kind: "photo", src: "prep_sauce.jpg", len: f(2.6), caption: "양념은 작은 통에 덜고", origin: "40% 75%" },
+  { kind: "photo", src: "prep_sauce.jpg", len: f(2.8), caption: "저녁 준비는 집에서 끝내 왔어요\n양념은 작은 통에 덜고", origin: "40% 75%" },
   { kind: "photo", src: "prep_bags.jpg", len: f(2.8), caption: "새우살·마늘·면·채소는\n지퍼백에 소분", origin: "55% 45%" },
-  { kind: "video", src: "t_072234.mp4", from: 0, to: 7.5, rate: 1.5, step: "캠핑장 도착!\n도아랑 텐트부터 쳐요" },
-  { kind: "video", src: "t_074745.mp4", from: 2, to: 10, rate: 1.6, step: "도아는 텐트 안이 신기해요" },
 ];
 
 // 버너 하나로 요리 — 분량은 쿡매치 레시피 카드 그대로, 순서는 실제로 한 순서
@@ -55,16 +49,25 @@ const COOK: Shot[] = [
   { kind: "video", src: "c_101422.mp4", from: 124, to: 142, rate: 3, step: "재료를 넣고 함께 볶아요" },
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "잎채소·토마토 올려 완성!\n버너 하나로 캠핑 파스타", origin: "50% 55%" }];
+
+// 레시피는 쿡매치에서 — 앱 작업본(880x1784, 상태바 잘라 냄, 17.3~24.7s 알림 흐림) 시각
+const APP: Shot[] = [
+  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 7.6, rate: 1.6, app: true, step: "레시피는 쿡매치에서 찾았어요\n「알리오올리오」 검색" },
+  { kind: "video", src: "app_raw.mp4", from: 24.8, to: 35.0, rate: 2, app: true, step: "없는 재료는 있는 걸로\n새우 → 새우살 · 치킨스톡 → 코인육수" },
+  { kind: "video", src: "app_raw.mp4", from: 36.0, to: 40.0, rate: 1.2, app: true, step: "버너 하나로 되는\n「원팬 파스타」" },
+  { kind: "video", src: "app_raw.mp4", from: 49.0, to: 53.0, rate: 1.2, app: true, step: "먹을 날을 골라\n캘린더에 담고" },
+  { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
+];
 const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
   { kind: "transition", len: INTRO },
   { kind: "features", len: SEGS_LEN },
   { kind: "finalCta", len: CTA_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...APP, ...PREP, ...COOK, ...PLATE, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...STORY, ...PREP, ...COOK, ...PLATE, ...APP, ...TAIL];
 export const COOKING_CAMP_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(3.4);
-const COOK_START = [...OPEN, ...APP, ...PREP].reduce((a, s) => a + shotLen(s), 0);
+const COOK_START = [...OPEN, ...STORY, ...PREP].reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
   Math.min(
