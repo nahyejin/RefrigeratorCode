@@ -132,7 +132,7 @@ const TITLE_LEN = f(4.2);
 const TENT_SRC = ["coatA1.mp4", "coatA2.mp4", "coatA3.mp4", "coat2.mp4", "coat3.mp4"];
 const TENT_FROM = (() => { let c = 0; for (const x of SHOTS) { if ((x.kind === "video") && x.src === "coatA1.mp4") return c; c += shotLen(x); } return 0; })();
 const TENT_LEN = SHOTS.filter((x) => x.kind === "video" && TENT_SRC.includes(x.src)).reduce((a, x) => a + shotLen(x), 0);
-const TENT_CAPTION = "갑자기 날이 추워져서 도아가 울기 시작했고,\n급하게 집으로 돌아오느라\n한 입도 못 먹였어요 ㅠㅠ";
+const TENT_CAPTION = "갑자기 요즘 날이 추워져서 도아가 울기 시작했고,\n급하게 집으로 돌아오느라, 한 입도 못 먹였어요 ㅠㅠ";
 const COOK_START = [...OPEN, ...RECAP, ...LEFT].reduce((a, s) => a + shotLen(s), 0);
 const BANNER_FROM = [...OPEN, ...RECAP, ...LEFT, ...COOK, ...PLATE, ...EAT, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
