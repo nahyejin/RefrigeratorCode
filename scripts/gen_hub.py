@@ -98,6 +98,10 @@ def plan_items():
 COOKING_POSTS = json.loads((ROOT / "scripts/hub_post_files/cooking_posts.json").read_text(encoding="utf-8"))
 
 
+# 올리기 아티팩트에서 바로 올리는 스레드 글(사진·영상 파일을 카드에서 저장). 파일은 hub_post_files/threads/ → 아티팩트 files.
+THREADS_POSTS = json.loads((ROOT / "scripts/hub_post_files/threads_posts.json").read_text(encoding="utf-8"))
+
+
 def cooking_items():
     s = (ROOT / "store/COOKING_REEL_CAPTIONS.md").read_text(encoding="utf-8")
     out = []
@@ -177,7 +181,7 @@ def thread_items():
 
 
 def post_data():
-    items = [COOKING_POSTS.get(it["id"], it) for it in plan_items()] + EXTRA_REELS + cooking_items() + talk_items() + thread_items()
+    items = [COOKING_POSTS.get(it["id"], it) for it in plan_items()] + EXTRA_REELS + cooking_items() + talk_items() + thread_items() + THREADS_POSTS
     # 묶음 탭(2026-10-29 사용자: 릴스가 너무 많아 1벌·2벌… 유형별로 고르게)
     grp = {"총정리": "총정리", "1벌": "연기형 1벌", "2벌": "연기형 2벌", "3벌": "연기형 3벌", "4벌": "연기형 4벌", "직접 요리": "직접 요리", "셀카형": "출연자 셀카형"}
     for it in items:
