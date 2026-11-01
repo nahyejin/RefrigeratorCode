@@ -18,7 +18,7 @@ const f = (s: number) => Math.round(s * 30);
 type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean; hint?: string };
 
 type Shot =
-  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string }
+  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[] }
   | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList; dir?: string }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number };
@@ -26,36 +26,41 @@ type Shot =
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
 // 첫 장면 = 다음 날 파스타를 먹는 도아 + 큰 노란 후킹(썸네일 겸용)
-const HOOK = { at: 0, len: 2.8, text: "캠핑에서 못 먹인 파스타\n다음날 다시 해 줬어요" };
+const HOOK = { at: 0, len: 2.8, text: "캠핑에서 못 먹은 파스타\n다음날 도아 반응은?" };
 const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(2.8), origin: "50% 40%" }];
 
 // 어젯밤 캠핑 — 3편 장면을 다시 쓴다
 const RECAP: Shot[] = [
-  { kind: "video", src: "n_090542.mp4", dir: DIR3, from: 0, to: 2.8, rate: 1.0, step: "어젯밤 캠핑에서 만든\n새우 알리오올리오" },
-  { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.4), origin: "50% 55%", caption: "도아는 너무 추워서 울다가\n한 입도 못 먹었어요" },
+  // 3편에서 실제로 만든 파스타 사진(완성 후 10/31 19:33 사진 — 그 무렵 영상은 새우 볶는 장면까지뿐)(사용자 2026-11-01: 알리오올리오 얘기에 풍경 말고 그 파스타를)
+  { kind: "photo", src: "camp_pasta.jpg", len: f(2.6), origin: "50% 60%", caption: "어젯밤 캠핑에서 만든\n새우 알리오올리오" },
+  { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.6), origin: "50% 55%", caption: "갑자기 추워져서 도아가 울었어요\n급하게 집으로 오느라\n한 입도 못 먹였어요" },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
 const LEFT: Shot[] = [
   { kind: "photo", src: "leftover.jpg", len: f(3.0), origin: "50% 60%", caption: "면은 3인분이나 남아서\n집에 싸 왔어요" },
-  { kind: "video", src: "pan.mp4", from: 0.8, to: 12.5, audio: true, step: "다음 날 아침\n남은 면을 본 도아" },
+  // 도아가 먼저 「이거 뭐지?」 하는 부분부터(사용자 2026-11-01). 원본 7.2s 무렵 짧은 아이 목소리 — 받아쓰기가 막혀 목소리 높이로 찾은 자리
+  { kind: "video", src: "pan.mp4", from: 2.8, to: 12.5, audio: true, lines: [
+    { at: 0.1, len: 4.2, text: "다음 날 아침\n남은 면을 본 도아" },
+    { at: 4.4, len: 2.2, text: "「이거 뭐지?」" },
+  ] },
 ];
 const COMMENT_HINT = "상세 레시피가 필요하면\n팔로우 + 댓글에 「쿡매치」\nDM으로 보내 드릴게요 💌";
 
 // 요리 — 원본 24분을 단계마다 잘라 배속해 둔 작업본(k1~k9)
 const COOK: Shot[] = [
-  { kind: "video", src: "k1.mp4", from: 0, to: 5.0, step: "통마늘은 편으로" },
-  { kind: "video", src: "k2.mp4", from: 0, to: 5.0, step: "방울토마토는 반으로" },
-  { kind: "video", src: "k3.mp4", from: 0, to: 4.6, step: "파 송송" },
-  { kind: "video", src: "k4.mp4", from: 0, to: 6.0, step: "새우 대신\n도아가 좋아하는 햄" },
-  { kind: "video", src: "k5.mp4", from: 0, to: 5.9, step: "올리브오일에\n냉동 다진 마늘" },
-  { kind: "video", src: "k6.mp4", from: 0, to: 5.0, step: "편 마늘 · 파 넣고\n향 내기" },
-  { kind: "video", src: "k7.mp4", from: 0, to: 6.0, step: "햄 넣고 볶다가" },
-  { kind: "video", src: "k8.mp4", from: 0, to: 6.2, step: "어제 삶아 둔 면과\n방울토마토" },
-  { kind: "video", src: "k9.mp4", from: 0, to: 5.0, step: "파마산 치즈 솔솔" },
+  { kind: "video", src: "k1.mp4", from: 0, to: 4.0, step: "통마늘은 편으로" },
+  { kind: "video", src: "k2.mp4", from: 0, to: 4.0, step: "방울토마토는 반으로" },
+  { kind: "video", src: "k3.mp4", from: 0, to: 4.0, step: "파 송송" },
+  { kind: "video", src: "k4.mp4", from: 0, to: 5.0, step: "새우 대신 도아가 좋아하는 햄\n(건강한 재료도 좀 쟁여 놔야겠어요)" },
+  { kind: "video", src: "k5.mp4", from: 0, to: 4.0, step: "올리브오일에\n냉동 다진 마늘" },
+  { kind: "video", src: "k6.mp4", from: 0, to: 4.0, step: "편 마늘 · 파 넣고\n향 내기" },
+  { kind: "video", src: "k7.mp4", from: 0, to: 4.0, step: "햄 넣고 볶다가" },
+  { kind: "video", src: "k8.mp4", from: 0, to: 5.2, step: "어제 삶아 둔 면과\n방울토마토" },
+  { kind: "video", src: "k9.mp4", from: 0, to: 4.0, step: "파마산 치즈 솔솔" },
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "done.jpg", len: f(2.6), caption: "햄 알리오올리오 완성!", origin: "50% 60%" }];
 // 먹는 도아(원래 소리)
-const EAT: Shot[] = [{ kind: "video", src: "eat.mp4", from: 2.5, to: 15.5, audio: true, step: "오늘은\n맛있게 냠냠" }];
+const EAT: Shot[] = [{ kind: "video", src: "eat.mp4", from: 3.0, to: 13.0, audio: true, step: "오늘은\n맛있게 냠냠" }];
 
 // 원래 레시피(앱 조리 순서 화면) → 이렇게 바꿨어요
 const RECIPE: Shot[] = [
@@ -117,6 +122,7 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
         video
       )}
       {s.step && <Caption from={6} len={len - 8} text={s.step} />}
+      {s.lines?.map((l, k) => <Caption key={k} from={f(l.at)} len={f(l.len)} text={l.text} />)}
       {s.list && <PackCard list={s.list} />}
     </AbsoluteFill>
   );
