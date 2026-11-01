@@ -110,7 +110,7 @@ const BANNER_FROM = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE].r
 const BANNER_TO = COOKING_CAMP_PASTA_TOTAL - CTA_LEN;
 // 자막 아래, 화면 맨 아래 가운데(사용자 2026-11-01 최종). 셀카형 릴스와 같은 안내(SearchBanner).
 // 흰 앱 화면 위에서도 읽히게 반투명 검은 바탕. 자막 상자(1400~ 약 1560)와 붙지 않게 더 아래(사용자: 최하단 쪽으로)
-const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: "auto", top: 1700, transform: "translateX(-50%)", padding: "12px 34px 14px", borderRadius: 28, backgroundColor: "rgba(0,0,0,0.6)" };
+export const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: "auto", top: 1700, transform: "translateX(-50%)", padding: "12px 34px 14px", borderRadius: 28, backgroundColor: "rgba(0,0,0,0.6)" };
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
