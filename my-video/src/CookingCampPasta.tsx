@@ -15,7 +15,7 @@ const DIR = "cooking/새우알리오올리오_20261031/work/";
 const f = (s: number) => Math.round(s * 30);
 
 // 소분 체크리스트 — 항목이 at 초에 하나씩 체크되며 나타난다(사용자 2026-11-01: 무엇을 챙겼는지 구체적으로)
-type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean };
+type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean; hint?: string };
 
 type Shot =
   | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList }
@@ -67,16 +67,19 @@ const COOK: Shot[] = [
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "방울토마토 · 파마산 치즈\n잎채소 올려 완성!", origin: "50% 55%" }];
 
+// 레시피 카드가 나오는 동안 댓글 유도(사용자 2026-11-01). 댓글이 달리면 사용자가 DM 으로 레시피를 보낸다
+const COMMENT_HINT = "상세 레시피가 궁금하면\n댓글에 「쿡매치」 남겨 주세요\nDM으로 바로 보내 드릴게요 💌";
+
 // 완성 바로 뒤 — 원래 레시피 → 캠핑에서 바꾼 점(사용자 2026-11-01: 너무 늦게 나와서 완성 직후로)
 const RECIPE: Shot[] = [
   // 원래 레시피(읽어 주기 화면의 조리 순서) 요약 → 캠핑에서 바꾼 점(사용자 2026-11-01)
-  { kind: "video", src: "app_raw.mp4", from: 40.5, to: 48.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
+  { kind: "video", src: "app_raw.mp4", from: 40.5, to: 48.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, hint: COMMENT_HINT, items: [
     { at: 0.3, text: "마늘 슬라이스, 토마토 썰기" }, { at: 0.8, text: "올리브오일 3T에 마늘 노릇하게" },
     { at: 1.3, text: "새우 볶다가 토마토" }, { at: 1.8, text: "물 500ml · 면 90g · 참치액 1T" },
     { at: 2.3, text: "저어 가며 10~12분, 소금 간" }, { at: 2.8, text: "잎채소 · 후추 · 치즈 올려 완성" },
   ] } },
   // 바꾼 점은 집에서 미리 소분한 것부터(사용자 2026-11-01)
-  { kind: "photo", src: "hook.jpg", len: f(6.5), origin: "50% 60%", list: { title: "캠핑에서는 이렇게 바꿨어요", small: true, items: [
+  { kind: "photo", src: "hook.jpg", len: f(6.5), origin: "50% 60%", list: { title: "캠핑에서는 이렇게 바꿨어요", small: true, hint: COMMENT_HINT, items: [
     { at: 0.2, text: "집에서 미리", head: true }, { at: 0.5, text: "마늘 슬라이스 · 토마토 반 자르기" }, { at: 1.1, text: "면 · 새우살 · 채소 · 치즈 지퍼백 소분" },
     { at: 1.9, text: "캠핑장에서", head: true }, { at: 2.2, text: "면은 물에 먼저 삶고" }, { at: 2.8, text: "참치액 대신 코인육수 · 갈릭솔트" },
     { at: 3.4, text: "페퍼론치노 · 파마산 치즈 추가" },
@@ -106,8 +109,8 @@ const COOK_START = [...OPEN, ...PREP, ...STORY].reduce((a, s) => a + shotLen(s),
 const BANNER_FROM = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
 const BANNER_TO = COOKING_CAMP_PASTA_TOTAL - CTA_LEN;
 // 자막 아래, 화면 맨 아래 가운데(사용자 2026-11-01 최종). 셀카형 릴스와 같은 안내(SearchBanner).
-// 흰 앱 화면 위에서도 읽히게 반투명 검은 바탕. 자막 상자(1400~ 약 1560)와 겹치지 않게 그 아래에 둔다
-const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: "auto", top: 1590, transform: "translateX(-50%)", padding: "12px 34px 14px", borderRadius: 28, backgroundColor: "rgba(0,0,0,0.6)" };
+// 흰 앱 화면 위에서도 읽히게 반투명 검은 바탕. 자막 상자(1400~ 약 1560)와 붙지 않게 더 아래(사용자: 최하단 쪽으로)
+const BANNER_STYLE: React.CSSProperties = { left: "50%", right: "auto", bottom: "auto", top: 1700, transform: "translateX(-50%)", padding: "12px 34px 14px", borderRadius: 28, backgroundColor: "rgba(0,0,0,0.6)" };
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
@@ -165,7 +168,15 @@ const PackCard: React.FC<{ list: PackList }> = ({ list }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = spring({ frame, fps, config: { damping: 16, mass: 0.6 } });
+  const h = spring({ frame: frame - 20, fps, config: { damping: 14, mass: 0.6 } });
   return (
+    <>
+    {list.hint && (
+      // 댓글 유도 — 카드 반대편(카드가 아래면 위, 위면 아래 자막 자리)
+      <div style={{ position: "absolute", left: 70, right: 70, top: list.bottom ? 210 : 1360, padding: "22px 30px 26px", borderRadius: 30, backgroundColor: YELLOW, color: INK, textAlign: "center", whiteSpace: "pre-line", fontFamily: FONT_FAMILY, fontSize: 46, fontWeight: 900, lineHeight: 1.3, boxShadow: "0 10px 28px rgba(0,0,0,0.35)", opacity: h, transform: `scale(${interpolate(h, [0, 1], [0.9, 1])})` }}>
+        {list.hint}
+      </div>
+    )}
     <div style={{ position: "absolute", top: list.bottom ? 960 : 150, left: 56, right: 56, padding: "30px 40px 34px", borderRadius: 36, backgroundColor: list.bottom ? "rgba(0,0,0,0.86)" : "rgba(0,0,0,0.62)", opacity: p, transform: `translateY(${(1 - p) * -20}px)`, fontFamily: FONT_FAMILY }}>
       <div style={{ color: YELLOW, fontSize: 62, fontWeight: 900, marginBottom: 14 }}>{list.title}</div>
       {list.items.map((it, k) => {
@@ -178,6 +189,7 @@ const PackCard: React.FC<{ list: PackList }> = ({ list }) => {
         );
       })}
     </div>
+    </>
   );
 };
 
