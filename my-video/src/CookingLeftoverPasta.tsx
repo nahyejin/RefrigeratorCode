@@ -48,7 +48,7 @@ const RECAP: Shot[] = [
   ], think: [
     { at: 2.4, len: 2.5, text: "(...)" },
     { at: 5.3, len: 2.6, text: "(그래도 추운데…)" },
-    { at: 10.3, len: 2.8, text: "(...)" },
+    { at: 10.3, len: 2.8, text: "(...할 줄 아는 말이 없다)" },
   ] },
   { kind: "video", src: "coatA3.mp4", from: 0, to: 3.8, audio: true, talk: [
     { at: 0.1, len: 1.9, text: "이거 폭신폭신하지?", who: "엄마" },
