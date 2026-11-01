@@ -50,13 +50,13 @@ const COMMENT_HINT = "상세 레시피가 필요하면\n팔로우 + 댓글에 �
 const COOK: Shot[] = [
   { kind: "video", src: "k1.mp4", from: 0, to: 4.0, step: "통마늘은 편으로" },
   { kind: "video", src: "k2.mp4", from: 0, to: 4.0, step: "방울토마토는 반으로" },
-  { kind: "video", src: "k3.mp4", from: 0, to: 4.0, step: "파 송송" },
-  { kind: "video", src: "k4.mp4", from: 0, to: 5.0, step: "새우 대신 도아가 좋아하는 햄\n(건강한 재료도 좀 쟁여 놔야겠어요)" },
-  { kind: "video", src: "k5.mp4", from: 0, to: 4.0, step: "올리브오일에\n냉동 다진 마늘" },
-  { kind: "video", src: "k6.mp4", from: 0, to: 4.0, step: "편 마늘 · 파 넣고\n향 내기" },
-  { kind: "video", src: "k7.mp4", from: 0, to: 4.0, step: "햄 넣고 볶다가" },
-  { kind: "video", src: "k8.mp4", from: 0, to: 5.2, step: "어제 삶아 둔 면과\n방울토마토" },
-  { kind: "video", src: "k9.mp4", from: 0, to: 4.0, step: "파마산 치즈 솔솔" },
+  { kind: "video", src: "k3.mp4", from: 0, to: 4.0, step: "대파는 얇게 송송" },
+  { kind: "video", src: "k4.mp4", from: 0, to: 5.0, step: "햄도 조각조각, 도아가 좋아해서\n(건강한 재료도 좀 쟁여 놔야겠어요)" },
+  { kind: "video", src: "k5.mp4", from: 0, to: 4.0, step: "올리브유 듬뿍 두르고\n다진 마늘로 향 내기" },
+  { kind: "video", src: "k6.mp4", from: 0, to: 4.0, step: "편마늘 · 대파 넣고\n어제처럼 갈릭솔트 솔솔" },
+  { kind: "video", src: "k7.mp4", from: 0, to: 4.0, step: "편마늘이 얼추 익으면\n햄 넣고" },
+  { kind: "video", src: "k8.mp4", from: 0, to: 5.2, step: "어제 삶아 둔 면 넣고 섞기\n후추 · 갈릭솔트 조금" },
+  { kind: "video", src: "k9.mp4", from: 0, to: 4.0, step: "파마산 치즈 · 레드페퍼\n마지막에 파슬리 가루" },
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "done.jpg", len: f(2.6), caption: "햄 알리오올리오 완성!", origin: "50% 60%" }];
 // 먹는 도아(원래 소리)
@@ -69,10 +69,11 @@ const RECIPE: Shot[] = [
     { at: 1.5, text: "간 마늘 넣고 노릇하게" }, { at: 2.1, text: "면 넣고 면수 부어 센 불에" },
     { at: 2.7, text: "쪽파 · 파마산 치즈로 완성" },
   ] } },
-  { kind: "photo", src: "done.jpg", len: f(6.0), origin: "50% 65%", list: { title: "이렇게 바꿨어요", small: true, hint: COMMENT_HINT, items: [
-    { at: 0.2, text: "면은 어제 남은 면", head: true }, { at: 0.5, text: "삶기는 건너뛰고 바로 볶기" },
-    { at: 1.3, text: "도아 입맛에 맞게", head: true }, { at: 1.6, text: "햄 · 방울토마토 추가" },
-    { at: 2.2, text: "간 마늘은 냉동 다진 마늘로" },
+  { kind: "photo", src: "done.jpg", len: f(7.0), origin: "50% 65%", list: { title: "이렇게 바꿨어요", small: true, hint: COMMENT_HINT, items: [
+    { at: 0.2, text: "면은 어제 삶아 둔 면", head: true }, { at: 0.5, text: "삶기 · 면수 없이 바로 볶기" },
+    { at: 1.2, text: "있는 재료로", head: true }, { at: 1.5, text: "쪽파 대신 대파" },
+    { at: 1.9, text: "소금 대신 갈릭솔트" }, { at: 2.3, text: "페퍼론치노 대신 레드페퍼" },
+    { at: 2.9, text: "도아 입맛에 맞게", head: true }, { at: 3.2, text: "햄 · 방울토마토 · 파슬리 추가" },
   ] } },
 ];
 
