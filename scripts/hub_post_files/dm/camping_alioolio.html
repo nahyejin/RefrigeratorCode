@@ -6,7 +6,7 @@
 <!-- DM 으로 보내는 PDF 원본. 고친 뒤: python scripts/make_dm_pdf.py scripts/hub_post_files/dm/camping_alioolio.html -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
 <style>
-@page { size: 120mm 213mm; margin: 9mm 8mm; }
+@page { size: 120mm 250mm; margin: 9mm 8mm; }
 :root {
   --ink: #1b1d1a; --muted: #5f655c; --line: #dfe2da; --brand: #ffd600;
   --leaf: #3f7d4e; --leaf-soft: #e7f1e8; --chip: #fff3a6; --chip-ink: #5a4a00;
@@ -18,19 +18,23 @@ html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { margin: 0; color: var(--ink); font: 10.5pt/1.6 var(--body); }
 h1 { font: 400 22pt/1.2 var(--display); margin: 0 0 3mm; }
 h2 { font: 400 15pt/1.3 var(--display); margin: 0 0 1.5mm; }
-.meta { display: flex; flex-wrap: wrap; gap: 1.5mm; margin-bottom: 6mm; }
+.meta { display: flex; flex-wrap: wrap; gap: 1.5mm; margin-bottom: 4.5mm; }
 .meta span { font-size: 8.5pt; font-weight: 700; color: var(--chip-ink); background: var(--chip); border-radius: 99px; padding: .6mm 3mm; }
 .sub { margin: 0 0 3mm; color: var(--muted); font-size: 9pt; }
 section { margin-bottom: 7mm; }
-.pack { border: 1px dashed #c9cdc3; border-radius: 3mm; padding: 2.5mm 3.5mm 1mm; margin-bottom: 3mm; }
+/* 쪽 나눔은 직접 정한다: 1쪽 소분 · 2쪽 순서와 이유 · 3쪽 원래 레시피와 쿡매치 받기. 쪽 안에서는 자르지 않는다 */
+.pg { break-after: page; break-inside: avoid; }
+.pg:last-child { break-after: auto; }
+.pack { border: 1px dashed #c9cdc3; border-radius: 3mm; padding: 2mm 3.5mm .5mm; margin-bottom: 2.5mm; }
 .pack li { break-inside: avoid; }
 .pack b { display: block; color: var(--leaf); font-size: 9pt; margin-bottom: 1mm; }
 .pack ul { list-style: none; margin: 0; padding: 0; }
-.pack li { display: grid; grid-template-columns: 4.2mm 1fr auto; gap: 2.5mm; align-items: baseline; padding: 1.6mm 0; border-top: 1px solid var(--line); }
+.pack li { display: grid; grid-template-columns: 4.2mm 1fr auto; gap: 2.5mm; align-items: baseline; padding: 1mm 0; border-top: 1px solid var(--line); }
 .pack li:first-child { border-top: 0; }
 .pack li::before { content: ""; width: 3.6mm; height: 3.6mm; border: 1.2px solid #8a9086; border-radius: .8mm; transform: translateY(.5mm); }
-.pack .amt { color: var(--muted); font-size: 9.5pt; text-align: right; }
-.pack small { display: block; color: var(--muted); font-size: 8pt; line-height: 1.4; }
+.pack .amt { color: var(--ink); font-size: 9.5pt; font-weight: 500; text-align: right; }
+.pack .amt small { font-weight: 400; }
+.pack small { display: block; color: var(--muted); font-size: 8pt; line-height: 1.3; }
 .note { margin: 0; color: var(--muted); font-size: 8.5pt; }
 ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
 ol.steps li { counter-increment: s; display: grid; grid-template-columns: 6.5mm 1fr; gap: 2.5mm; margin-bottom: 2.2mm; break-inside: avoid; }
@@ -39,7 +43,7 @@ ol.steps li::before { content: counter(s); width: 6mm; height: 6mm; border-radiu
 .swap b { color: var(--leaf); font-size: 9.5pt; }
 .swap ul { margin: 1.5mm 0 2mm; padding-left: 4.5mm; }
 .swap li { margin-bottom: 1.6mm; }
-.orig { border-top: 1px solid var(--line); padding-top: 4mm; }
+.orig { margin-bottom: 0; }
 .ings { margin: 0 0 3mm; }
 .cta { margin-top: 6mm; background: var(--brand); border-radius: 3.5mm; padding: 4.5mm 5mm; text-align: center; break-inside: avoid; }
 .cta .t { font: 400 17pt/1.25 var(--display); margin: 0; }
@@ -50,6 +54,7 @@ ol.steps li::before { content: counter(s); width: 6mm; height: 6mm; border-radiu
 </head>
 <body>
 
+<div class="pg">
 <h1>버너 하나로 캠핑 새우 알리오올리오</h1>
 <div class="meta"><span>3인분</span><span>캠핑 버너 1개 · 작은 프라이팬 1개</span><span>캠핑장에서 약 30분</span></div>
 
@@ -59,28 +64,30 @@ ol.steps li::before { content: counter(s); width: 6mm; height: 6mm; border-radiu
   <div class="pack">
     <b>양념 · 작은 통과 소스통</b>
     <ul>
-      <li><span>올리브오일<small>오일 파스타라 넉넉히. 3통도 됐지만 조금 모자랐어요.</small></span><span class="amt">15ml 통 4개</span></li>
+      <li><span>올리브오일<small>오일 파스타라 넉넉히. 3통도 됐지만 조금 모자랐어요.</small></span><span class="amt">60ml<small>(15ml 통 4개)</small></span></li>
       <li><span>코인육수</span><span class="amt">1알</span></li>
-      <li><span>갈릭솔트 <small>소금 대신</small></span><span class="amt">엄지손가락만큼</span></li>
-      <li><span>후춧가루</span><span class="amt">손톱만큼</span></li>
-      <li><span>페퍼론치노</span><span class="amt">엄지손가락만큼</span></li>
+      <li><span>갈릭솔트 <small>소금 대신</small></span><span class="amt">약 1큰술<small>(엄지손가락만큼)</small></span></li>
+      <li><span>후춧가루</span><span class="amt">약 1/4작은술<small>(손톱만큼)</small></span></li>
+      <li><span>페퍼론치노</span><span class="amt">약 1큰술<small>(엄지손가락만큼)</small></span></li>
     </ul>
   </div>
   <div class="pack">
     <b>재료 · 하나씩 지퍼백</b>
     <ul>
-      <li><span>파스타면<small>한 줌 쥐었을 때 굵기</small></span><span class="amt">500원 동전 2개 반</span></li>
+      <li><span>파스타면</span><span class="amt">약 250g<small>(한 줌 쥐면 500원 동전 2개 반 굵기)</small></span></li>
       <li><span>냉동 흰다리 새우살</span><span class="amt">200g</span></li>
       <li><span>편마늘 <small>집에서 미리 썰기</small></span><span class="amt">마늘 10알 이상</span></li>
-      <li><span>다진 마늘 <small>냉동 큐브</small></span><span class="amt">8개 (약 2~3T)</span></li>
+      <li><span>다진 마늘 <small>냉동 큐브</small></span><span class="amt">약 2~3큰술<small>(큐브 8개)</small></span></li>
       <li><span>방울토마토 <small>반 잘라서</small></span><span class="amt">10알</span></li>
       <li><span>어린잎 채소 믹스</span><span class="amt">50g</span></li>
-      <li><span>파마산 치즈가루 <small>작은 통에 덜어서</small></span><span class="amt">엄지손가락만큼</span></li>
+      <li><span>파마산 치즈가루 <small>작은 통에 덜어서</small></span><span class="amt">약 1큰술<small>(엄지손가락만큼)</small></span></li>
     </ul>
   </div>
   <p class="note">소금은 따로 챙기지 않았어요. 면 삶는 물도 갈릭솔트로 간했어요.</p>
 </section>
+</div>
 
+<div class="pg">
 <section>
   <h2>캠핑장에서 이 순서로</h2>
   <ol class="steps">
@@ -103,7 +110,9 @@ ol.steps li::before { content: counter(s); width: 6mm; height: 6mm; border-radiu
   </ul>
   <p class="note">불이 고르게 오르는 집 가스레인지라면 원래 레시피처럼 한 팬에 한 번에 끓여도 돼요. 불이 가운데만 센 캠핑 버너에서 여러 인분을 만들 때는 이 순서가 안전해요.</p>
 </section>
+</div>
 
+<div class="pg">
 <section class="orig">
   <h2>원래 레시피 (쿡매치 ‘원팬 파스타’, 1인분)</h2>
   <p class="ings">파스타면 90g · 마늘 3개 · 토마토 1개 · 새우 큰 사이즈 4마리 · 잎채소 약간 · 치즈 약간 · 올리브오일 3T · 물 500ml · 참치액 1T · 후춧가루 톡톡</p>
@@ -124,6 +133,7 @@ ol.steps li::before { content: counter(s); width: 6mm; height: 6mm; border-radiu
     <p class="btn">👉 여기를 누르면 쿡매치 받기</p>
   </a>
 </section>
+</div>
 
 </body>
 </html>
