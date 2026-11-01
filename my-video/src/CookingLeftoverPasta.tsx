@@ -58,7 +58,7 @@ const RECAP: Shot[] = [
     { at: 2.2, len: 1.6, text: "(추워 죽겠어요 엄마…)" },
   ] },
   { kind: "video", src: "coat2.mp4", from: 0, to: 6.4, audio: true, think: [{ at: 0.6, len: 5.6, text: "(집에 가고 싶다…)" }] },
-  { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, talk: [{ at: 2.0, len: 1.7, text: "발라덩~", who: "엄마" }] },
+  { kind: "video", src: "coat3.mp4", from: 0, to: 3.8, audio: true, talk: [{ at: 2.0, len: 1.7, text: "발라덩~", who: "엄마" }], think: [{ at: 2.4, len: 1.4, text: "(울음 발사 준비)" }] },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
 const LEFT: Shot[] = [
