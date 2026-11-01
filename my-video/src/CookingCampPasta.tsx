@@ -13,9 +13,12 @@ import { Intro, INTRO, CTA_LEN, Mark, OverviewSegments, OverviewCta, SEGS_LEN } 
 const DIR = "cooking/새우알리오올리오_20261031/work/";
 const f = (s: number) => Math.round(s * 30);
 
+// 소분 체크리스트 — 항목이 at 초에 하나씩 체크되며 나타난다(사용자 2026-11-01: 무엇을 챙겼는지 구체적으로)
+type PackList = { title: string; items: { at: number; text: string }[] };
+
 type Shot =
   | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean }
-  | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean }
+  | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number }
   | { kind: "features"; len: number }
@@ -38,9 +41,16 @@ const STORY: Shot[] = [
 ];
 // 후킹이 약속한 「무엇을 소분하나」 — 후킹 바로 뒤에 보여 준다(사용자 2026-11-01: 이 콘텐츠가 소분 정보라는 게 드러나야 이탈이 없다)
 const PREP: Shot[] = [
-  { kind: "photo", src: "prep_sauce.jpg", len: f(3.2), caption: "① 올리브오일은 소스통에\n후추·페퍼론치노는 작은 통에", origin: "40% 75%" },
+  // prep_sauce.jpg 는 「설탕」 라벨을 흐리게 한 사본(원본 prep_sauce_orig.jpg) — 설탕은 이 요리에 안 쓴다
+  { kind: "photo", src: "prep_sauce.jpg", len: f(4.4), origin: "40% 75%", list: { title: "① 양념은 작은 통에", items: [
+    { at: 0.3, text: "올리브오일 (소스통)" }, { at: 0.9, text: "갈릭솔트 · 소금" }, { at: 1.5, text: "후춧가루" },
+    { at: 2.1, text: "페퍼론치노" }, { at: 2.7, text: "코인육수 1알" },
+  ] } },
   // 가로 사진 — 양옆이 잘리지 않게 왼쪽 끝에서 오른쪽 끝까지 천천히 훑는다(사용자 2026-11-01)
-  { kind: "photo", src: "prep_bags.jpg", len: f(5.0), caption: "② 마늘·방울토마토는 썰어서\n새우살·면·잎채소와 지퍼백에", pan: true },
+  { kind: "photo", src: "prep_bags.jpg", len: f(6.0), pan: true, list: { title: "② 재료는 지퍼백에", items: [
+    { at: 0.4, text: "냉동 흰다리 새우살" }, { at: 1.2, text: "편마늘 · 다진 마늘" }, { at: 2.4, text: "잎채소" },
+    { at: 3.0, text: "방울토마토 (반 잘라서)" }, { at: 3.9, text: "파스타면" }, { at: 4.8, text: "파마산 치즈가루" },
+  ] } },
 ];
 
 // 버너 하나로 요리 — 사용자가 실제로 한 순서(2026-11-01 사용자 설명). 쿡매치 「원팬 파스타」를 캠핑에 맞게 바꿨다
@@ -120,7 +130,28 @@ const Photo: React.FC<{ s: Extract<Shot, { kind: "photo" }>; len: number; first:
         <Img src={staticFile(DIR + s.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: s.origin ?? "50% 50%", transform: `scale(${z})`, transformOrigin: s.origin ?? "50% 50%" }} />
       )}
       {s.caption && <Caption from={6} len={len - 8} text={s.caption} />}
+      {s.list && <PackCard list={s.list} />}
     </AbsoluteFill>
+  );
+};
+
+const PackCard: React.FC<{ list: PackList }> = ({ list }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const p = spring({ frame, fps, config: { damping: 16, mass: 0.6 } });
+  return (
+    <div style={{ position: "absolute", top: 150, left: 56, right: 56, padding: "30px 40px 34px", borderRadius: 36, backgroundColor: "rgba(0,0,0,0.62)", opacity: p, transform: `translateY(${(1 - p) * -20}px)`, fontFamily: FONT_FAMILY }}>
+      <div style={{ color: YELLOW, fontSize: 62, fontWeight: 900, marginBottom: 14 }}>{list.title}</div>
+      {list.items.map((it, k) => {
+        const q = spring({ frame: frame - f(it.at), fps, config: { damping: 14, mass: 0.5 } });
+        return (
+          <div key={k} style={{ display: "flex", alignItems: "center", gap: 18, color: WHITE, fontSize: 54, fontWeight: 800, lineHeight: 1.45, opacity: q, transform: `translateX(${(1 - q) * -30}px)` }}>
+            <span style={{ color: YELLOW }}>✓</span>
+            {it.text}
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
