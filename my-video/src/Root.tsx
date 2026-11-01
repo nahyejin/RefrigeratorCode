@@ -1,3 +1,4 @@
+import React from "react";
 import "./index.css";
 import { Composition } from "remotion";
 import { CookMatchTeaser } from "./CookMatchTeaser";
@@ -16,7 +17,16 @@ import { REELS_HOOK_V2 } from "./ReelHooksV2";
 import { REELS_HOOK_V4 } from "./ReelHooksV4";
 import { REELS_HOOK_V3 } from "./ReelHooksV3";
 import { REELS_HOOK_V6 } from "./ReelHooksV6";
-import { REELS_TALK } from "./TalkReels";
+import { REELS_TALK, SearchBanner } from "./TalkReels";
+import { AbsoluteFill } from "remotion";
+import { useCustomFont } from "./shared";
+
+// 이미 완성된 옛 영상에 하단 검색 안내만 얹을 때 쓰는 투명 PNG(후킹 릴스 데모와 같은 위치·모양) — 2026-11-01 옛 훅 8편에 적용.
+// npx remotion still SearchBannerOverlay out.png --image-format=png → ffmpeg overlay(enable=데모 구간)
+const SearchBannerOverlay: React.FC = () => {
+  useCustomFont();
+  return <AbsoluteFill><SearchBanner bottom={120} scale={0.82} panel /></AbsoluteFill>;
+};
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -101,6 +111,7 @@ export const RemotionRoot: React.FC = () => {
         width={1080}
         height={1920}
       />
+      <Composition id="SearchBannerOverlay" component={SearchBannerOverlay} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="CookingMiyeok" component={CookingMiyeok} durationInFrames={COOKING_MIYEOK_TOTAL} fps={30} width={1080} height={1920} />
       <Composition id="CookingSausage" component={CookingSausage} durationInFrames={COOKING_SAUSAGE_TOTAL} fps={30} width={1080} height={1920} />
       {REELS_HOOK_V3.map((r) => (
