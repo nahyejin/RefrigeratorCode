@@ -24,6 +24,16 @@ h1{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.2;mar
 button{font-family:var(--body);font-size:16px;font-weight:700;border-radius:12px;padding:14px 18px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);width:100%}
 button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:var(--body);font-size:14.5px;line-height:1.7;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px}
+.block{display:flex;flex-direction:column;gap:10px}
+.block h3{font-size:15px;font-weight:700;margin:0}
+.check{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+.check code{font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+.dm-imgs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dm-imgs figure{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0}
+.dm-imgs img{width:100%;aspect-ratio:9/16;object-fit:cover;object-position:top;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.dm-imgs figcaption{font-size:12px;color:var(--muted);text-align:center}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.hint a{color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
@@ -34,6 +44,59 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:var(--body);
     <h1>쿡매치 요리 릴스 본문</h1>
     <p class="lede">릴스 올릴 때 <b>본문 복사</b>를 누르고 인스타 캡션에 붙여 넣으세요. 위쪽은 그날의 이야기·레시피, 아래쪽은 8가지 기능과 스토어 안내예요.</p>
   </header>
+
+  <section class="card" aria-labelledby="t3">
+    <div class="head">
+      <div>
+        <div class="date">2026-10-31 · 요리 릴스 3편</div>
+        <h2 id="t3">캠핑 새우 알리오올리오</h2>
+        <span class="chip">대체 재료 · 캘린더 · 장 봐야 할 재료</span>
+      </div>
+    </div>
+    <div class="block">
+      <h3>올리기 순서</h3>
+      <ol class="check">
+        <li>영상: OneDrive <code>쿡매치_요리영상/완성_릴스_새우알리오올리오_20261031.mp4</code> (2분 50초)</li>
+        <li>커버: 영상 첫 장면 「캠핑 알리오올리오 / 이렇게 소분해 가요」</li>
+        <li>아래 <b>본문 복사</b> → 인스타 캡션에 붙여 넣기 (해시태그 포함)</li>
+        <li>음악은 따로 넣지 않기 (영상에 배경음악 있음)</li>
+        <li>올린 뒤 댓글에 「쿡매치」가 달리면 아래 <b>DM 답장</b>과 이미지 3장을 보내기</li>
+      </ol>
+    </div>
+    <button type="button" data-copy="c3">본문 복사</button>
+    <pre id="c3">캠핑 알리오올리오, 이렇게 소분해 가요 🏕️
+버너 하나로 새우 알리오올리오 🍝
+
+캠핑장에서는 썰고 계량하는 게 제일 번거롭잖아요.
+그래서 집에서 미리 나눠 담아 갔어요.
+
+📦 챙긴 것
+양념 · 올리브오일, 갈릭솔트, 후추, 페퍼론치노, 코인육수
+재료 · 파스타면, 새우살, 편마늘·다진 마늘, 방울토마토, 잎채소, 파마산
+
+💌 재료별 분량, 캠핑장에서 만드는 순서, 원래 레시피와 바꾼 이유까지 PDF로 정리했어요.
+① 팔로우 ② 댓글에 「쿡매치」 남겨 주시면 DM으로 보내 드려요.
+
+💡 레시피는 쿡매치에서 찾았어요. 버너 하나라 「원팬」 레시피로 골랐어요.
+📲 앱스토어·Play 스토어에서 '쿡매치' 검색, 프로필 링크에서도 받을 수 있어요
+
+#캠핑요리 #캠핑파스타 #알리오올리오 #새우파스타 #원팬파스타 #캠핑소분 #아이랑캠핑 #캠핑음식 #집밥 #레시피 #쿡매치 #cookmatch</pre>
+    <div class="block">
+      <h3>팔로우 + 댓글 「쿡매치」 → 자료 DM</h3>
+      <div class="dm-imgs">
+        <figure><img src="dm/ep3_1.png" alt="소분 기준 이미지"><figcaption>① 소분</figcaption></figure>
+        <figure><img src="dm/ep3_2.png" alt="캠핑 순서와 바꾼 이유 이미지"><figcaption>② 순서 · 이유</figcaption></figure>
+        <figure><img src="dm/ep3_3.png" alt="원래 레시피 이미지"><figcaption>③ 원래 레시피</figcaption></figure>
+      </div>
+      <p class="hint">자동 DM 설정은 저장소 store/INSTAGRAM_AUTO_DM.md. 자동으로 안 갔을 때는 아래 문구에 PDF 링크(OneDrive 쿡매치_요리영상/쿡매치_캠핑_새우알리오올리오_DM.pdf 공유 링크)를 넣어 직접 보내거나, 이미지를 길게 눌러 저장해 첨부하세요. 전체 내용은 <a href="https://claude.ai/artifact/YASQDkQDGzwoJFSKq2iP7C#ep3" target="_blank" rel="noopener">쿡매치 레시피 노트</a>에도 있어요. 링크로 보내려면 노트 페이지 공유를 「링크가 있는 모든 사용자」로 바꿔 주세요.</p>
+      <button type="button" data-copy="c3-dm">DM 답장 복사</button>
+      <pre id="c3-dm">캠핑 새우 알리오올리오 소분 체크리스트와 상세 레시피예요 🍝
+👉 [자료 링크]
+
+캠핑 버너는 불이 가운데만 세서, 면이랑 새우를 따로 먼저 익히는 게 포인트예요.
+쿡매치 앱에서 「알리오올리오」를 검색하면 원래 레시피와 내 재료에 맞는 대체 재료도 볼 수 있어요.</pre>
+    </div>
+  </section>
 
   <section class="card" aria-labelledby="t2">
     <div class="head">
