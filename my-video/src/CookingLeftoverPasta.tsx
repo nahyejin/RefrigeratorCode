@@ -19,7 +19,7 @@ type PackList = { title: string; items: { at: number; text: string; head?: boole
 
 type Shot =
   | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[] }
-  | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList; dir?: string }
+  | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[] }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number };
 
@@ -33,14 +33,21 @@ const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(2.8), origin: "50
 const RECAP: Shot[] = [
   // 3편에서 실제로 만든 파스타 사진(완성 후 10/31 19:33 사진 — 그 무렵 영상은 새우 볶는 장면까지뿐)(사용자 2026-11-01: 알리오올리오 얘기에 풍경 말고 그 파스타를)
   { kind: "photo", src: "camp_pasta.jpg", len: f(2.6), origin: "50% 60%", caption: "어젯밤 캠핑에서 만든\n새우 알리오올리오" },
-  { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.6), origin: "50% 55%", caption: "갑자기 추워져서 도아가 울었어요\n급하게 집으로 오느라\n한 입도 못 먹였어요" },
+  { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(7.4), origin: "50% 55%", lines: [
+    { at: 0.2, len: 3.4, text: "도아가 방울토마토도, 새우도, 면도 좋아해서\n건강하게 만든 건데..." },
+    { at: 3.7, len: 3.6, text: "갑자기 추워져서 도아가 울어서\n급하게 집으로 오느라\n한 입도 못 먹였어요" },
+  ] },
 ];
 // 남은 면 → 팬을 들여다보는 도아(원래 소리)
 const LEFT: Shot[] = [
-  { kind: "photo", src: "leftover.jpg", len: f(3.0), origin: "50% 60%", caption: "면은 3인분이나 남아서\n집에 싸 왔어요" },
+  // 위생 걱정 보완(사용자 2026-11-01): 3편에서 면만 따로 먼저 삶았다 — 소스 묻기 전 면이 남은 것
+  { kind: "photo", src: "leftover.jpg", len: f(5.6), origin: "50% 60%", lines: [
+    { at: 0.2, len: 2.6, text: "면은 3인분이나 남아서\n집에 싸 왔어요 ㅠㅠ" },
+    { at: 2.9, len: 2.6, text: "소스 넣기 전에 따로 삶아 둔\n깨끗한 면이에요" },
+  ] },
   // 도아가 먼저 「이거 뭐지?」 하는 부분부터(사용자 2026-11-01). 원본 7.2s 무렵 짧은 아이 목소리 — 받아쓰기가 막혀 목소리 높이로 찾은 자리
   { kind: "video", src: "pan.mp4", from: 2.8, to: 12.5, audio: true, lines: [
-    { at: 0.1, len: 4.2, text: "다음 날 아침\n남은 면을 본 도아" },
+    { at: 0.1, len: 4.2, text: "남은 면을 본 도아" },
     { at: 4.4, len: 2.2, text: "「이거 뭐지?」" },
   ] },
 ];
@@ -51,7 +58,7 @@ const COOK: Shot[] = [
   { kind: "video", src: "k1.mp4", from: 0, to: 4.0, step: "통마늘은 편으로" },
   { kind: "video", src: "k2.mp4", from: 0, to: 4.0, step: "방울토마토는 반으로" },
   { kind: "video", src: "k3.mp4", from: 0, to: 4.0, step: "대파는 얇게 송송" },
-  { kind: "video", src: "k4.mp4", from: 0, to: 5.0, step: "햄도 조각조각, 도아가 좋아해서\n(건강한 재료도 좀 쟁여 놔야겠어요)" },
+  { kind: "video", src: "k4.mp4", from: 0, to: 5.0, step: "새우 대신 집에 쟁여 있던 햄도\n어쩔 수 없이 조각조각.. ㅠㅠ 맴찢..\n(건강한 재료로 좀 쟁여 놔야겠어요)" },
   { kind: "video", src: "k5.mp4", from: 0, to: 4.0, step: "올리브유 듬뿍 두르고\n다진 마늘로 향 내기" },
   { kind: "video", src: "k6.mp4", from: 0, to: 4.0, step: "편마늘 · 대파 넣고\n어제처럼 갈릭솔트 솔솔" },
   { kind: "video", src: "k7.mp4", from: 0, to: 4.0, step: "편마늘이 얼추 익으면\n햄 넣고" },
@@ -91,7 +98,7 @@ const TAIL: Shot[] = [
 ];
 const SHOTS: Shot[] = [...OPEN, ...RECAP, ...LEFT, ...COOK, ...PLATE, ...EAT, ...RECIPE, ...APP, ...TAIL];
 export const COOKING_LEFTOVER_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
-const TITLE_LEN = f(3.4);
+const TITLE_LEN = f(4.2);
 const COOK_START = [...OPEN, ...RECAP, ...LEFT].reduce((a, s) => a + shotLen(s), 0);
 const BANNER_FROM = [...OPEN, ...RECAP, ...LEFT, ...COOK, ...PLATE, ...EAT, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
@@ -144,6 +151,7 @@ const Photo: React.FC<{ s: Extract<Shot, { kind: "photo" }>; len: number; first:
         <Img src={staticFile((s.dir ?? DIR) + s.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: s.origin ?? "50% 50%", transform: `scale(${z})`, transformOrigin: s.origin ?? "50% 50%" }} />
       )}
       {s.caption && <Caption from={6} len={len - 8} text={s.caption} />}
+      {s.lines?.map((l, k) => <Caption key={k} from={f(l.at)} len={f(l.len)} text={l.text} />)}
       {s.list && <PackCard list={s.list} />}
     </AbsoluteFill>
   );
@@ -186,9 +194,9 @@ const RecipeTitle: React.FC = () => {
   const out = interpolate(frame, [TITLE_LEN - 8, TITLE_LEN], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <div style={{ position: "absolute", top: 210, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, opacity: Math.min(p, out), transform: `translateY(${(1 - p) * -24}px)`, fontFamily: FONT_FAMILY }}>
-      <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 52, fontWeight: 800, padding: "10px 34px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.25)" }}>어제 남은 면으로</div>
-      <div style={{ color: WHITE, fontSize: 104, fontWeight: 900, lineHeight: 1.15, textAlign: "center", textShadow: "0 4px 18px rgba(0,0,0,0.7), 0 0 4px rgba(0,0,0,0.6)" }}>
-        햄 알리오올리오
+      <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 52, fontWeight: 800, padding: "10px 34px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.25)" }}>새우는 못 먹이고 ㅠㅠ 아쉽지만</div>
+      <div style={{ color: WHITE, fontSize: 92, fontWeight: 900, lineHeight: 1.15, textAlign: "center", whiteSpace: "pre-line", textShadow: "0 4px 18px rgba(0,0,0,0.7), 0 0 4px rgba(0,0,0,0.6)" }}>
+        {"햄으로나마\n햄 알리오올리오"}
       </div>
     </div>
   );
