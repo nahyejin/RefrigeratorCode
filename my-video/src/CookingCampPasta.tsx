@@ -94,10 +94,11 @@ const APP: Shot[] = [
   { kind: "video", src: "app_raw.mp4", from: 89.5, to: 94.0, rate: 1.4, app: true, step: "장 봐야 할 재료만 챙겨요" },
 ];
 // 끝: 이 편 슬로건 → 「그 밖에도 이런 기능이 있어요」(기능 칩 한 장)에서 끝낸다. 8개 기능을 하나씩 설명하는 영상은 붙이지 않는다
-// (사용자 2026-11-01: 릴스 3분 미만, 요리 릴스는 짧게). 칩을 읽을 수 있게 1초 더 둔다
+// (사용자 2026-11-01: 릴스 3분 미만, 요리 릴스는 짧게). 칩이 다 뜬 뒤 물결치며 머물다 흰 화면으로 사라지며 끝난다
+const OUTRO_LEN = INTRO + 75;
 const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
-  { kind: "transition", len: INTRO + 30 },
+  { kind: "transition", len: OUTRO_LEN },
 ];
 const SHOTS: Shot[] = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...RECIPE, ...APP, ...TAIL];
 export const COOKING_CAMP_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
@@ -231,6 +232,7 @@ const Shots: React.FC = () => {
         else if (s.kind === "transition")
           body = (
             <Intro
+              outro={OUTRO_LEN}
               line1="그 밖에도"
               line2={
                 <>

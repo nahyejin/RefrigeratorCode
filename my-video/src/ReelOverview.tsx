@@ -263,11 +263,15 @@ export const Mark: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 // 요리 릴스(2026-10-15)에서는 같은 화면을 「그 밖에도 이런 기능이 있어요」 로 바꿔 전환 장면으로 쓴다.
 // labels: 칩으로 보여 줄 기능 이름(없으면 8가지 전부). 셀카형 「이 밖에도」 장면은 그 편 기능을 뺀 7가지만 쓴다.
-export const Intro: React.FC<{ line1?: React.ReactNode; line2?: React.ReactNode; labels?: string[] }> = ({ line1, line2, labels }) => {
+// outro: 영상 마지막 장면으로 쓸 때 — 칩이 다 뜬 뒤 하나씩 통통 튀는 물결을 주며 머물다가, 끝 0.8초 동안 흰 화면으로 사라진다
+// (요리 릴스 3편, 사용자 2026-11-01: 「그 밖에도」에서 끝낼 때 갑자기 끊기지 않게)
+export const Intro: React.FC<{ line1?: React.ReactNode; line2?: React.ReactNode; labels?: string[]; outro?: number }> = ({ line1, line2, labels, outro }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const fade = outro ? interpolate(frame, [outro - 24, outro], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
+      <AbsoluteFill style={{ opacity: fade }}>
       <div style={{ position: "absolute", top: 250, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
         <AppIcon size={170} />
         <Wordmark size={66} />
@@ -286,14 +290,17 @@ export const Intro: React.FC<{ line1?: React.ReactNode; line2?: React.ReactNode;
       <div style={{ position: "absolute", top: 905, left: 90, right: 90, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
         {(labels ?? SEGS.map((x) => x.label)).map((label, i) => {
           const p = spring({ frame: frame - (28 + i * 6), fps, config: { damping: 15, mass: 0.6 } });
+          // 마지막 칩이 자리 잡은 뒤(약 90프레임)부터 왼쪽 위 칩부터 차례로 살짝 뛰어오르는 물결
+          const w = outro ? Math.max(0, Math.sin(((frame - 90 - i * 5) / 22) * Math.PI)) * (frame > 90 + i * 5 ? 1 : 0) : 0;
           return (
-            <div key={label} style={{ opacity: p, transform: `translateY(${(1 - p) * 20}px)`, display: "flex", alignItems: "center", gap: 18, backgroundColor: INK_FAINT, borderRadius: 26, padding: "24px 30px", fontSize: 46, fontWeight: 800, color: INK }}>
+            <div key={label} style={{ opacity: p, transform: `translateY(${(1 - p) * 20 - w * 14}px) scale(${1 + w * 0.05})`, display: "flex", alignItems: "center", gap: 18, backgroundColor: INK_FAINT, borderRadius: 26, padding: "24px 30px", fontSize: 46, fontWeight: 800, color: INK }}>
               <span style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: YELLOW, flex: "none" }} />
               {label}
             </div>
           );
         })}
       </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
