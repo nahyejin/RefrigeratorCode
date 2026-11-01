@@ -24,22 +24,22 @@ type Shot =
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
 // 첫 장면 = 완성 사진 + 큰 노란 후킹(썸네일 겸용)
-const HOOK = { at: 0, len: 2.8, text: "캠핑 가기 전\n이것만 해 두세요" };
+const HOOK = { at: 0, len: 2.8, text: "캠핑 알리오올리오\n이렇게 소분해 가요" };
 const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(2.8), origin: "50% 55%" }];
 
 // 도아랑 캠핑 — 가로 영상에서 도아만 9:16 으로 잘라 냄(d_*.mp4, 아빠는 화면 밖)
 const STORY: Shot[] = [
-  { kind: "video", src: "d_072234.mp4", from: 0, to: 2.6, step: "도아랑 캠핑 온 날\n폴대 들고 텐트 치기 거들기" },
+  { kind: "video", src: "d_072234.mp4", from: 0, to: 2.6, step: "캠핑장 도착!\n도아는 폴대 들고 텐트 치기 거들기" },
   { kind: "video", src: "d_072359.mp4", from: 0, to: 2.6 },
   { kind: "video", src: "d_074745.mp4", from: 0, to: 5.0, rate: 1.3, step: "도아는 텐트가 신기해요" },
   // 18:05 먼저 먹던 모습(파스타 전이라 시간 순서대로 여기에. 파스타를 먹는 영상은 없다 — 사용자 결정 2026-11-01)
   { kind: "video", src: "d_090542.mp4", from: 0, to: 3.0, step: "해 질 녘, 배고픈 도아는\n먼저 냠냠" },
   { kind: "video", src: "d_090542b.mp4", from: 0, to: 2.2 },
 ];
-// 후킹의 「이것」 = 집에서 해 온 소분
+// 후킹이 약속한 「무엇을 소분하나」 — 후킹 바로 뒤에 보여 준다(사용자 2026-11-01: 이 콘텐츠가 소분 정보라는 게 드러나야 이탈이 없다)
 const PREP: Shot[] = [
-  { kind: "photo", src: "prep_sauce.jpg", len: f(2.8), caption: "저녁 준비는 집에서 끝내 왔어요\n양념은 작은 통에 덜고", origin: "40% 75%" },
-  { kind: "photo", src: "prep_bags.jpg", len: f(2.8), caption: "새우살·마늘·면·채소는\n지퍼백에 소분", origin: "55% 45%" },
+  { kind: "photo", src: "prep_sauce.jpg", len: f(3.2), caption: "① 양념은 작은 통에\n올리브오일 같은 액체는 소스통으로", origin: "40% 75%" },
+  { kind: "photo", src: "prep_bags.jpg", len: f(3.4), caption: "② 새우살·마늘·파스타면·채소는\n하나씩 지퍼백에", origin: "55% 45%" },
 ];
 
 // 버너 하나로 요리 — 분량은 쿡매치 레시피 카드 그대로, 순서는 실제로 한 순서
@@ -69,10 +69,10 @@ const TAIL: Shot[] = [
   { kind: "features", len: SEGS_LEN },
   { kind: "finalCta", len: CTA_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...STORY, ...PREP, ...COOK, ...PLATE, ...APP, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...PREP, ...STORY, ...COOK, ...PLATE, ...APP, ...TAIL];
 export const COOKING_CAMP_PASTA_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(3.4);
-const COOK_START = [...OPEN, ...STORY, ...PREP].reduce((a, s) => a + shotLen(s), 0);
+const COOK_START = [...OPEN, ...PREP, ...STORY].reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
   Math.min(
