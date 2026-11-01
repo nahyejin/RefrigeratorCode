@@ -58,7 +58,7 @@ const PREP: Shot[] = [
 const COOK: Shot[] = [
   // 18:05 캠핑장 야경(같은 영상 뒷부분, 9:16 으로 잘라 냄) — 요리 제목이 이 위에 뜬다
   { kind: "video", src: "n_090542.mp4", from: 0, to: 2.8, rate: 1.2, step: "해가 지면\n버너 하나로 저녁 준비" },
-  { kind: "video", src: "c_095555.mp4", from: 0, to: 7.0, rate: 2, step: "팬에 물 붓고\n소금 조금" },
+  { kind: "video", src: "c_095555.mp4", from: 0, to: 7.0, rate: 2, step: "팬에 물 붓고\n갈릭솔트 조금" },
   { kind: "video", src: "c_095638.mp4", from: 0, to: 9.4, rate: 2, step: "파스타면부터 삶아요" },
   { kind: "video", src: "c_100012.mp4", from: 2, to: 30, rate: 4, step: "저어 가며 8분" },
   { kind: "video", src: "c_100443.mp4", from: 30, to: 70, rate: 4, step: "새우는 살짝 데쳐서\n한켠에" },
@@ -67,8 +67,8 @@ const COOK: Shot[] = [
 ];
 const PLATE: Shot[] = [{ kind: "photo", src: "plate.jpg", len: f(3.6), caption: "방울토마토 · 파마산 치즈\n잎채소 올려 완성!", origin: "50% 55%" }];
 
-// 레시피 카드가 나오는 동안 댓글 유도(사용자 2026-11-01). 댓글이 달리면 사용자가 DM 으로 레시피를 보낸다
-const COMMENT_HINT = "소분 기준 · 상세 레시피가 궁금하면\n댓글에 「쿡매치」 남겨 주세요\nDM으로 바로 보내 드릴게요 💌";
+// 레시피 카드가 나오는 동안 댓글 유도(사용자 2026-11-01, B안). 레시피는 본문에 다 있고, DM 은 저장용 정리 이미지(분량 포함 소분 체크리스트 + 원래 레시피)라는 「덤」
+const COMMENT_HINT = "캠핑용 소분 체크리스트가 필요하면\n댓글에 「쿡매치」 남겨 주세요\nDM으로 보내 드릴게요 💌";
 
 // 완성 바로 뒤 — 원래 레시피 → 캠핑에서 바꾼 점(사용자 2026-11-01: 너무 늦게 나와서 완성 직후로)
 const RECIPE: Shot[] = [
