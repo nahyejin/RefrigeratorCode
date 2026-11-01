@@ -34,7 +34,7 @@ const RECAP: Shot[] = [
   // 3편에서 실제로 만든 파스타 사진(완성 후 10/31 19:33 사진 — 그 무렵 영상은 새우 볶는 장면까지뿐)(사용자 2026-11-01: 알리오올리오 얘기에 풍경 말고 그 파스타를)
   { kind: "photo", src: "camp_pasta.jpg", len: f(2.6), origin: "50% 60%", caption: "어젯밤 캠핑에서 만든\n새우 알리오올리오" },
   { kind: "photo", src: "plate.jpg", dir: DIR3, len: f(3.8), origin: "50% 55%", lines: [
-    { at: 0.2, len: 3.4, text: "도아가 방울토마토도, 새우도, 면도 좋아해서\n건강하게 만든 건데..." },
+    { at: 0.2, len: 3.4, text: "도아가 방울토마토도, 새우도, 면도\n좋아해서 건강하게 만든 건데..." },
   ] },
   // 텐트 속 거위털 옷 영상(20261031_083400, 68초). 받아쓰기(Whisper) 기준 시각 — 도아 중얼중얼 14.8~17초,
   // 엄마 「이거 따뜻하지 옷 / 거위털이야 / 추울까 봐 이번에 사 왔어」 24~37초, 「폭신폭신하지? 춥지 않지?」 40~43초, 앉아서 밖 보기 45~52초, 「발라덩」 56초
@@ -66,7 +66,7 @@ const LEFT: Shot[] = [
   { kind: "video", src: "pan.mp4", from: 0, to: 14.1, audio: true, lines: [{ at: 1.0, len: 5.8, text: "남은 면을 본 도아" }], talk: [
     { at: 0, len: 1.0, text: "이게 뭐게?", who: "엄마" },
     { at: 6.9, len: 2.0, text: "이거 어제 파스타", who: "엄마" },
-    { at: 9.0, len: 3.6, text: "도아 캠핑 가서 해 주려고 했는데", who: "엄마" },
+    { at: 9.0, len: 3.6, text: "도아 캠핑 가서 / 해 주려고 했는데", who: "엄마" },
     { at: 12.7, len: 1.4, text: "남았어", who: "엄마" },
   ] },
   { kind: "video", src: "pan.mp4", from: 18.7, to: 23.8, audio: true, talk: [
@@ -132,7 +132,7 @@ const TITLE_LEN = f(4.2);
 const TENT_SRC = ["coatA1.mp4", "coatA2.mp4", "coatA3.mp4", "coat2.mp4", "coat3.mp4"];
 const TENT_FROM = (() => { let c = 0; for (const x of SHOTS) { if ((x.kind === "video") && x.src === "coatA1.mp4") return c; c += shotLen(x); } return 0; })();
 const TENT_LEN = SHOTS.filter((x) => x.kind === "video" && TENT_SRC.includes(x.src)).reduce((a, x) => a + shotLen(x), 0);
-const TENT_CAPTION = "갑자기 요즘 날이 추워져서 도아가 울기 시작했고,\n급하게 집으로 돌아오느라, 한 입도 못 먹였어요 ㅠㅠ";
+const TENT_CAPTION = "갑자기 요즘 날이 추워져서\n도아가 울기 시작했고,\n급하게 집으로 돌아오느라,\n한 입도 못 먹였어요 ㅠㅠ";
 const COOK_START = [...OPEN, ...RECAP, ...LEFT].reduce((a, s) => a + shotLen(s), 0);
 const BANNER_FROM = [...OPEN, ...RECAP, ...LEFT, ...COOK, ...PLATE, ...EAT, ...RECIPE].reduce((a, s) => a + shotLen(s), 0);
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);

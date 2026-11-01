@@ -310,6 +310,7 @@ export const Caption: React.FC<{ text: string; from: number; len: number }> = ({
             color: "#FFFFFF",
             lineHeight: 1.32,
             whiteSpace: "pre-line", // 줄바꿈은 브라우저 자동 랩에 맡기지 않고 text의 \n으로 직접 지정한다
+            wordBreak: "keep-all", // 그래도 넘치면 낱말 단위로만 넘긴다(「시작\n했고」처럼 낱말 중간에서 끊지 않음, 사용자 2026-11-01)
           }}
         >
           {shown}
