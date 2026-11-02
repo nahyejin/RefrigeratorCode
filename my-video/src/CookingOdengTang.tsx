@@ -14,13 +14,14 @@ const f = (s: number) => Math.round(s * 30);
 
 type PackList = { title: string; items: { at: number; text: string; head?: boolean }[]; bottom?: boolean; small?: boolean; hint?: string };
 
+const FAST = 1.15; // 요리·앱 장면만 살짝 빠르게(말소리 장면은 1배)
 type Shot =
-  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[]; talk?: { at: number; len: number; text: string; who: string }[]; think?: { at: number; len: number; text: string }[] }
+  | { kind: "video"; src: string; from: number; to: number; rate?: number; fast?: boolean; audio?: boolean; step?: string; app?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[]; talk?: { at: number; len: number; text: string; who: string }[]; think?: { at: number; len: number; text: string }[] }
   | { kind: "photo"; src: string; len: number; caption?: string; origin?: string; pan?: boolean; list?: PackList; dir?: string; lines?: { at: number; len: number; text: string }[] }
   | { kind: "cta"; len: number }
   | { kind: "transition"; len: number };
 
-const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
+const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / ((s.rate ?? 1) * (s.fast ? FAST : 1))) : s.len);
 
 // 첫 장면 = 냉장고에 남은 무·대파 사진 + 큰 노란 후킹(썸네일 겸용)
 const HOOK = { at: 0, len: 3.4, text: "냉장고에 남은\n무·대파로 끓인\n아이 오뎅탕", sub: "고추는 아이가 매워해서 뺐어요" };
@@ -34,8 +35,8 @@ const OPEN: Shot[] = [
 // 오뎅 사러 가는 길 — 젖은 땅을 보고 비 온 걸 알아맞힘(07:38 영상 145.9~162.9s)
 const RAIN: Shot[] = [
   { kind: "video", src: "m_r.mp4", from: 0, to: 11.4, audio: true, lines: [
-    { at: 2.3, len: 4.2, text: "오뎅 사러 가는 길,\n아이가 젖은 땅을 보더니…" },
-    { at: 9.3, len: 2.1, text: "우와 우리 아이 똑똑해졌다! 🕵️" },
+    { at: 2.3, len: 4.6, text: "땅이 젖은 걸 보고\n비가 온 걸 알아맞힌 우리 아이 🕵️" },
+    { at: 9.3, len: 2.1, text: "우와 똑똑해졌다!" },
   ], talk: [
     { at: 0.4, len: 1.15, text: "아 비가 왔네", who: "도아" },
   ] },
@@ -43,26 +44,29 @@ const RAIN: Shot[] = [
 
 // 마트 — 도아와 어묵 찾기(엄마 목소리가 계속 나와 소리 끔, 사용자 2026-11-03: 엄마 말 최소화). 받아쓰기(Whisper) 기준: 「이제 오뎅 찾자」 16.2s, 「오뎅 어딨어」 28.2s, 「어묵이 다 팔렸어」 67.3s·72.4s, 「이거 밖에 없네 이거 먹자」 78s, 「도아가 계산해줘」 83s
 const MART: Shot[] = [
-  { kind: "video", src: "m_a.mp4", from: 0, to: 4.0, lines: [{ at: 0.3, len: 3.5, text: "그래서 아이랑\n어묵 사러 마트로 🛒" }] },
+  { kind: "video", src: "m_a.mp4", from: 0, to: 4.0, lines: [{ at: 0.2, len: 2.0, text: "비 온 길을 걸어\n오뎅 사러 마트로 🛒" }, { at: 2.3, len: 1.6, text: "이런 날엔 따뜻한 오뎅국!" }] },
   { kind: "video", src: "m_c.mp4", from: 0, to: 7.6, lines: [{ at: 1.0, len: 3.2, text: "그런데 어묵이 다 팔렸다…\n(이럴 수가 ㅠㅠ)" }] },
   { kind: "video", src: "m_d.mp4", from: 0, to: 5.3, lines: [{ at: 1.0, len: 3.0, text: "남은 거라도 건졌어요!" }] },
 ];
 
 // 요리 — 단계 자막은 앱 레시피(간단 어묵국 · 오뎅탕) 문구 그대로
 const COOK: Shot[] = [
-  { kind: "video", src: "r1.mp4", from: 0, to: 4.0, step: "무는 어묵 모양에 맞게\n채썰기" },
-  { kind: "video", src: "r3.mp4", from: 0, to: 4.0 },
-  { kind: "video", src: "p1.mp4", from: 0, to: 5.0, step: "대파는 어슷하게 썰고" },
-  { kind: "video", src: "e1.mp4", from: 0, to: 5.1, step: "사각어묵도 썰어 두기" },
-  { kind: "video", src: "q_a.mp4", from: 0, to: 4.0, step: "물 붓고 육수 넣기" },
-  { kind: "video", src: "q_b.mp4", from: 0, to: 4.0, step: "무 먼저 넣고\n뚜껑 닫고 끓이기" },
-  { kind: "video", src: "q_c.mp4", from: 0, to: 4.0, step: "멸치액젓 · 국간장 · 양조간장\n넣어 간하기" },
-  { kind: "video", src: "q_d.mp4", from: 0, to: 4.0, step: "다진마늘 넣기" },
-  { kind: "video", src: "q_e.mp4", from: 0, to: 4.0, step: "어묵 넣고 부드럽게 퍼질 때까지\n대파 넣고 끓이기" },
-  { kind: "video", src: "q_f.mp4", from: 0, to: 4.8, step: "후춧가루 톡톡 뿌려서 완성" },
-  { kind: "video", src: "q_g.mp4", from: 0, to: 6.0, step: "보글보글" },
+  { kind: "video", fast: true, src: "r1.mp4", from: 0, to: 4.0, step: "무는 어묵 모양에 맞게\n채썰기" },
+  { kind: "video", fast: true, src: "r3.mp4", from: 0, to: 4.0 },
+  { kind: "video", fast: true, src: "p1.mp4", from: 0, to: 5.0, step: "대파는 어슷하게 썰고" },
+  { kind: "video", fast: true, src: "e1.mp4", from: 0, to: 5.1, step: "사각어묵도 썰어 두기" },
+  { kind: "video", src: "q_a2.mp4", from: 0, to: 5.7, lines: [
+    { at: 0.1, len: 3.6, text: "우리 집은 먹는 양이 많아서\n하루 이틀 먹을 양으로 레시피의 거의\n2배를 끓였어요 (분량은 레시피 기준으로!)" },
+    { at: 3.8, len: 1.9, text: "물 붓고 육수 넣기" },
+  ] },
+  { kind: "video", fast: true, src: "q_b.mp4", from: 0, to: 4.0, step: "무 먼저 넣고\n뚜껑 닫고 끓이기" },
+  { kind: "video", fast: true, src: "q_c.mp4", from: 0, to: 4.0, step: "멸치액젓 · 국간장 · 양조간장\n넣어 간하기" },
+  { kind: "video", fast: true, src: "q_d2.mp4", from: 0, to: 2.9, step: "다진마늘 넣기" },
+  { kind: "video", fast: true, src: "q_e.mp4", from: 0, to: 4.0, step: "어묵 넣고 부드럽게 퍼질 때까지\n대파 넣고 끓이기" },
+  { kind: "video", fast: true, src: "q_f2.mp4", from: 0, to: 2.4, step: "후춧가루 톡톡 뿌려서 완성" },
+  { kind: "video", fast: true, src: "q_g.mp4", from: 0, to: 6.0, step: "보글보글" },
 ];
-const PLATE: Shot[] = [{ kind: "video", src: "d_pot.mp4", from: 0, to: 4.0, step: "간단 오뎅탕 완성!" }];
+const PLATE: Shot[] = [{ kind: "video", fast: true, src: "d_pot.mp4", from: 0, to: 4.0, step: "간단 오뎅탕 완성!" }];
 // 먹는 도아(원래 소리) — 받아쓰기 기준 「아 뜨거워」 6.9s, 「오뎅탕은 어때?」 10.8s (095231) / 「맛있지?」 25s, 「맛있어?」 28.6s, 「시원하다」 32s (100449)
 const EAT: Shot[] = [
   { kind: "video", src: "ea.mp4", from: 0, to: 4.2, audio: true, lines: [{ at: 1.8, len: 2.2, text: "아이 반응은?" }], talk: [
@@ -79,10 +83,10 @@ const EAT: Shot[] = [
 
 // 쿡매치 앱 녹화(상태 표시줄 잘라 낸 작업본 884x1790, 원본과 같은 시각)
 const APP: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 17.0, to: 23.5, app: true, step: "오늘 메뉴는 오뎅탕!\n쿡매치에서 「오뎅탕」 검색" },
-  { kind: "video", src: "app_raw.mp4", from: 34.0, to: 45.0, rate: 1.3, app: true, step: "인기순으로 골랐더니\n내 재료 8/8 (100%)" },
-  { kind: "video", src: "app_raw.mp4", from: 48.2, to: 57.8, rate: 1.3, app: true, step: "이 레시피대로 만들었어요" },
-  { kind: "video", src: "app_raw.mp4", from: 57.8, to: 62.4, app: true, step: "먹은 날은\n마이캘린더에 담아요" },
+  { kind: "video", fast: true, src: "app_raw.mp4", from: 17.0, to: 23.5, app: true, step: "오늘 메뉴는 오뎅탕!\n쿡매치에서 「오뎅탕」 검색" },
+  { kind: "video", fast: true, src: "app_raw.mp4", from: 34.0, to: 45.0, rate: 1.3, app: true, step: "인기순으로 골랐더니\n내 재료 8/8 (100%)" },
+  { kind: "video", fast: true, src: "app_raw.mp4", from: 48.2, to: 57.8, rate: 1.3, app: true, step: "이 레시피대로 만들었어요" },
+  { kind: "video", fast: true, src: "app_raw.mp4", from: 57.8, to: 62.4, app: true, step: "먹은 날은\n마이캘린더에 담아요" },
 ];
 const OUTRO_LEN = INTRO + 75;
 const TAIL: Shot[] = [
@@ -108,7 +112,7 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
       src={staticFile((s.dir ?? DIR) + s.src)}
       trimBefore={f(s.from)}
       trimAfter={f(s.to)}
-      playbackRate={s.rate ?? 1}
+      playbackRate={(s.rate ?? 1) * (s.fast ? FAST : 1)}
       muted={!s.audio}
       volume={s.audio ? 1 : 0}
       style={{ width: "100%", height: "100%", objectFit: s.app ? "contain" : "cover" }}
