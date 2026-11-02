@@ -33,23 +33,23 @@ const OPEN: Shot[] = [
 
 // 마트 가기 전 — 도아가 오뎅탕이 먹고 싶다고 함(사용자 2026-11-02 말: 07:43 영상, 도아 목소리 0.9~6.1s. 받아쓰기는 못 알아들음 → 말 자막은 사용자가 알려 준 문장, 짐작한 자리)
 const WISH: Shot[] = [
-  { kind: "video", src: "m_w.mp4", from: 0, to: 7.4, audio: true, lines: [{ at: 4.6, len: 2.7, text: "마침 도아도\n오뎅탕이 먹고 싶다고 해서" }], talk: [{ at: 0.9, len: 3.6, text: "오뎅탕 / 먹고 싶어", who: "도아" }] },
+  { kind: "video", src: "m_w.mp4", from: 0, to: 7.4, audio: true, lines: [{ at: 4.6, len: 2.7, text: "마침 도아도\n오뎅탕이 먹고 싶다고 해서" }], talk: [{ at: 0.86, len: 5.3, text: "오뎅탕 / 먹고 싶어", who: "도아" }] },
 ];
 
 // 마트 — 도아와 어묵 찾기(원래 소리). 받아쓰기(Whisper) 기준: 「이제 오뎅 찾자」 16.2s, 「오뎅 어딨어」 28.2s, 「어묵이 다 팔렸어」 67.3s·72.4s, 「이거 밖에 없네 이거 먹자」 78s, 「도아가 계산해줘」 83s
 const MART: Shot[] = [
-  { kind: "video", src: "m_a.mp4", from: 0, to: 4.0, audio: true, lines: [{ at: 0.3, len: 3.5, text: "그래서 도아랑\n어묵 사러 마트로 🛒" }], talk: [{ at: 1.0, len: 2.0, text: "이제 오뎅 찾자 오뎅", who: "엄마" }] },
+  { kind: "video", src: "m_a.mp4", from: 0, to: 4.0, audio: true, lines: [{ at: 0.3, len: 3.5, text: "그래서 도아랑\n어묵 사러 마트로 🛒" }], talk: [{ at: 1.5, len: 1.5, text: "이제 오뎅 찾자 오뎅", who: "엄마" }] },
   { kind: "video", src: "m_b.mp4", from: 0, to: 4.8, audio: true, talk: [
-    { at: 0.5, len: 2.3, text: "좋아 이제 / 오뎅 찾아봐 오뎅", who: "엄마" },
-    { at: 2.9, len: 1.6, text: "오뎅 어딨어?", who: "엄마" },
+    { at: 1.2, len: 1.7, text: "좋아 이제 / 오뎅 찾아봐 오뎅", who: "엄마" },
+    { at: 3.1, len: 1.3, text: "오뎅 어딨어?", who: "엄마" },
   ] },
   { kind: "video", src: "m_c.mp4", from: 0, to: 9.0, audio: true, lines: [{ at: 2.6, len: 3.2, text: "그런데 어묵이 다 팔렸다…\n(이럴 수가 ㅠㅠ)" }], talk: [
-    { at: 1.0, len: 1.4, text: "어묵이 다 팔렸어", who: "엄마" },
-    { at: 6.1, len: 1.8, text: "어묵이 다 팔렸어, 도아야", who: "엄마" },
+    { at: 1.1, len: 1.4, text: "어묵이 다 팔렸어", who: "엄마" },
+    { at: 5.8, len: 1.7, text: "어묵이 다 팔렸어, 도아야", who: "엄마" },
   ] },
   { kind: "video", src: "m_d.mp4", from: 0, to: 7.2, audio: true, lines: [{ at: 3.5, len: 2.0, text: "남은 거라도 건졌어요!" }], talk: [
-    { at: 0.6, len: 2.7, text: "이거 밖에 없네 / 이거 먹자", who: "엄마" },
-    { at: 5.6, len: 1.5, text: "도아가 계산해줘", who: "엄마" },
+    { at: 0.4, len: 2.8, text: "이거 밖에 없네 / 이거 먹자", who: "엄마" },
+    { at: 5.8, len: 1.2, text: "도아가 계산해줘", who: "엄마" },
   ] },
 ];
 
@@ -71,27 +71,27 @@ const PLATE: Shot[] = [{ kind: "video", src: "d_pot.mp4", from: 0, to: 4.0, step
 // 먹는 도아(원래 소리) — 받아쓰기 기준 「아 뜨거워」 6.9s, 「오뎅탕은 어때?」 10.8s (095231) / 「맛있지?」 25s, 「맛있어?」 28.6s, 「시원하다」 32s (100449)
 const EAT: Shot[] = [
   { kind: "video", src: "ea.mp4", from: 0, to: 13.2, audio: true, lines: [{ at: 1.8, len: 2.2, text: "도아 반응은?" }], talk: [
-    { at: 0.3, len: 0.7, text: "아 뜨거워", who: "도아" },
+    { at: 0.1, len: 0.8, text: "아 뜨거워", who: "도아" },
     { at: 1.0, len: 0.8, text: "뜨거워?", who: "엄마" },
-    { at: 4.2, len: 2.6, text: "오뎅탕은 어때?", who: "엄마" },
+    { at: 4.9, len: 3.0, text: "오뎅탕은 어때?", who: "엄마" },
     { at: 8.5, len: 0.9, text: "맛있어?", who: "엄마" },
-    { at: 10.0, len: 0.8, text: "뜨거워", who: "도아" },
-    { at: 10.9, len: 0.8, text: "뜨거워?", who: "엄마" },
-    { at: 12.0, len: 1.2, text: "맛은?", who: "엄마" },
+    { at: 10.1, len: 0.8, text: "뜨거워", who: "도아" },
+    { at: 10.9, len: 0.7, text: "뜨거워?", who: "엄마" },
+    { at: 12.2, len: 1.0, text: "맛은?", who: "엄마" },
   ] },
   { kind: "video", src: "ed.mp4", from: 0, to: 6.2, audio: true, talk: [
-    { at: 3.4, len: 0.9, text: "너무 맛있어!", who: "도아" },
-    { at: 4.4, len: 0.6, text: "음!", who: "도아" },
+    { at: 3.5, len: 0.9, text: "너무 맛있어!", who: "도아" },
+    { at: 4.8, len: 0.8, text: "음!", who: "도아" },
   ] },
   { kind: "video", src: "ec.mp4", from: 0, to: 11.2, audio: true, lines: [{ at: 6.0, len: 2.6, text: "국물까지 맛있게 먹었어요" }], talk: [
-    { at: 1.8, len: 1.8, text: "국물도 맛있어", who: "도아" },
-    { at: 4.4, len: 1.1, text: "국물", who: "도아" },
+    { at: 2.0, len: 2.2, text: "국물도 맛있어", who: "도아" },
+    { at: 4.6, len: 1.0, text: "국물", who: "도아" },
     { at: 8.3, len: 2.0, text: "엄마 국물 줘", who: "도아" },
   ] },
   { kind: "video", src: "eb.mp4", from: 0, to: 9.0, audio: true, lines: [{ at: 1.6, len: 3.0, text: "맛있게 먹어 줘서 다행이에요" }], talk: [
-    { at: 0.5, len: 0.9, text: "맛있지?", who: "엄마" },
-    { at: 4.1, len: 1.3, text: "맛있어?", who: "엄마" },
-    { at: 7.4, len: 1.5, text: "시원하다", who: "엄마" },
+    { at: 0.6, len: 0.9, text: "맛있지?", who: "엄마" },
+    { at: 4.8, len: 0.9, text: "맛있어?", who: "엄마" },
+    { at: 7.5, len: 1.4, text: "시원하다", who: "엄마" },
   ] },
 ];
 
