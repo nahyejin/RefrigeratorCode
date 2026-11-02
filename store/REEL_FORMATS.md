@@ -47,7 +47,7 @@
 | 후킹 5벌 03 광고(4초?) | Happy Home (Mixkit 801) | 어쿠스틱 팝 |
 | 후킹 5벌 04 장보기(그건 캠핑 가는 거잖아) | Walking in the Park (Mixkit 529) | 잔잔한 산책 (처음 깐 컨트리는 바꿈) |
 | 요리 4편 캠핑 다음날 남은 면 | Smile (Mixkit 1076) | 우쿨렐레·어쿠스틱 포크팝 (v1 에 깐 Pixabay 기타는 초기 티저 곡이라 바꿈) |
-| 요리 5편 남은 무·대파 오뎅탕 | At the Playhouse (Mixkit, bgm_lib 에 이미 있던 곡 — 사용자 확인 전) | 확인 필요: 장르는 들어 보고 적기 |
+| 요리 5편 남은 무·대파 오뎅탕 | At the Playhouse (Mixkit, bgm_lib 에 이미 있던 곡) | 사용자 2026-11-02 「BGM 너무 잘 골랐네」 — 다음 편 고를 때 이 곡과 비슷한 느낌을 참고 |
 
 ---
 

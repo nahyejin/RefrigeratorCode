@@ -27,8 +27,13 @@ const HOOK = { at: 0, len: 3.4, text: "냉장고에 남은\n무·대파로 끓�
 const OPEN: Shot[] = [
   { kind: "photo", src: "fridge.jpg", len: f(9.2), origin: "35% 62%", lines: [
     { at: 3.6, len: 3.2, text: "냉장고에 무랑 대파가 남아 있어서\n(고추도 있었지만 도아가 매워해서 패스 ㅠㅠ)" },
-    { at: 6.9, len: 2.2, text: "오늘은 오뎅탕!" },
+    { at: 6.9, len: 2.2, text: "오늘은 오뎅탕 해 볼까?" },
   ] },
+];
+
+// 마트 가기 전 — 도아가 오뎅탕이 먹고 싶다고 함(사용자 2026-11-02 말: 07:43 영상, 도아 목소리 0.9~6.1s. 받아쓰기는 못 알아들음 → 말 자막은 사용자가 알려 준 문장, 짐작한 자리)
+const WISH: Shot[] = [
+  { kind: "video", src: "m_w.mp4", from: 0, to: 7.4, audio: true, lines: [{ at: 4.6, len: 2.7, text: "마침 도아도\n오뎅탕이 먹고 싶다고 해서" }], talk: [{ at: 0.9, len: 3.6, text: "오뎅탕 / 먹고 싶어", who: "도아" }] },
 ];
 
 // 마트 — 도아와 어묵 찾기(원래 소리). 받아쓰기(Whisper) 기준: 「이제 오뎅 찾자」 16.2s, 「오뎅 어딨어」 28.2s, 「어묵이 다 팔렸어」 67.3s·72.4s, 「이거 밖에 없네 이거 먹자」 78s, 「도아가 계산해줘」 83s
@@ -54,10 +59,10 @@ const COOK: Shot[] = [
   { kind: "video", src: "r3.mp4", from: 0, to: 4.0 },
   { kind: "video", src: "p1.mp4", from: 0, to: 5.0, step: "대파는 어슷하게 썰고" },
   { kind: "video", src: "e1.mp4", from: 0, to: 5.1, step: "사각어묵도 썰어 두기" },
-  { kind: "video", src: "q_a.mp4", from: 0, to: 4.0, step: "물 1L 붓고 육수 넣기" },
+  { kind: "video", src: "q_a.mp4", from: 0, to: 4.0, step: "물 붓고 육수 넣기" },
   { kind: "video", src: "q_b.mp4", from: 0, to: 4.0, step: "무 먼저 넣고\n뚜껑 닫고 끓이기" },
   { kind: "video", src: "q_c.mp4", from: 0, to: 4.0, step: "멸치액젓 · 국간장 · 양조간장\n넣어 간하기" },
-  { kind: "video", src: "q_d.mp4", from: 0, to: 4.0, step: "다진마늘 1스푼" },
+  { kind: "video", src: "q_d.mp4", from: 0, to: 4.0, step: "다진마늘 넣기" },
   { kind: "video", src: "q_e.mp4", from: 0, to: 4.0, step: "어묵 넣고 부드럽게 퍼질 때까지\n대파 넣고 끓이기" },
   { kind: "video", src: "q_f.mp4", from: 0, to: 4.8, step: "후춧가루 톡톡 뿌려서 완성" },
   { kind: "video", src: "q_g.mp4", from: 0, to: 6.0, step: "보글보글" },
@@ -73,6 +78,15 @@ const EAT: Shot[] = [
     { at: 10.0, len: 0.8, text: "뜨거워", who: "도아" },
     { at: 10.9, len: 0.8, text: "뜨거워?", who: "엄마" },
     { at: 12.0, len: 1.2, text: "맛은?", who: "엄마" },
+  ] },
+  { kind: "video", src: "ed.mp4", from: 0, to: 6.2, audio: true, talk: [
+    { at: 3.4, len: 0.9, text: "너무 맛있어!", who: "도아" },
+    { at: 4.4, len: 0.6, text: "음!", who: "도아" },
+  ] },
+  { kind: "video", src: "ec.mp4", from: 0, to: 11.2, audio: true, lines: [{ at: 6.0, len: 2.6, text: "국물까지 맛있게 먹었어요" }], talk: [
+    { at: 1.8, len: 1.8, text: "국물도 맛있어", who: "도아" },
+    { at: 4.4, len: 1.1, text: "국물", who: "도아" },
+    { at: 8.3, len: 2.0, text: "엄마 국물 줘", who: "도아" },
   ] },
   { kind: "video", src: "eb.mp4", from: 0, to: 9.0, audio: true, lines: [{ at: 1.6, len: 3.0, text: "맛있게 먹어 줘서 다행이에요" }], talk: [
     { at: 0.5, len: 0.9, text: "맛있지?", who: "엄마" },
@@ -93,11 +107,11 @@ const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
   { kind: "transition", len: OUTRO_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...MART, ...COOK, ...PLATE, ...EAT, ...APP, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...WISH, ...MART, ...COOK, ...PLATE, ...EAT, ...APP, ...TAIL];
 export const COOKING_ODENG_TANG_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(4.2);
-const COOK_START = [...OPEN, ...MART].reduce((a, s) => a + shotLen(s), 0);
-const BANNER_FROM = [...OPEN, ...MART, ...COOK, ...PLATE, ...EAT].reduce((a, s) => a + shotLen(s), 0);
+const COOK_START = [...OPEN, ...WISH, ...MART].reduce((a, s) => a + shotLen(s), 0);
+const BANNER_FROM = [...OPEN, ...WISH, ...MART, ...COOK, ...PLATE, ...EAT].reduce((a, s) => a + shotLen(s), 0);
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
