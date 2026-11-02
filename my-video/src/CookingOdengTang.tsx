@@ -23,33 +23,27 @@ type Shot =
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
 // 첫 장면 = 냉장고에 남은 무·대파 사진 + 큰 노란 후킹(썸네일 겸용)
-const HOOK = { at: 0, len: 3.4, text: "냉장고에 남은\n무·대파로 끓인\n아이 오뎅탕", sub: "고추는 도아가 매워해서 뺐어요" };
+const HOOK = { at: 0, len: 3.4, text: "냉장고에 남은\n무·대파로 끓인\n아이 오뎅탕", sub: "고추는 아이가 매워해서 뺐어요" };
 const OPEN: Shot[] = [
   { kind: "photo", src: "fridge.jpg", len: f(9.2), origin: "35% 62%", lines: [
-    { at: 3.6, len: 3.2, text: "냉장고에 무랑 대파가 남아 있어서\n(고추도 있었지만 도아가 매워해서 패스 ㅠㅠ)" },
+    { at: 3.6, len: 3.2, text: "냉장고에 무랑 대파가 남아 있어서\n(고추도 있었지만 아이가 매워해서 패스 ㅠㅠ)" },
     { at: 6.9, len: 2.2, text: "오늘은 오뎅탕 해 볼까?" },
   ] },
 ];
 
-// 마트 가기 전 — 도아가 오뎅탕을 해 달라고 함(07:38 영상 74.2~76.9s, 79.9~81.9s). 사용자 2026-11-03: 엄마가 시키는 것 같다 → 도아 말만 자막, 엄마 질문은 뺌
-const WISH: Shot[] = [
-  { kind: "video", src: "m_w3.mp4", from: 0, to: 2.7, audio: true, lines: [{ at: 0.1, len: 2.5, text: "오뎅탕 해줄까? 물어봤더니" }], talk: [{ at: 0.2, len: 2.2, text: "네 네 해봐", who: "도아" }] },
-  { kind: "video", src: "m_w4.mp4", from: 0, to: 2.0, audio: true, lines: [{ at: 0.1, len: 1.8, text: "도아가 맛있게 해 달래요 ㅎㅎ" }], talk: [{ at: 0.1, len: 1.5, text: "맛있게 해주세요 / 해봐", who: "도아" }] },
-];
 // 오뎅 사러 가는 길 — 젖은 땅을 보고 비 온 걸 알아맞힘(07:38 영상 145.9~162.9s)
 const RAIN: Shot[] = [
   { kind: "video", src: "m_r.mp4", from: 0, to: 11.4, audio: true, lines: [
-    { at: 2.3, len: 4.2, text: "오뎅 사러 가는 길,\n도아가 젖은 땅을 보더니…" },
-    { at: 9.3, len: 2.1, text: "우와 도아 똑똑해졌다! 🕵️" },
+    { at: 2.3, len: 4.2, text: "오뎅 사러 가는 길,\n아이가 젖은 땅을 보더니…" },
+    { at: 9.3, len: 2.1, text: "우와 우리 아이 똑똑해졌다! 🕵️" },
   ], talk: [
     { at: 0.4, len: 1.15, text: "아 비가 왔네", who: "도아" },
-    { at: 7.9, len: 1.3, text: "땅이 젖어있어서?", who: "도아" },
   ] },
 ];
 
 // 마트 — 도아와 어묵 찾기(엄마 목소리가 계속 나와 소리 끔, 사용자 2026-11-03: 엄마 말 최소화). 받아쓰기(Whisper) 기준: 「이제 오뎅 찾자」 16.2s, 「오뎅 어딨어」 28.2s, 「어묵이 다 팔렸어」 67.3s·72.4s, 「이거 밖에 없네 이거 먹자」 78s, 「도아가 계산해줘」 83s
 const MART: Shot[] = [
-  { kind: "video", src: "m_a.mp4", from: 0, to: 4.0, lines: [{ at: 0.3, len: 3.5, text: "그래서 도아랑\n어묵 사러 마트로 🛒" }] },
+  { kind: "video", src: "m_a.mp4", from: 0, to: 4.0, lines: [{ at: 0.3, len: 3.5, text: "그래서 아이랑\n어묵 사러 마트로 🛒" }] },
   { kind: "video", src: "m_c.mp4", from: 0, to: 7.6, lines: [{ at: 1.0, len: 3.2, text: "그런데 어묵이 다 팔렸다…\n(이럴 수가 ㅠㅠ)" }] },
   { kind: "video", src: "m_d.mp4", from: 0, to: 5.3, lines: [{ at: 1.0, len: 3.0, text: "남은 거라도 건졌어요!" }] },
 ];
@@ -71,7 +65,7 @@ const COOK: Shot[] = [
 const PLATE: Shot[] = [{ kind: "video", src: "d_pot.mp4", from: 0, to: 4.0, step: "간단 오뎅탕 완성!" }];
 // 먹는 도아(원래 소리) — 받아쓰기 기준 「아 뜨거워」 6.9s, 「오뎅탕은 어때?」 10.8s (095231) / 「맛있지?」 25s, 「맛있어?」 28.6s, 「시원하다」 32s (100449)
 const EAT: Shot[] = [
-  { kind: "video", src: "ea.mp4", from: 0, to: 4.2, audio: true, lines: [{ at: 1.8, len: 2.2, text: "도아 반응은?" }], talk: [
+  { kind: "video", src: "ea.mp4", from: 0, to: 4.2, audio: true, lines: [{ at: 1.8, len: 2.2, text: "아이 반응은?" }], talk: [
     { at: 0.1, len: 0.8, text: "아 뜨거워", who: "도아" },
   ] },
   { kind: "video", src: "ed.mp4", from: 0, to: 6.2, audio: true, talk: [
@@ -79,8 +73,6 @@ const EAT: Shot[] = [
     { at: 4.8, len: 0.8, text: "음!", who: "도아" },
   ] },
   { kind: "video", src: "ec.mp4", from: 0, to: 11.2, audio: true, lines: [{ at: 6.0, len: 2.6, text: "국물까지 맛있게 먹었어요" }], talk: [
-    { at: 2.0, len: 2.2, text: "국물도 맛있어", who: "도아" },
-    { at: 4.6, len: 1.0, text: "국물", who: "도아" },
     { at: 8.3, len: 2.0, text: "엄마 국물 줘", who: "도아" },
   ] },
 ];
@@ -97,11 +89,11 @@ const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
   { kind: "transition", len: OUTRO_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...WISH, ...RAIN, ...MART, ...COOK, ...PLATE, ...EAT, ...APP, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...RAIN, ...MART, ...COOK, ...PLATE, ...EAT, ...APP, ...TAIL];
 export const COOKING_ODENG_TANG_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(4.2);
-const COOK_START = [...OPEN, ...WISH, ...RAIN, ...MART].reduce((a, s) => a + shotLen(s), 0);
-const BANNER_FROM = [...OPEN, ...WISH, ...RAIN, ...MART, ...COOK, ...PLATE, ...EAT].reduce((a, s) => a + shotLen(s), 0);
+const COOK_START = [...OPEN, ...RAIN, ...MART].reduce((a, s) => a + shotLen(s), 0);
+const BANNER_FROM = [...OPEN, ...RAIN, ...MART, ...COOK, ...PLATE, ...EAT].reduce((a, s) => a + shotLen(s), 0);
 const CTA_AT = BANNER_FROM + APP.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
