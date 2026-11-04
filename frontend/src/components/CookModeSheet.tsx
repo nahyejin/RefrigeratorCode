@@ -13,6 +13,8 @@ import {
 } from '../utils/recipeStorage';
 import type { Recipe, RecipeActionState } from '../types/recipe';
 import CoupangDynamicBanner from './CoupangDynamicBanner';
+import { getProxiedImageUrl } from '../utils/imageUtils';
+import { recordRecentRecipe } from '../utils/recentRecipes';
 
 /**
  * 요리 모드 — 원문으로 나가지 않고 앱 안에서 조리 순서를 본다.
@@ -38,6 +40,7 @@ export interface CookData {
   link: string;
   platform?: string;
   author?: string;
+  thumbnail?: string;
   ingredients: string[];
   ingredients_detail: string[];
   steps: string[];
@@ -106,6 +109,8 @@ const CookModeSheet: React.FC<Props> = ({
   const [at, setAt] = React.useState<number>(-1);
   const [speed, setSpeed] = React.useState<number>(loadSpeed);
   const [speedOpen, setSpeedOpen] = React.useState(false);
+  /** 맨 위 사진이 안 열리면(주소 만료 등) 사진 자리를 접고 예전처럼 버튼 줄만 둔다 */
+  const [thumbFailed, setThumbFailed] = React.useState(false);
 
   // ── 즐겨찾기·완료·기록·공유 ──────────────────────────────────
   // 일반 레시피 카드에서 누르면 나오는 것과 같은 네 버튼을 여기도 둔다.
@@ -359,6 +364,7 @@ const CookModeSheet: React.FC<Props> = ({
     setLoading(true);
     setError(null);
     setData(null);
+    setThumbFailed(false);
     fetch(`${API_BASE_URL}/api/recipes/${recipeId}/cook`)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('불러오지 못했어요'))))
       .then(d => { if (alive) setData(d); })
@@ -366,6 +372,12 @@ const CookModeSheet: React.FC<Props> = ({
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [isOpen, recipeId]);
+
+  // 내용이 뜬 레시피는 「최근 본」에 쌓는다(마이페이지 · 2026-11-05). 패널이 모든 레시피 열기의 길목이라 여기서 한 번만 적는다.
+  React.useEffect(() => {
+    if (!isOpen || !data || data.id !== recipeId) return;
+    recordRecentRecipe({ id: data.id, title: data.title, link: data.link, thumbnail: data.thumbnail });
+  }, [isOpen, data, recipeId]);
 
   // 시트가 닫히거나 컴포넌트가 사라지면 반드시 멈춘다.
   React.useEffect(() => {
@@ -440,6 +452,16 @@ const CookModeSheet: React.FC<Props> = ({
       setTimeout(() => speakFromRef.current(from), 0);
     }
   };
+
+  /**
+   * 음식 사진(2026-11-05 요청 — 패널에 음식 사진이 하나도 없었다).
+   *
+   * 처음엔 본문 맨 위에 150px 띠로 깔았는데, 읽을 것이 많은 패널에서 **본문이 그만큼 밀려 내려간다.** 재료 칸은 가로가 짧아
+   * 오른쪽이 늘 비어 있으니(사용자 제안) 그 **왼쪽에 정사각형으로 잘라 넣고 재료 목록을 옆에 둔다** — 사진이 새로 차지하는 높이는
+   * 거의 없다. 재료 칸 안에 스크롤은 두지 않는다(패널이 이미 스크롤되고, 안쪽 스크롤은 아래로 밀어 닫기와 겹친다) —
+   * 재료가 길면 옆 칸이 줄바꿈으로 길어질 뿐이다. 사진이 없거나 열리지 않으면 목록이 전체 폭을 쓴다.
+   */
+  const thumbUrl = !thumbFailed && data?.thumbnail ? getProxiedImageUrl(data.thumbnail) : '';
 
   const have = new Set(myIngredients.map(x => x.trim()));
   const detail = data?.ingredients_detail || [];
@@ -541,11 +563,15 @@ const CookModeSheet: React.FC<Props> = ({
       {!loading && data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* ── 재료 ─────────────────────────────────────────── */}
-          {(detail.length > 0 || names.length > 0) && (
+          {(detail.length > 0 || names.length > 0 || !!thumbUrl) && (
             <section>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+              {(detail.length > 0 || names.length > 0) && (
               <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E', margin: '0 0 8px' }}>
                 재료
               </h3>
+              )}
               {detail.length > 0 ? (
                 <ul style={{ margin: 0, padding: 0, listStyle: 'none',
                              display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -555,7 +581,7 @@ const CookModeSheet: React.FC<Props> = ({
                     </li>
                   ))}
                 </ul>
-              ) : (
+              ) : names.length > 0 ? (
                 /* 분량이 없는 옛 데이터. 이름만이라도 보여 준다. */
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {names.map(n => (
@@ -566,9 +592,26 @@ const CookModeSheet: React.FC<Props> = ({
                     }}>{n}</span>
                   ))}
                 </div>
+              ) : null}
+              </div>
+              {/* 정사각형 사진 — 재료 목록은 **맨 왼쪽 그대로** 두고 사진은 오른쪽에 둔다(사용자: 목록이 최좌측에 붙어 있어야).
+                  폭은 칸의 30%(84~112px). */}
+              {thumbUrl && (
+                <img
+                  src={thumbUrl}
+                  alt={data?.title || ''}
+                  className="img-fade-in"
+                  onError={() => setThumbFailed(true)}
+                  style={{
+                    flexShrink: 0, display: 'block', width: 'clamp(84px, 30%, 112px)', aspectRatio: '1 / 1',
+                    objectFit: 'cover', borderRadius: 12, background: 'var(--surface-sub)',
+                  }}
+                />
               )}
+              </div>
+              {/* 재료 이름 칩 — 사진 옆 좁은 칸이 아니라 **전체 폭**으로 아래에 둔다 */}
               {detail.length > 0 && names.length > 0 && (
-                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {names.map(n => (
                     <span key={n} style={{
                       fontSize: 11.5, padding: '3px 8px', borderRadius: 9999,

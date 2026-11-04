@@ -269,6 +269,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('my_recorded_recipes');
       localStorage.removeItem('my_completed_recipes');
       localStorage.removeItem('my_favorite_recipes');
+      localStorage.removeItem('cookmatch_recent_recipes');   // 최근 본 레시피도 같은 기기 기록 — 다른 계정에 안 넘긴다
       // 장보기 메모(마이캘린더 하단)도 계정별로 나뉘지 않은 채 기기 한 칸에만
       // 저장된다 — 같은 기기에서 다른 계정으로 들어오면 앞 계정이 보던 메모가
       // 그대로 남아 "계획도 없는데 왜 뜨냐"는 문제가 생긴다(실사용 지적,
@@ -345,6 +346,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('my_recorded_recipes');
     localStorage.removeItem('my_completed_recipes');
     localStorage.removeItem('my_favorite_recipes');
+    localStorage.removeItem('cookmatch_recent_recipes');
 
     // 마이캘린더 장보기 메모 초기화 — 위 `clearDataOfOtherAccount`와 같은 이유.
     localStorage.removeItem('cooking_calendar_shopping_memos');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ContactBox from '../components/ContactBox';
+import RecentRecipesSheet from '../components/RecentRecipesSheet';
 import GroupTitle from '../components/ui/GroupTitle';
 import SegmentedToggle from '../components/ui/SegmentedToggle';
 import CloseButton from '../components/ui/CloseButton';
@@ -630,6 +631,8 @@ const MyPage: React.FC = () => {
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   // 초기 상태는 빈 배열로 시작 (사용자별로 useEffect에서 로드)
   const [favoriteRecipes, setFavoriteRecipes] = useState<any[]>([]);
+  /** 「최근 본」 목록 시트(2026-11-05) */
+  const [recentOpen, setRecentOpen] = useState(false);
   const [recordedRecipes, setRecordedRecipes] = useState<any[]>([]);
   const [completedRecipes, setCompletedRecipes] = useState<any[]>([]);
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
@@ -1516,11 +1519,15 @@ const MyPage: React.FC = () => {
           { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite', recipes: displayFavoriteRecipes },
           { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded', recipes: displayRecordedRecipes },
           { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed', recipes: displayCompletedRecipes },
+          // 최근 본(2026-11-05) — 숫자 대신 시계 아이콘. 이 기기에서 2개월 안에 연 레시피를 시트로 보여 준다.
+          { label: '최근 본', count: null as number | null, to: '', recipes: [] as any[] },
         ].map(({ label, count, to, recipes }, i) => (
           <button
             key={label}
             type="button"
-            onClick={() => navigate(to, { state: { recipes, isHouseholdView: showAllHousehold } })}
+            onClick={() => (to
+              ? navigate(to, { state: { recipes, isHouseholdView: showAllHousehold } })
+              : setRecentOpen(true))}
             style={{
               flex: 1,
               height: 62,
@@ -1541,7 +1548,14 @@ const MyPage: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink-900)', lineHeight: 1.15 }}>{count}</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink-900)', lineHeight: 1.15, display: 'inline-flex', alignItems: 'center', height: 23 }}>
+              {count === null ? (
+                <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              ) : count}
+            </span>
             {/* 라벨 뒤의 `›` — 숫자만 있으면 **읽을 것**처럼 보이고, 눌러서
                 목록으로 가는 자리라는 게 안 읽힌다(2026-10-08). */}
             <span style={{ fontSize: 12, color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
@@ -1676,6 +1690,7 @@ const MyPage: React.FC = () => {
       </PullToRefresh>
 
       <BottomNavBar activeTab="mypage" />
+      <RecentRecipesSheet open={recentOpen} onClose={() => setRecentOpen(false)} />
       {/* 공유 요청 팝업은 AppRouter에 전역으로 마운트된 <ShareRequestPopup/>이
           담당한다 — 마이페이지에 들어와야만 뜨던 걸 앱 어느 탭에서든 뜨게
           하려고 이 화면 밖으로 옮겼다. */}
