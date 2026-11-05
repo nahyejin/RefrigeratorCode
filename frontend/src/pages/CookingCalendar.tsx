@@ -2297,7 +2297,7 @@ const CookingCalendar: React.FC = () => {
             순서는 넓은 것부터(2026-10-15 사용자 요청: 일/주/월 → 월/주/일). */}
         <div style={{ display: mode === 'calendar' ? 'flex' : 'none',
                       alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 14px 0' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
@@ -2310,18 +2310,6 @@ const CookingCalendar: React.FC = () => {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
           </button>
           </span>
-          {/* 「오늘」로 돌아오는 버튼 — 월 보기만 남으면서 월/주/일 선택이 있던 자리에 둔다. 다른 달을 넘겨 보다가 오늘로 돌아오는 길이 없었다. */}
-          <button
-            type="button"
-            onClick={() => { const t = new Date(); setAnchorDate(t); setSelectedDay(toDateKey(t)); }}
-            style={{
-              height: 28, padding: '0 12px', borderRadius: 9999, flexShrink: 0,
-              border: '1px solid var(--line-300)', background: 'var(--surface)',
-              fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
-            }}
-          >
-            오늘
-          </button>
         </div>
 
         {/* 그룹 요약 + 인원별 색 범례.
@@ -3085,17 +3073,29 @@ const CookingCalendar: React.FC = () => {
       {/* 고른 날의 카드 — 일 보기뿐 아니라 **월·주 보기에서도** 날짜를 누르면 이 자리에 뜬다(2026-11-05 요청: 날짜를 눌러도 일 보기로
           넘어가지 말고, 아래에 그날 계획한 요리·한 요리를 카드로). 월·주에서는 어느 날인지 머리글을 붙이고 위에 구분선을 둔다. */}
       {mode === 'calendar' && (
+        // 고른 날 영역은 위 달력의 **아래 층**이다(2026-11-06 지적: 위는 월 달력, 아래는 일별 내용인데 하위라는 게 안 드러난다).
+        // 같은 흰 상자에 구분선 하나만 있었다 → 옅은 회색 판으로 깔고, 카드는 그 위에 흰색으로 올려 「달력 아래 펼쳐진 그날」로 읽히게 한다.
         <div style={{
-          padding: viewMode === 'day' ? '12px 14px 16px' : '14px 14px 16px',
-          borderTop: viewMode === 'day' ? undefined : '1px solid var(--line-200)',
+          padding: '14px 14px 16px',
+          background: 'var(--surface-sub)',
+          borderTop: '1px solid var(--line-200)',
           display: 'flex', flexDirection: 'column', gap: 10,
         }}>
         {(() => {
           const sd = new Date(`${selectedDay}T00:00:00`);
+          const doneCount = (entriesByDay.get(selectedDay) || []).length;
+          const planCount = (plans.get(selectedDay) || []).length;
           return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
-                {viewMode !== 'day' && <>{sd.getMonth() + 1}월 {sd.getDate()}일 ({WEEKDAY_LABELS[sd.getDay()]})</>}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#1A1A1E' }}>
+                  {sd.getMonth() + 1}월 {sd.getDate()}일 ({WEEKDAY_LABELS[sd.getDay()]})
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 2 }}>
+                  {doneCount === 0 && planCount === 0
+                    ? '기록된 요리가 없어요'
+                    : [doneCount > 0 ? `한 요리 ${doneCount}개` : '', planCount > 0 ? `할 요리 ${planCount}개` : ''].filter(Boolean).join(' · ')}
+                </div>
               </div>
               {/* 수동 기록 추가 — 예전엔 월/주/일 줄 오른쪽에 있었다. 기록하는 날은 **고른 날**이라 그 날 머리글 옆이 제자리다. 게스트는 로그인부터 안내한다. */}
               <button
@@ -3108,7 +3108,7 @@ const CookingCalendar: React.FC = () => {
                   setManualLogOpen(true);
                 }}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px',
+                  display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, padding: '0 11px',
                   borderRadius: 9999, border: '1px solid var(--line-300)', background: 'var(--surface)',
                   fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
                   whiteSpace: 'nowrap', flexShrink: 0,
@@ -3217,7 +3217,7 @@ const CookingCalendar: React.FC = () => {
                 // 고치는 중에는 날짜칸 + 저장 + 취소가 한 줄에 다 들어가지 않는다.
                 // 셋을 오른쪽에 밀어 넣으면 가운데 칸이 눌려 **닉네임이 줄바꿈**된다.
                 // 줄바꿈을 허용해 편집칸을 통째로 아랫줄로 내린다(아래 flexBasis).
-                style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line-200)' }}
+                style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line-200)', background: 'var(--surface)' }}
               >
                 {/* 일별 보기의 완료 기록은 누르면 아무 일도 없었다 — 주·월 보기와 위
                     「만들기로 한 요리」는 레시피 시트가 열리는데 여기만 빠져 있었다
