@@ -37,7 +37,12 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
       {/* 사용 가이드 13단계가 이 AI 버튼만 가리킨다(일반 버튼은 소개하지 않음). */}
       <span style={{ flex: 1, minWidth: 0, display: 'flex', position: 'relative' }} data-guide-target="weekly-ai-plan-button">
         <button type="button" onClick={() => onGo(true)} className="ai-action" style={base}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', wordBreak: 'keep-all', paddingRight: 14 }}>
+          {/* 제목 맨 앞의 반짝이(네 꼭지 별) — 「AI」 배지는 모서리에 떠 있어 글자와 따로 읽혔다(2026-11-06 요청: 키워드 앞에 아이콘을). 글자색과 같게 칠한다. */}
+          {/* 줄바꿈 금지 — 아이콘이 붙으면서 폭이 모자라 제목이 두 줄로 꺾였다(오른쪽 14px 여백은 AI 배지 때문이었는데 배지는 모서리 밖에 걸려 글자와 겹치지 않는다). */}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ flexShrink: 0 }}>
+              <path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" />
+            </svg>
             이번 주 AI 식단 추천
           </span>
           <span style={{ fontSize: 10.5, color: 'rgba(26,26,30,0.65)', wordBreak: 'keep-all' }}>

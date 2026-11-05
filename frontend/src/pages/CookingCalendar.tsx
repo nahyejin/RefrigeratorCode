@@ -1922,7 +1922,6 @@ const CookingCalendar: React.FC = () => {
       {/* 묶음 제목 — 마이페이지와 **같은 작은 회색 글자**다(2026-10-08 요청).
           이 화면도 성격이 다른 칸 셋(식단 추천 · 월 목표 · 요리 기록)이
           흰 박스로 줄줄이 놓여 있어 경계가 안 읽혔다. */}
-      <GroupTitle style={{ margin: '0 14px 6px' }}>식단 추천</GroupTitle>
       <div style={{ margin: '0 14px 8px' }}>
         <PlanButtons />
       </div>
@@ -1939,7 +1938,7 @@ const CookingCalendar: React.FC = () => {
           카드 제목이 `2026년 9월 목표` 라고 못 박아서 막는다. */}
       {/* 사용 가이드 15단계가 **월 목표 + 달력·목록 카드 전체**를 한 번에
           가리키려고 둘을 감싼다(모양에는 영향 없음). */}
-      <GroupTitle>이번 달 목표</GroupTitle>
+      <div style={{ height: 6 }} />
       <div data-guide-target="calendar-goal-area">
       {(<>
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
@@ -1947,91 +1946,36 @@ const CookingCalendar: React.FC = () => {
           가장 먼저 오는 자리에 두고 "몇 월 목표"인지 숫자로 못 박아 둔다.
           (전에는 이 아래 있어서 "왜 주간 보기에서도 월 목표가 나오지" 라는
           혼란이 있었음) */}
+      {/* 목표 카드(2026-11-06 개편): **접힌 모습은 `M월 목표 N / M회` + 막대 + 인원 범례 + 달성률·절약액** 뿐이다.
+          예전에는 제목·월별 기록 보기·목표 N회·목표수정이 한 줄에, 달성 문장·절약액·범례·자세히 보기가 세 줄에 있어서
+          달력이 시작되기 전에 화면 대부분이 숫자였다. 월별 기록 보기·목표 수정·식구 수·1인 한 끼는 **펼쳤을 때** 보인다.
+          제목 줄 전체가 펼침 버튼이다. */}
       <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 14, background: 'var(--surface-sub)' }}>
-        {/* 글자 크기를 키운 폰에서 `2026년 10/월` 처럼 글자 중간에서 줄이 바뀌고
-            버튼 글자가 칸 밖으로 넘쳤다(2026-10-09 확인) — 줄바꿈은 묶음 단위로,
-            버튼 높이는 minHeight 로. */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px 8px', marginBottom: 6 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>
-              {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월
-            </span>
-            {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데,
-                쌓인 것을 못 보면 목표를 세워 둔 보람이 없다. */}
-            {isLoggedIn && (
-              <button
-                type="button"
-                onClick={() => setProgressOpen(true)}
-                style={{
-                  minHeight: 24, padding: '0 9px', borderRadius: 9999,
-                  border: '1px solid var(--line-300)', background: 'var(--surface)',
-                  fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {/* `기록` 한 글자로는 무엇의 기록인지 알 수 없었다(2026-10-08). */}
-                월별 기록 보기
-              </button>
-            )}
+        <button
+          type="button"
+          onClick={() => setGoalCardExpanded((v) => !v)}
+          aria-expanded={goalCardExpanded}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+            padding: 0, border: 'none', borderRadius: 0, background: 'transparent', cursor: 'pointer',
+            color: 'var(--ink-900)', textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 700 }}>{anchorDate.getMonth() + 1}월 목표</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            {monthlyTotal} / {myGoal}회
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-500)"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+              style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           </span>
-          {editingGoal ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="number"
-                value={goalInput}
-                onChange={(e) => setGoalInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveGoal();
-                  if (e.key === 'Escape') setEditingGoal(false);
-                }}
-                // 칸을 벗어나면 그대로 저장한다(2026-10-08). [적용]을 찾아 눌러야만
-                // 반영되면, 숫자를 고쳐 놓고 딴 데를 누른 사람은 **고친 줄 알고
-                // 떠난다.** 같은 화면의 `1인 한 끼`·`식구 수`도 이미 이렇게 동작한다.
-                onBlur={() => handleSaveGoal()}
-                autoFocus
-                style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
-              />
-              <button
-                type="button"
-                // blur 가 먼저 나가면 이 버튼이 사라져 클릭이 씹힌다.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={handleSaveGoal}
-                style={{ height: 28, padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
-              >
-                적용
-              </button>
-            </span>
-          ) : (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>목표 {myGoal}회</span>
-              {/* 목표 저장은 계정에 묶인 값이다(households/users 테이블) — 게스트는
-                  고쳐도 저장할 곳이 없으니, 수정 버튼 대신 로그인 유도로 바꾼다. */}
-              {isLoggedIn ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGoalInput(String(myGoal));
-                    setEditingGoal(true);
-                  }}
-                  style={{ minHeight: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  목표수정
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  style={{ minHeight: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  로그인하고 설정
-                </button>
-              )}
-            </span>
-          )}
-        </div>
+        </button>
         {/* 그룹이면 완료 횟수가 많은 사람부터 순서대로 색을 나눠 채운다.
             혼자면(그룹 아님) 단색 막대 그대로. */}
-        <div style={{ display: 'flex', height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden', marginTop: 10 }}>
           {isInHousehold ? (
             goalSegments.map((seg) => (
               <div
@@ -2048,83 +1992,84 @@ const CookingCalendar: React.FC = () => {
             <div style={{ height: '100%', width: `${groupAchievementRate}%`, background: 'var(--brand)', borderRadius: 9999, transition: 'width 0.2s ease' }} />
           )}
         </div>
-        {/* 달성률과 절약액을 **한 줄**에 둔다(2026-10-09 요청: 이 카드 세로를 더
-            줄여 달라). 절약액은 아래에 따로 한 줄을 쓰고 있었는데, 둘 다 "지금
-            어디까지 왔나" 를 말하는 숫자라 같은 줄에 있는 게 오히려 맞다.
-            폭이 모자라면 절약액만 아랫줄로 내려간다(`flexWrap`). */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-                      columnGap: 8, rowGap: 2, fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
-          <span style={{ whiteSpace: 'nowrap' }}>
-            {monthlyTotal}회 / {myGoal}회 달성 ({groupAchievementRate}%)
-          </span>
-          {/* 아직 한 번도 안 했어도 **목표를 채우면 얼마인지**는 보여 준다.
-              0원만 띄우고 마는 건 아무 말도 안 하는 것과 같다. */}
-          {(monthlyTotal > 0 || myGoal > 0) && (
-            <span style={{ whiteSpace: 'nowrap' }}>
-              {monthlyTotal > 0 && (
-                <>절약 약 <b style={{ color: 'var(--ink-900)' }}>{formatWonShort(estimatedSavings)}</b></>
-              )}
-              {monthlyTotal > 0 && myGoal > monthlyTotal && ' · '}
-              {myGoal > monthlyTotal && (
-                <>목표 달성 시 <b style={{ color: 'var(--ink-900)' }}>{formatWonShort(goalSavings)}</b></>
-              )}
-            </span>
-          )}
-        </div>
-        {/* 인원별 색 범례 + `자세히 보기` 를 **한 줄**에 둔다(2026-10-09 요청:
-            이번 달 목표 칸의 세로를 더 줄이고 싶다). 범례는 게이지가 보여주는
-            핵심 정보라 접지 않고 늘 보여 주고(2026-09 지적), `자세히 보기` 는
-            그 줄 오른쪽 끝에 붙여 한 줄을 번다.
-            식구가 많아 범례가 두 줄이 되면 `자세히 보기` 는 마지막 줄 오른쪽으로
-            내려간다(`flexWrap`) — 글자가 겹치는 일은 없다. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-                      columnGap: 10, rowGap: 6, marginTop: 8 }}>
+        {/* 인원별 색 범례(왼쪽) + 달성률·절약액(오른쪽)을 **한 줄**에. 폭이 모자라면 오른쪽 묶음이 아랫줄로 내려간다. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4, marginTop: 8 }}>
           {hasMemberLegend && goalSegments.map((seg) => (
             <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
               {nicknameById.get(seg.uid) || '?'} {seg.count}회
             </span>
           ))}
-        <button
-          type="button"
-          onClick={() => setGoalCardExpanded((v) => !v)}
-          aria-expanded={goalCardExpanded}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            height: 24,
-            padding: 0,
-            flexShrink: 0,
-            // 사람 범례가 있으면 **그 줄 오른쪽 끝**, 없으면 그냥 왼쪽.
-            marginLeft: hasMemberLegend ? 'auto' : 0,
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 11.5,
-            fontWeight: 500,
-            color: 'var(--ink-500)',
-          }}
-        >
-          {goalCardExpanded ? '자세히 접기' : '자세히 보기'}
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--ink-500)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
+            {groupAchievementRate}%
+            {/* 아직 한 번도 안 했어도 **목표를 채우면 얼마인지**는 보여 준다. 0원만 띄우고 마는 건 아무 말도 안 하는 것과 같다. */}
+            {monthlyTotal > 0 && (
+              <> · 절약 약 <b style={{ color: 'var(--ink-900)' }}>{formatWonShort(estimatedSavings)}</b></>
+            )}
+            {monthlyTotal === 0 && myGoal > 0 && (
+              <> · 목표 달성 시 <b style={{ color: 'var(--ink-900)' }}>{formatWonShort(goalSavings)}</b></>
+            )}
+          </span>
         </div>
 
         {goalCardExpanded && (
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line-200)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 8px', marginBottom: 10 }}>
+              {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데, 쌓인 것을 못 보면 목표를 세워 둔 보람이 없다. */}
+              {isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={() => setProgressOpen(true)}
+                  style={{
+                    minHeight: 24, padding: '0 9px', borderRadius: 9999,
+                    border: '1px solid var(--line-300)', background: 'var(--surface)',
+                    fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  월별 기록 보기
+                </button>
+              )}
+              {editingGoal ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="number"
+                    value={goalInput}
+                    onChange={(e) => setGoalInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveGoal();
+                      if (e.key === 'Escape') setEditingGoal(false);
+                    }}
+                    // 칸을 벗어나면 그대로 저장한다(2026-10-08). [적용]을 찾아 눌러야만 반영되면, 숫자를 고쳐 놓고 딴 데를 누른 사람은 **고친 줄 알고 떠난다.**
+                    onBlur={() => handleSaveGoal()}
+                    autoFocus
+                    style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
+                  />
+                  <button
+                    type="button"
+                    // blur 가 먼저 나가면 이 버튼이 사라져 클릭이 씹힌다.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleSaveGoal}
+                    style={{ height: 28, padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                  >
+                    적용
+                  </button>
+                </span>
+              ) : (
+                // 목표 저장은 계정에 묶인 값이다(households/users 테이블) — 게스트는 고쳐도 저장할 곳이 없으니 로그인 유도로.
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isLoggedIn) { navigate('/login'); return; }
+                    setGoalInput(String(myGoal));
+                    setEditingGoal(true);
+                  }}
+                  style={{ minHeight: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {isLoggedIn ? `목표 ${myGoal}회 수정` : '로그인하고 목표 설정'}
+                </button>
+              )}
+            </div>
             {/* 계산식과 값 고치기는 **접어 둔다.** 매번 읽을 문장이 아니고,
                 한 끼 추정액·식구 수는 한 번 정해 두면 다시 손댈 일이 드물다.
                 늘 펴 두면 정작 금액보다 이 줄이 길어서 눈이 그쪽으로 간다. */}
@@ -2247,7 +2192,7 @@ const CookingCalendar: React.FC = () => {
 
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
           두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
-      <GroupTitle>요리 기록</GroupTitle>
+      <div style={{ height: 12 }} />
       <div data-guide-target="calendar-record-card" style={{ margin: '0 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
         {/* 화면을 **가르는** 자리라 탭으로 그린다.
             알약으로 뒀더니 아래 일/주/월 알약과 같아 보여서, 화면을 바꾸는
@@ -2305,39 +2250,46 @@ const CookingCalendar: React.FC = () => {
             {/* 공용 부품으로 뺐다 — 마이페이지의 `나의 것만 / 우리 식구 모두` 가
                 같은 모양을 써야 한다(2026-10-08). 설계 메모는 `SegmentedToggle`. */}
             <SegmentedToggle
-              value={scope}
-              onChange={(key) => { setScope(key); if (key === 'household') setListKind('done'); }}
+              // 「내 것은 빼고」 체크박스를 셋째 칸으로(2026-11-06 요청). 체크박스는 「전체」일 때만 나타나 줄 모양이 바뀌었고, 무엇이 걸러지는지 이름이 안 보였다.
+              // 안에서는 그대로 `scope` + `hideMine` 두 값이다 — 식구 것만 = 식구 전체 + 내 것 빼기.
+              value={scope === 'mine' ? 'mine' : hideMine ? 'others' : 'household'}
+              onChange={(key) => {
+                setScope(key === 'mine' ? 'mine' : 'household');
+                setHideMine(key === 'others');
+                if (key !== 'mine') setListKind('done');
+              }}
               // 기본값이 「우리 식구 전체」라 **그쪽이 앞**이다(2026-11-05 요청 — 처음 켜진 칸이 맨 왼쪽에).
               options={[
                 { value: 'household' as const, label: '우리 식구 전체' },
                 { value: 'mine' as const, label: '내 요리만' },
+                { value: 'others' as const, label: '식구 것만' },
               ]}
             />
-            {scope === 'household' && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-                              fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={hideMine}
-                  onChange={e => setHideMine(e.target.checked)}
-                  style={{ width: 16, height: 16 }}
-                />
-                <span>내 것은 빼고</span>
-              </label>
-            )}
           </div>
         )}
 
-        {/* 기간은 달력일 때만 고른다. 목록은 전 기간이다.
-            수동 기록 추가는 일/주/월 어디서 보고 있든 같은 자리에서 누를 수
-            있어야 한다는 지적(2026-09-14)으로, 일 보기 안에 숨겨 뒀던 것을
-            이 줄로 끌어올려 [일][주][월]과 같은 높이·오른쪽에 둔다. */}
-        <div style={{ display: mode === 'calendar' ? 'flex' : 'none', alignItems: 'center',
-                      justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, padding: '8px 14px 0' }}>
-          {/* 월 / 주 / 일 — 아래 `완료·기록·즐겨찾기` 와 **같은 부품**이다
-              (2026-10-09 요청: 형식을 동일하게). 설계 메모는 `PillSelect`.
-              순서는 넓은 것부터(2026-10-15 사용자 요청: 일/주/월 → 월/주/일). */}
-          <PillSelect
+        {/* 이전/다음 + 현재 범위 표시 + 월/주/일 선택. 목록은 전 기간이라 넘길 것이 없다.
+            월·주·일은 **작은 선택**으로 접었다(2026-11-06) — 기본이 월이라 대부분은 안 건드리는데, 알약 세 개가 줄 하나를 통째로 차지했다.
+            순서는 넓은 것부터(2026-10-15 사용자 요청: 일/주/월 → 월/주/일). */}
+        <div style={{ display: mode === 'calendar' ? 'flex' : 'none',
+                      alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 14px 0' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+          <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>
+            {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
+            {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
+            {viewMode === 'day' && selectedDay}
+          </span>
+          <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+          </span>
+          <MenuSelect
+            ariaLabel="보기 단위"
+            align="right"
+            height={28}
             value={viewMode}
             onChange={(v) => setViewMode(v)}
             options={[
@@ -2346,42 +2298,6 @@ const CookingCalendar: React.FC = () => {
               { value: 'day' as const, label: '일' },
             ]}
           />
-          <button
-            type="button"
-            onClick={() => {
-              // 수동 기록도 서버(계정)에 남긴다 — 게스트는 로그인부터 안내한다.
-              if (!isLoggedIn) { navigate('/login'); return; }
-              setManualLogDate(selectedDay);
-              setManualLogTitle('');
-              setManualLogForUserId(authUser?.id ? Number(authUser.id) : null);
-              setManualLogOpen(true);
-            }}
-            style={{
-              // 왼쪽 일/주/월 퀵버튼과 **같은 높이·같은 면**이어야 한 줄로 읽힌다.
-              display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px',
-              borderRadius: 9999, border: '1px solid var(--line-300)', background: 'var(--surface)',
-              fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
-              whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-          >
-            <PlusIcon /> 수동으로 기록 추가
-          </button>
-        </div>
-
-        {/* 이전/다음 + 현재 범위 표시. 목록은 전 기간이라 넘길 것이 없다. */}
-        <div style={{ display: mode === 'calendar' ? 'flex' : 'none',
-                      alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px 0' }}>
-          <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-          </button>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-            {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
-            {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
-            {viewMode === 'day' && selectedDay}
-          </span>
-          <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-          </button>
         </div>
 
         {/* 그룹 요약 + 인원별 색 범례.
@@ -2393,7 +2309,7 @@ const CookingCalendar: React.FC = () => {
             같은 지적으로, 기록이 아예 없을 때는 달력에서도 이 박스를 뺀다 —
             일 보기 카드의 "이 날은 완료한 레시피가 없어요" 같은 빈 상태
             안내가 이미 따로 있어서, 0을 한 번 더 말할 필요가 없다. */}
-        {mode === 'calendar' && summary.total > 0 && (
+        {mode === 'calendar' && viewMode !== 'month' && summary.total > 0 && (
           <SummaryStrip
             style={{ margin: '8px 14px 0' }}
             total={summary.total}
@@ -3157,13 +3073,34 @@ const CookingCalendar: React.FC = () => {
           borderTop: viewMode === 'day' ? undefined : '1px solid var(--line-200)',
           display: 'flex', flexDirection: 'column', gap: 10,
         }}>
-        {viewMode !== 'day' && (() => {
+        {(() => {
           const sd = new Date(`${selectedDay}T00:00:00`);
           const isTodayHeader = selectedDay === toDateKey(new Date());
           return (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
-              {sd.getMonth() + 1}월 {sd.getDate()}일 ({WEEKDAY_LABELS[sd.getDay()]})
-              {isTodayHeader && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)' }}>오늘</span>}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
+                {viewMode !== 'day' && <>{sd.getMonth() + 1}월 {sd.getDate()}일 ({WEEKDAY_LABELS[sd.getDay()]})</>}
+                {viewMode !== 'day' && isTodayHeader && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)' }}>오늘</span>}
+              </div>
+              {/* 수동 기록 추가 — 예전엔 월/주/일 줄 오른쪽에 있었다. 기록하는 날은 **고른 날**이라 그 날 머리글 옆이 제자리다. 게스트는 로그인부터 안내한다. */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isLoggedIn) { navigate('/login'); return; }
+                  setManualLogDate(selectedDay);
+                  setManualLogTitle('');
+                  setManualLogForUserId(authUser?.id ? Number(authUser.id) : null);
+                  setManualLogOpen(true);
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px',
+                  borderRadius: 9999, border: '1px solid var(--line-300)', background: 'var(--surface)',
+                  fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
+                  whiteSpace: 'nowrap', flexShrink: 0,
+                }}
+              >
+                <PlusIcon /> 이 날 요리 기록하기
+              </button>
             </div>
           );
         })()}
