@@ -1477,10 +1477,13 @@ const MyPage: React.FC = () => {
         margin: '12px 14px 0', background: 'var(--surface)', border: '1px solid var(--line-200)',
         borderRadius: 14, overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '14px 14px 4px' }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>내 레시피</h2>
+        {/* 제목 위, 고르개 아래 **두 줄**(2026-11-06 지적: 고르개가 3칸이 되면서 폭이 길어져 오른쪽에 놓으면 「내 레시피」 제목이 줄바꿈됐다).
+            고르개는 카드 폭을 3등분해 꽉 채운다 — 손가락으로 누르기도 더 쉽다. */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 10, padding: '14px 14px 4px' }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>내 레시피</h2>
           {isInHousehold && (
             <SegmentedToggle
+              style={{ width: '100%' }}
               // 「내 것은 빼고 보기」 체크박스를 셋째 칸으로(2026-11-06 요청: 마이캘린더에 반영한 「식구 것만」을 여기도).
               // 안에서는 그대로 `householdViewMode` + `hideMine` 두 값이다 — 식구 것만 = 식구 모두 + 내 것 빼기.
               value={householdViewMode === 'mine' ? 'mine' : hideMine ? 'others' : 'all'}

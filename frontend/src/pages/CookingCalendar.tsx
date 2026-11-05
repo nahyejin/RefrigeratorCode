@@ -1056,15 +1056,50 @@ const CookingCalendar: React.FC = () => {
   // 그룹에 속해 있으면 groupGoal(그룹 전체 공동 목표)을, 아니면 개인 목표를 쓴다.
   const myGoal = isInHousehold ? groupGoal ?? 20 : personalGoal;
 
-  // 목표는 "이 달" 단위 개념이라, 지금 일/주/월 중 뭘 보고 있는지와 무관하게
-  // 이 달 전체(entries는 애초에 이 달 범위만 불러온 것) 기준으로 계산한다.
-  // summary(위)는 반대로 지금 보고 있는 범위 기준이라 여기 쓰면 안 된다.
+  // 목표는 **오늘이 속한 달** 하나만 말한다(2026-11-06 지적: 위 목표 카드가 아래 달력에서 고른 달에 따라 「11월 목표」「12월 목표」로
+  // 바뀌어 위계가 거꾸로였다 — 위 카드가 아래 조작에 끌려다녔다). 달력이 이번 달을 보고 있으면 그 재료(`entries`)를 그대로 쓰고,
+  // 다른 달을 보고 있으면 이번 달만 따로 받아 둔다(`goalEntries`). 그 달 숫자는 달력 바로 위 「총 N회」 줄이 말한다.
+  const [goalEntries, setGoalEntries] = React.useState<CalendarEntry[] | null>(null);
+  const viewingThisMonth = anchorDate.getFullYear() === new Date().getFullYear() && anchorDate.getMonth() === new Date().getMonth();
+  React.useEffect(() => {
+    if (viewingThisMonth) { setGoalEntries(entries); return; }
+    const now = new Date();
+    const from = toDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+    const to = toDateKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    const inMonth = (list: CalendarEntry[]) => list.filter(e => e.day >= from && e.day <= to);
+    if (!isLoggedIn || !authUser?.id) { setGoalEntries(inMonth(mergeLocalDone([], GUEST_USER_ID, myName))); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const auth = { headers: { Authorization: `Bearer ${token}` } };
+        const params = new URLSearchParams({ start: from, end: to });
+        const [res, doneRes] = await Promise.all([
+          fetch(`${getApiUrl()}/api/households/me/completed-calendar?${params.toString()}`, auth),
+          fetch(`${getApiUrl()}/api/users/${authUser.id}/completed-recipes`, auth).catch(() => null),
+        ]);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        let serverDoneIds: Set<number> | undefined;
+        if (doneRes && doneRes.ok) {
+          const d = await doneRes.json().catch(() => null);
+          if (d && Array.isArray(d.recipes)) serverDoneIds = new Set(d.recipes.map((r: any) => Number(r.id)));
+        }
+        if (!cancelled) setGoalEntries(inMonth(mergeLocalDone(data.entries || [], Number(authUser.id), myName, serverDoneIds)));
+      } catch {
+        /* 못 받으면 이전 값을 그대로 둔다 */
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingThisMonth, entries, isLoggedIn, authUser?.id]);
+  const goalSource = goalEntries ?? entries;
   const monthlyByUser = React.useMemo(() => {
     const map = new Map<number, number>();
-    for (const e of entries) map.set(e.user_id, (map.get(e.user_id) || 0) + 1);
+    for (const e of goalSource) map.set(e.user_id, (map.get(e.user_id) || 0) + 1);
     return map;
-  }, [entries]);
-  const monthlyTotal = entries.length;
+  }, [goalSource]);
+  const monthlyTotal = goalSource.length;
   const meIdForLegend = authUser?.id != null ? Number(authUser.id) : GUEST_USER_ID;
 
   /**
@@ -1954,12 +1989,14 @@ const CookingCalendar: React.FC = () => {
           제목 줄 전체가 펼침 버튼이다. */}
       <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 14, background: 'var(--surface-sub)' }}>
         {/* 제목 줄(2026-11-06 되돌림): 접는 카드로 만들면서 월별 기록 보기·목표 수정을 펼침 안으로 넣었더니 「어디 있는지 애매하다」는 지적.
-            원래 자리 그대로 — 왼쪽은 제목 옆 「월별 기록 보기」, 오른쪽은 목표 숫자 옆 ✎(목표 수정). 펼침은 아래 절약액 줄이 맡는다. */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px 8px' }}>
+            원래 자리 그대로 — 왼쪽은 제목 옆 「월별 기록 보기」, 오른쪽은 목표 숫자 옆 ✎(목표 수정). 펼침은 아래 절약액 줄이 맡는다.
+            줄 높이를 36px 로 고정하고 줄바꿈을 막는다(2026-11-06 지적: 연필을 누르는 순간 카드 높이가 달라졌다 — 수정 칸이 길어 줄이 꺾였다).
+            수정 중에는 「월별 기록 보기」를 감춰 한 줄에 들어가게 한다. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 36 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>{anchorDate.getMonth() + 1}월 목표</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>{new Date().getMonth() + 1}월 목표</span>
             {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데, 쌓인 것을 못 보면 목표를 세워 둔 보람이 없다. */}
-            {isLoggedIn && (
+            {isLoggedIn && !editingGoal && (
               <button
                 type="button"
                 onClick={() => setProgressOpen(true)}
@@ -1977,8 +2014,8 @@ const CookingCalendar: React.FC = () => {
           {editingGoal ? (
             // 무엇을 바꾸는 칸인지 글자로 적는다(2026-11-06 지적: 숫자 칸과 「적용」만 있어 무엇을 설정하는지 알 수 없었다).
             // 「이번 달 목표 [20] 회」 — 칸 앞뒤 글자가 문장이 되게. 고르지 않고 나가는 길(취소)도 둔다.
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>한 달 목표</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>한 달</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -2321,7 +2358,7 @@ const CookingCalendar: React.FC = () => {
             같은 지적으로, 기록이 아예 없을 때는 달력에서도 이 박스를 뺀다 —
             일 보기 카드의 "이 날은 완료한 레시피가 없어요" 같은 빈 상태
             안내가 이미 따로 있어서, 0을 한 번 더 말할 필요가 없다. */}
-        {mode === 'calendar' && viewMode !== 'month' && summary.total > 0 && (
+        {mode === 'calendar' && summary.total > 0 && (
           <SummaryStrip
             style={{ margin: '8px 14px 0' }}
             total={summary.total}
