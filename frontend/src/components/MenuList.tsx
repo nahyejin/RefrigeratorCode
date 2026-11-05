@@ -65,21 +65,6 @@ export const MenuRow: React.FC<RowProps> = ({ icon, label, muted, to, href, onCl
   return <button type="button" onClick={onClick} style={style}>{inner}</button>;
 };
 
-/**
- * 글자 링크 둘을 **한 줄**에 — `개인정보처리방침 · 이용약관`. 둘 다 거의 안 누르는 법적 안내라 각각 한 줄씩(52px) 차지할 이유가 없다
- * (2026-11-06 사용자 요청: 합쳐 달라).
- */
-export const MenuLinks: React.FC<{ links: Array<{ label: string; to: string }> }> = ({ links }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '0 16px', background: 'var(--surface)', fontSize: 13 }}>
-    {links.map((l, i) => (
-      <React.Fragment key={l.to}>
-        {i > 0 && <span aria-hidden style={{ color: 'var(--line-300)' }}>·</span>}
-        <Link to={l.to} style={{ color: 'var(--ink-500)', textDecoration: 'none' }}>{l.label}</Link>
-      </React.Fragment>
-    ))}
-  </div>
-);
-
 const Ico: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
        strokeLinecap="round" strokeLinejoin="round">
@@ -91,5 +76,6 @@ const Ico: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 export const MenuIcons = {
   guide: <Ico><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 115 0c0 1.7-2.5 2-2.5 3.5" /><path d="M12 17h.01" /></Ico>,
   instagram: <Ico><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="0.6" /></Ico>,
+  file: <Ico><path d="M7 3.5h7l4 4V20.5H7z" /><path d="M14 3.5v4h4" /></Ico>,
   admin: <Ico><rect x="5" y="10.5" width="14" height="9.5" rx="2" /><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" /></Ico>,
 };

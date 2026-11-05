@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CONTACT } from '../components/ContactBox';
-import { MenuGroup, MenuRow, MenuLinks, MenuIcons } from '../components/MenuList';
+import { MenuGroup, MenuRow, MenuIcons } from '../components/MenuList';
 import { mergeLocalDone, toDateKey, formatWonShort, ESTIMATED_SAVINGS_PER_MEAL_DEFAULT } from './CookingCalendar';
 import { getRecentRecipes, RECENT_CHANGED_EVENT } from '../utils/recentRecipes';
 import GroupTitle from '../components/ui/GroupTitle';
@@ -1481,37 +1481,22 @@ const MyPage: React.FC = () => {
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>내 레시피</h2>
           {isInHousehold && (
             <SegmentedToggle
-              value={householdViewMode}
-              onChange={(v) => setHouseholdViewMode(v)}
+              // 「내 것은 빼고 보기」 체크박스를 셋째 칸으로(2026-11-06 요청: 마이캘린더에 반영한 「식구 것만」을 여기도).
+              // 안에서는 그대로 `householdViewMode` + `hideMine` 두 값이다 — 식구 것만 = 식구 모두 + 내 것 빼기.
+              value={householdViewMode === 'mine' ? 'mine' : hideMine ? 'others' : 'all'}
+              onChange={(key) => {
+                setHouseholdViewMode(key === 'mine' ? 'mine' : 'all');
+                setHideMine(key === 'others');
+              }}
               options={[
                 // 기본값(나의 것만)이 앞에 온다.
-                { value: 'mine', label: '나의 것만' },
-                { value: 'all', label: '우리 식구 모두' },
+                { value: 'mine' as const, label: '나의 것만' },
+                { value: 'all' as const, label: '우리 식구 모두' },
+                { value: 'others' as const, label: '식구 것만' },
               ]}
             />
           )}
         </div>
-        {/* `모두` 는 나 + 식구라서, 식구가 아무것도 안 했으면 `나의 것만` 과 같은 목록이 된다 —
-            이걸 켜면 남는 게 진짜 식구 몫이다. 남을 게 없으면 **눌리지 않게** 하고 이유를 적는다
-            (눌리는데 아무 일도 안 일어나는 게 제일 나쁘다). */}
-        {isInHousehold && showAllHousehold && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 0',
-                          cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={hideMine}
-              disabled={othersTotal === 0}
-              onChange={e => setHideMine(e.target.checked)}
-              style={{ width: 16, height: 16, flexShrink: 0 }}
-            />
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: othersTotal === 0 ? 'var(--ink-500)' : 'var(--ink-700)' }}>
-              내 것은 빼고 보기
-              <span style={{ marginLeft: 6, fontWeight: 400, color: 'var(--ink-500)' }}>
-                {othersTotal === 0 ? '식구 기록 없음' : `식구들 것 ${othersTotal}건`}
-              </span>
-            </span>
-          </label>
-        )}
         <nav style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', padding: '10px 6px 14px' }}>
           {[
             // 목록을 보러 가는 입구. 전용 목록 화면은 그대로 두되(여기서 온 것을 그대로 그린다).
@@ -1663,7 +1648,8 @@ const MyPage: React.FC = () => {
         <MenuRow icon={MenuIcons.guide} label="사용 가이드 다시 보기"
                  onClick={() => { requestUsageGuideReplay(); navigate('/my-fridge'); }} />
         <MenuRow icon={MenuIcons.instagram} label="인스타그램으로 문의하기" href={`https://ig.me/m/${CONTACT.instagram}`} />
-        <MenuLinks links={[{ label: '개인정보처리방침', to: '/privacy' }, { label: '이용약관', to: '/terms' }]} />
+        {/* 방침·약관은 **한 줄**(2026-11-06 요청: 위 두 줄과 같은 모양으로, 둘은 합쳐서). 약관 화면 위쪽 탭으로 방침과 오갈 수 있다. */}
+        <MenuRow icon={MenuIcons.file} label="이용약관 · 개인정보처리방침" to="/terms" />
       </MenuGroup>
 
       {/* 어드민 입구 — 보안 장치가 아니다(서버가 /api/admin/* 마다 is_admin 을 확인한다). 관리자 한 명만

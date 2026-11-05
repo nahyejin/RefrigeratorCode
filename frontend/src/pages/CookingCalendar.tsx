@@ -19,7 +19,6 @@ import PullToRefresh from '../components/PullToRefresh';
 import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import { saveCalendarWidgetSnapshot, orderForLegend } from '../utils/widgetSnapshot';
 import DatePickerField from '../components/DatePickerField';
-import MenuSelect from '../components/ui/MenuSelect';
 import KebabMenu from '../components/ui/KebabMenu';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
@@ -214,8 +213,8 @@ const CheckIcon: React.FC = () => (
   </svg>
 );
 
-const PencilIcon: React.FC = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+const PencilIcon: React.FC<{ size?: number }> = ({ size = 11 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <path d="M4 20l.9-4.5L16.2 4.2a1.8 1.8 0 0 1 2.6 0l1 1a1.8 1.8 0 0 1 0 2.6L8.5 19.1z" />
     <path d="M14.5 6.5l3 3" />
   </svg>
@@ -1976,9 +1975,14 @@ const CookingCalendar: React.FC = () => {
             )}
           </span>
           {editingGoal ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            // 무엇을 바꾸는 칸인지 글자로 적는다(2026-11-06 지적: 숫자 칸과 「적용」만 있어 무엇을 설정하는지 알 수 없었다).
+            // 「이번 달 목표 [20] 회」 — 칸 앞뒤 글자가 문장이 되게. 고르지 않고 나가는 길(취소)도 둔다.
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>한 달 목표</span>
               <input
                 type="number"
+                inputMode="numeric"
+                aria-label="한 달 목표 횟수"
                 value={goalInput}
                 onChange={(e) => setGoalInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -1988,16 +1992,25 @@ const CookingCalendar: React.FC = () => {
                 // 칸을 벗어나면 그대로 저장한다(2026-10-08). [적용]을 찾아 눌러야만 반영되면, 숫자를 고쳐 놓고 딴 데를 누른 사람은 **고친 줄 알고 떠난다.**
                 onBlur={() => handleSaveGoal()}
                 autoFocus
-                style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
+                style={{ width: 52, height: 30, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 14, fontWeight: 700 }}
               />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>회</span>
               <button
                 type="button"
                 // blur 가 먼저 나가면 이 버튼이 사라져 클릭이 씹힌다.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={handleSaveGoal}
-                style={{ height: 28, padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                style={{ height: 30, padding: '0 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
               >
                 적용
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setEditingGoal(false)}
+                style={{ height: 30, padding: '0 6px', border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer' }}
+              >
+                취소
               </button>
             </span>
           ) : (
@@ -2015,11 +2028,11 @@ const CookingCalendar: React.FC = () => {
                   setEditingGoal(true);
                 }}
                 style={{
-                  width: 28, height: 28, padding: 0, border: 'none', borderRadius: 8, background: 'transparent',
-                  cursor: 'pointer', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 36, height: 36, padding: 0, border: 'none', borderRadius: 10, background: 'transparent',
+                  cursor: 'pointer', color: 'var(--ink-700)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
-                <PencilIcon />
+                <PencilIcon size={19} />
               </button>
             </span>
           )}
@@ -2761,18 +2774,17 @@ const CookingCalendar: React.FC = () => {
               예전엔 종류 알약이 맨 위, 기간이 그 옆이라 「무엇을 볼지」가 「언제부터 언제까지」보다 앞섰다.
               기간은 **무슨 날짜인지 글자로** 적는다 — 「기간 전체」만으로는 언제부터인지 안 읽혔다. */}
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '0 2px 2px' }}>
-            <MenuSelect
-              ariaLabel="기간"
-              align="left"
-              height={26}
+            {/* 기간 고르개(2026-11-06): 「기간 전체 ⌄」 드롭다운은 눌러 봐야 무엇이 있는지 알 수 있고, 닫힌 모양이 「전체」가 기간인지 종류인지 헷갈렸다.
+                선택지가 넷뿐이라 **한눈에 다 보이는 고르개**로 바꾼다. 날짜 글자는 그 옆(자리가 없으면 아랫줄)에 둔다. */}
+            <SegmentedToggle
               value={span}
               onChange={v => setSpan(v)}
               options={[
-                { value: 'all', label: '기간 전체' },
-                { value: '365', label: '최근 1년' },
-                { value: '90', label: '최근 3개월' },
-                // `직접 고르기` → `기간 선택`(2026-10-09 요청).
-                { value: 'custom', label: '기간 선택' },
+                { value: 'all' as const, label: '전체' },
+                { value: '365' as const, label: '1년' },
+                { value: '90' as const, label: '3개월' },
+                // `직접 고르기` → `기간 선택`(2026-10-09 요청) → 고르개 칸에서는 `직접 선택`(2026-11-06).
+                { value: 'custom' as const, label: '직접 선택' },
               ]}
             />
             {listPeriodText && (
@@ -3080,12 +3092,10 @@ const CookingCalendar: React.FC = () => {
         }}>
         {(() => {
           const sd = new Date(`${selectedDay}T00:00:00`);
-          const isTodayHeader = selectedDay === toDateKey(new Date());
           return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
                 {viewMode !== 'day' && <>{sd.getMonth() + 1}월 {sd.getDate()}일 ({WEEKDAY_LABELS[sd.getDay()]})</>}
-                {viewMode !== 'day' && isTodayHeader && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)' }}>오늘</span>}
               </div>
               {/* 수동 기록 추가 — 예전엔 월/주/일 줄 오른쪽에 있었다. 기록하는 날은 **고른 날**이라 그 날 머리글 옆이 제자리다. 게스트는 로그인부터 안내한다. */}
               <button
