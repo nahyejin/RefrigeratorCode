@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CONTACT } from '../components/ContactBox';
-import { MenuGroup, MenuRow, MenuIcons } from '../components/MenuList';
+import { MenuGroup, MenuRow, MenuLinks, MenuIcons } from '../components/MenuList';
 import { mergeLocalDone, toDateKey, formatWonShort, ESTIMATED_SAVINGS_PER_MEAL_DEFAULT } from './CookingCalendar';
 import { getRecentRecipes, RECENT_CHANGED_EVENT } from '../utils/recentRecipes';
 import GroupTitle from '../components/ui/GroupTitle';
@@ -1657,18 +1657,13 @@ const MyPage: React.FC = () => {
           예전에는 사용 가이드·문의·방침·약관이 회색 칸 속에 모양이 다른 버튼·작은 링크로
           흩어져 있었고, 내 정보 수정·회원 탈퇴는 위쪽 버튼/수정 팝업 안쪽에 숨어 있었다.
           「눌러서 어딘가로 가는 줄」은 한 모양(아이콘 · 글자 · ›)으로 모으고 성격별로 제목을 붙인다.
-          회원 탈퇴는 팝업 안에도 그대로 있다 — 여기는 **찾기 쉽게** 한 곳 더 둔 입구다. */}
-      <MenuGroup title="도움말 · 설정">
+          내 정보 수정은 맨 위 프로필 카드에 이미 있고, 회원 탈퇴는 그 팝업 안에 있다(2026-11-06 사용자 판단: 메뉴에 또 둘 필요 없다).
+          그래서 메뉴는 「도움말 · 고객지원」 하나로 합쳤고, 방침·약관도 한 줄에 둔다. */}
+      <MenuGroup title="도움말 · 고객지원">
         <MenuRow icon={MenuIcons.guide} label="사용 가이드 다시 보기"
                  onClick={() => { requestUsageGuideReplay(); navigate('/my-fridge'); }} />
-        {isLoggedIn && <MenuRow icon={MenuIcons.user} label="내 정보 수정" onClick={() => setEditOpen(true)} />}
-        {isLoggedIn && <MenuRow icon={MenuIcons.exit} label="회원 탈퇴" muted onClick={() => setShowDeleteConfirm(true)} />}
-      </MenuGroup>
-
-      <MenuGroup title="고객지원">
         <MenuRow icon={MenuIcons.instagram} label="인스타그램으로 문의하기" href={`https://ig.me/m/${CONTACT.instagram}`} />
-        <MenuRow icon={MenuIcons.shield} label="개인정보처리방침" to="/privacy" />
-        <MenuRow icon={MenuIcons.file} label="이용약관" to="/terms" />
+        <MenuLinks links={[{ label: '개인정보처리방침', to: '/privacy' }, { label: '이용약관', to: '/terms' }]} />
       </MenuGroup>
 
       {/* 어드민 입구 — 보안 장치가 아니다(서버가 /api/admin/* 마다 is_admin 을 확인한다). 관리자 한 명만
