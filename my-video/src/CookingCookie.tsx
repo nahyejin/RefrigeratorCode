@@ -26,93 +26,51 @@ const HOOK = { at: 0, len: 3.4, text: "아이랑 집에서 뭐 하지?\n쿠키 �
 const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(3.4), origin: "50% 40%" }];
 
 const STORY: Shot[] = [
-  { kind: "video", src: "store.mp4", from: 0, to: 14.6, audio: true, lines: [{ at: 0.3, len: 14.1, text: "마트에서 도아가 고른\n쿠키 믹스" }], talk: [
-    { at: 0, len: 1.3, text: "도아, 이걸로 뭐 할 거야?", who: "" },
-    { at: 2.6, len: 1.5, text: "이거 뭐 하는 거야?", who: "" },
-    { at: 5.2, len: 2.7, text: "쿠키? / 쿠키 만드는 거야? / 해 봐!", who: "" },
-    { at: 8.4, len: 1.4, text: "이걸로 뭐 만들어?", who: "" },
-    { at: 12.8, len: 1.7, text: "버스 모양 쿠키!", who: "" },
+  // 마트 장면 최소화(사용자 2026-11-05) — 「버스 모양 쿠키!」만
+  { kind: "video", src: "store.mp4", from: 11.6, to: 14.6, audio: true, lines: [{ at: 0.1, len: 2.9, text: "마트에서 도아가 고른\n쿠키 믹스" }], talk: [
+    { at: 1.2, len: 1.7, text: "버스 모양 쿠키!", who: "" },
   ] },
-  { kind: "video", src: "dinner.mp4", from: 0, to: 11.1, audio: true, lines: [{ at: 0.2, len: 10.8, text: "밥 먹으면서도\n곰돌이 틀을 꼭 쥐고" }], talk: [
-    { at: 0.2, len: 1.5, text: "무슨 쿠키?", who: "" },
-    { at: 2.9, len: 1.8, text: "이거 무슨 쿠키야?", who: "" },
-    { at: 5.9, len: 1.1, text: "곰돌이?", who: "" },
-    { at: 7.1, len: 2.3, text: "곰돌이 쿠키 만들까? / 밥 먹고?", who: "" },
-    { at: 9.5, len: 1.5, text: "응!", who: "" },
+  { kind: "video", src: "dinner.mp4", from: 5.6, to: 11.1, audio: true, lines: [{ at: 0.1, len: 5.4, text: "밥 먹으면서도\n곰돌이 틀을 꼭 쥐고" }], talk: [
+    { at: 1.5, len: 2.3, text: "곰돌이 쿠키 만들까?", who: "" },
+    { at: 3.9, len: 1.5, text: "응!", who: "" },
   ] },
 ];
 
 // 반죽을 틀로 꾹 누르고 쑥 빼기 — 오감 놀이
 const SHAPE: Shot[] = [
-  { kind: "video", src: "shape1.mp4", from: 0, to: 7.8, audio: true, lines: [{ at: 0.2, len: 7.5, text: "곰돌이 · 토끼 틀로\n쿠키 모양 찍기" }], talk: [
-    { at: 0.1, len: 1.6, text: "이제 거의 다 됐다 도아야", who: "" },
-    { at: 1.7, len: 1.9, text: "토끼야", who: "" },
-  ] },
-  { kind: "video", src: "shape2a.mp4", from: 0, to: 6.4, audio: true, talk: [
-    { at: 0.1, len: 2.5, text: "여기 이걸로 이렇게 쑥 빼 봐", who: "" },
-    { at: 3.1, len: 1.0, text: "쑥!", who: "" },
-    { at: 4.5, len: 1.6, text: "아우 잘해", who: "" },
-  ] },
-  { kind: "video", src: "shape2b.mp4", from: 0, to: 14.2, audio: true, talk: [
-    { at: 0.1, len: 3.9, text: "봐 봐 / 이거를 꾹 눌러서", who: "" },
-    { at: 4.0, len: 4.4, text: "도아가 이렇게 쑥 누르면 / 이렇게 되는 거야", who: "" },
-    { at: 8.5, len: 2.9, text: "이거 이제 구워 볼까?", who: "" },
-    { at: 12.4, len: 1.6, text: "구워 보자!", who: "" },
-  ] },
+  { kind: "video", src: "shape1.mp4", from: 0, to: 7.8, audio: true, lines: [{ at: 0.2, len: 7.5, text: "곰돌이 · 토끼 틀로\n쿠키 모양 찍기" }] },
+  { kind: "video", src: "shape2a.mp4", from: 2.6, to: 6.4, audio: true, talk: [{ at: 0.5, len: 1.0, text: "쑥!", who: "" }] },
+  { kind: "video", src: "shape2b.mp4", from: 4.0, to: 14.2, audio: true },
 ];
 const SHAPE_CAPTION = "말랑말랑 반죽을\n꾹 누르고, 쑥 빼고\n손끝으로 느끼는 오감 놀이";
 
 const OVEN: Shot[] = [
   { kind: "photo", src: "in_oven.jpg", len: f(2.4), origin: "50% 55%", caption: "이제 오븐으로!" },
   { kind: "video", src: "oven1.mp4", from: 0, to: 5.6, audio: true },
-  { kind: "video", src: "oven2.mp4", from: 0, to: 6.6, audio: true, talk: [
-    { at: 0.1, len: 2.9, text: "쿠키가 오븐에서 / 만들어지고 있는 거야", who: "" },
-    { at: 3.0, len: 1.3, text: "신기해?", who: "" },
-    { at: 4.6, len: 1.7, text: "뜨겁겠지?", who: "" },
-  ] },
-  { kind: "video", src: "oven3.mp4", from: 0, to: 8.4, audio: true, talk: [
-    { at: 0.1, len: 1.5, text: "사자 쿠키", who: "" },
-    { at: 2.7, len: 1.5, text: "뭐가 제일 마음에 들어?", who: "" },
-    { at: 4.6, len: 0.9, text: "토끼!", who: "" },
-    { at: 5.5, len: 2.6, text: "토끼 쿠키 먹을 거야?", who: "" },
+  { kind: "video", src: "oven2.mp4", from: 2.6, to: 6.6, audio: true },
+  { kind: "video", src: "oven3.mp4", from: 2.5, to: 8.4, audio: true, talk: [
+    { at: 0.2, len: 1.5, text: "뭐가 제일 마음에 들어?", who: "" },
+    { at: 2.1, len: 1.2, text: "토끼!", who: "" },
   ] },
 ];
 const OVEN_CAPTION = "오븐 앞에서 기다리는 것도\n신기한 구경거리";
 
 const DONE: Shot[] = [
   { kind: "photo", src: "baked.jpg", len: f(2.6), origin: "50% 55%", caption: "반죽이 진짜 쿠키가 됐어요" },
-  { kind: "video", src: "done.mp4", from: 0, to: 16.0, audio: true, talk: [
-    { at: 0.1, len: 2.4, text: "자, 토끼", who: "" },
-    { at: 3.4, len: 1.3, text: "도아가 만든 거", who: "" },
-    { at: 6.2, len: 2.3, text: "도아가 만든 거지?", who: "" },
-    { at: 8.9, len: 1.7, text: "신기하지?", who: "" },
-    { at: 12.0, len: 1.4, text: "토끼야?", who: "" },
-    { at: 13.4, len: 2.4, text: "토끼가 됐지?", who: "" },
+  { kind: "video", src: "done.mp4", from: 11.8, to: 16.0, audio: true, talk: [
+    { at: 1.6, len: 2.4, text: "토끼가 됐지?", who: "" },
   ] },
-  { kind: "video", src: "hot.mp4", from: 0, to: 3.5, audio: true, talk: [
-    { at: 0.1, len: 2.3, text: "아 뜨거워", who: "" },
-    { at: 2.4, len: 1.0, text: "뜨거워?", who: "" },
-  ] },
+  { kind: "video", src: "hot.mp4", from: 0, to: 3.5, audio: true, talk: [{ at: 0.1, len: 2.3, text: "아 뜨거워", who: "" }] },
 ];
 const EAT: Shot[] = [
-  { kind: "video", src: "eat1.mp4", from: 0, to: 11.3, audio: true, lines: [{ at: 5.8, len: 5.4, text: "직접 만들어서 그런지\n더 맛있나 봐요" }], talk: [
-    { at: 0, len: 1.8, text: "안 잘라도 / 한입 베어 물어 봐", who: "" },
-    { at: 1.8, len: 1.9, text: "도아 잘 베어 물잖아", who: "" },
-    { at: 3.7, len: 2.1, text: "먹어 봐", who: "" },
-    { at: 5.9, len: 1.5, text: "어때?", who: "" },
-    { at: 7.6, len: 1.4, text: "도아가 만든 거", who: "" },
-    { at: 10.0, len: 1.2, text: "맛있어?", who: "" },
+  { kind: "video", src: "eat1.mp4", from: 5.6, to: 11.3, audio: true, lines: [{ at: 0.2, len: 5.5, text: "직접 만들어서 그런지\n더 맛있나 봐요" }], talk: [
+    { at: 4.4, len: 1.2, text: "맛있어?", who: "" },
   ] },
   { kind: "video", src: "eat2.mp4", from: 0, to: 7.0, audio: true, lines: [{ at: 0.2, len: 6.7, text: "친구들한테도\n나눠 주고 싶대요" }], talk: [
     { at: 0.1, len: 0.9, text: "친구 줄 거야?", who: "" },
-    { at: 1.0, len: 0.8, text: "어!", who: "" },
-    { at: 2.0, len: 1.8, text: "어, 나눠 줄 거야?", who: "" },
-    { at: 5.0, len: 1.9, text: "그래 엄마가 싸 줄게", who: "" },
+    { at: 1.0, len: 0.9, text: "어!", who: "" },
   ] },
-  { kind: "video", src: "eat3.mp4", from: 0, to: 4.8, audio: true, talk: [
-    { at: 0.1, len: 2.7, text: "도아가 만들었다고 자랑해", who: "" },
-    { at: 2.8, len: 1.9, text: "알지? 친구들한테", who: "" },
-  ] },
+  { kind: "video", src: "eat3.mp4", from: 0, to: 2.9, audio: true, talk: [{ at: 0.1, len: 2.7, text: "도아가 만들었다고 자랑해", who: "" }] },
 ];
 
 const OUTRO_LEN = INTRO + 75;
