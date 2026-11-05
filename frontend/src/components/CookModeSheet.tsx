@@ -15,6 +15,7 @@ import type { Recipe, RecipeActionState } from '../types/recipe';
 import CoupangDynamicBanner from './CoupangDynamicBanner';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { recordRecentRecipe } from '../utils/recentRecipes';
+import { requestShare } from '../utils/recipeShare';
 
 /**
  * 요리 모드 — 원문으로 나가지 않고 앱 안에서 조리 순서를 본다.
@@ -300,13 +301,27 @@ const CookModeSheet: React.FC<Props> = ({
     setToast('레시피를 완료했습니다!');
   };
 
-  const handleShare = () => {
+  const copyShareLink = () => {
     try {
       copyRecipeUrlToClipboard(asStorageRecipe());
       setToast('URL이 복사되었습니다!');
     } catch {
       setToast('URL 복사에 실패했습니다.');
     }
+  };
+
+  /**
+   * 공유 — 레시피 카드와 **같은 길**이다(2026-11-05 요청). 카드에서는 「링크 복사 / 가족에게 보내기」를 고르는 창이
+   * 뜨는데 이 패널은 곧바로 URL 만 복사해서 둘이 달랐다. 식구가 없거나 비회원이면 카드처럼 바로 링크 복사.
+   */
+  const handleShare = () => {
+    if (recipeId == null) return;
+    void requestShare({
+      id: recipeId,
+      title: data?.title || fallbackTitle,
+      link: data?.link || fallbackLink,
+      copyLink: copyShareLink,
+    });
   };
 
   /**
@@ -456,10 +471,9 @@ const CookModeSheet: React.FC<Props> = ({
   /**
    * 음식 사진(2026-11-05 요청 — 패널에 음식 사진이 하나도 없었다).
    *
-   * 처음엔 본문 맨 위에 150px 띠로 깔았는데, 읽을 것이 많은 패널에서 **본문이 그만큼 밀려 내려간다.** 재료 칸은 가로가 짧아
-   * 오른쪽이 늘 비어 있으니(사용자 제안) 그 **왼쪽에 정사각형으로 잘라 넣고 재료 목록을 옆에 둔다** — 사진이 새로 차지하는 높이는
-   * 거의 없다. 재료 칸 안에 스크롤은 두지 않는다(패널이 이미 스크롤되고, 안쪽 스크롤은 아래로 밀어 닫기와 겹친다) —
-   * 재료가 길면 옆 칸이 줄바꿈으로 길어질 뿐이다. 사진이 없거나 열리지 않으면 목록이 전체 폭을 쓴다.
+   * 자리를 세 번 바꿨다. ① 본문 맨 위 150px 띠 — 버튼 줄 위에 얹혀 본문이 밀림. ② 재료 목록 옆 정사각형(왼쪽→오른쪽) — 목록이
+   * 좁아지고 어색하다는 지적. ③ **지금: 재료 목록 바로 위, 가로 전체 · 높이 120px.** 낮게 잘라 읽을 것을 덜 밀어 내리면서 어떤 음식인지는
+   * 한눈에 보인다. 사진이 없거나 열리지 않으면(`thumbFailed`) 사진 자리는 접힌다.
    */
   const thumbUrl = !thumbFailed && data?.thumbnail ? getProxiedImageUrl(data.thumbnail) : '';
 
@@ -565,8 +579,20 @@ const CookModeSheet: React.FC<Props> = ({
           {/* ── 재료 ─────────────────────────────────────────── */}
           {(detail.length > 0 || names.length > 0 || !!thumbUrl) && (
             <section>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              {/* 음식 사진 — **재료 목록 바로 위, 가로는 꽉 채우고 높이는 낮게**(120px)(2026-11-05 사용자: 옆에 붙이면 어색하다). */}
+              {thumbUrl && (
+                <img
+                  src={thumbUrl}
+                  alt={data?.title || ''}
+                  className="img-fade-in"
+                  onError={() => setThumbFailed(true)}
+                  style={{
+                    display: 'block', width: '100%', height: 120, objectFit: 'cover',
+                    borderRadius: 12, background: 'var(--surface-sub)', marginBottom: 14,
+                  }}
+                />
+              )}
+              <div>
               {(detail.length > 0 || names.length > 0) && (
               <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E', margin: '0 0 8px' }}>
                 재료
@@ -594,22 +620,7 @@ const CookModeSheet: React.FC<Props> = ({
                 </div>
               ) : null}
               </div>
-              {/* 정사각형 사진 — 재료 목록은 **맨 왼쪽 그대로** 두고 사진은 오른쪽에 둔다(사용자: 목록이 최좌측에 붙어 있어야).
-                  폭은 칸의 30%(84~112px). */}
-              {thumbUrl && (
-                <img
-                  src={thumbUrl}
-                  alt={data?.title || ''}
-                  className="img-fade-in"
-                  onError={() => setThumbFailed(true)}
-                  style={{
-                    flexShrink: 0, display: 'block', width: 'clamp(84px, 30%, 112px)', aspectRatio: '1 / 1',
-                    objectFit: 'cover', borderRadius: 12, background: 'var(--surface-sub)',
-                  }}
-                />
-              )}
-              </div>
-              {/* 재료 이름 칩 — 사진 옆 좁은 칸이 아니라 **전체 폭**으로 아래에 둔다 */}
+              {/* 재료 이름 칩 */}
               {detail.length > 0 && names.length > 0 && (
                 <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {names.map(n => (

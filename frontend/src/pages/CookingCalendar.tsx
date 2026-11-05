@@ -1104,6 +1104,31 @@ const CookingCalendar: React.FC = () => {
   }, [listKind, listEntries, listRecorded, listFavorites, scope, hideMine, myName, meIdForLegend,
       memberIds, nicknameById, householdMembers, actedInSpan]);
 
+  /**
+   * 목록 기간을 **날짜로** 적은 글자(2026-11-05 요청 — 「기간 전체」만으로는 언제부터 언제까지인지 안 읽힌다).
+   * 전체는 가장 오래된 기록일부터 오늘까지. 직접 고른 기간은 고른 날짜(비어 있으면 처음/오늘).
+   */
+  const listPeriodText = React.useMemo(() => {
+    const dot = (k: string) => k.replace(/-/g, '.');
+    const today = toDateKey(new Date());
+    let from = spanBounds.from;
+    if (span === 'custom' && !spanBounds.from && !spanBounds.to) return '';
+    if (!from && span === 'all') {
+      const dayOf = (when: any) => {
+        const d = new Date(String(when));
+        return Number.isNaN(d.getTime()) ? String(when || '').slice(0, 10) : toDateKey(d);
+      };
+      const days: string[] = (allEntries || []).map(e => e.day);
+      for (const r of [...(recorded || []), ...(favorites || []), ...(householdRecorded || []), ...(householdFavorites || [])]) {
+        const w = r?.user_saved_at || r?.created_at;
+        if (w) days.push(dayOf(w));
+      }
+      from = days.filter(Boolean).sort()[0] || '';
+      if (!from) return '';
+    }
+    return `${from ? dot(from) : '처음'} ~ ${dot(spanBounds.to || today)}`;
+  }, [span, spanBounds, allEntries, recorded, favorites, householdRecorded, householdFavorites]);
+
 
 
   // 그룹이면 목표 게이지를 인원별로 색을 나눠 채운다 — 완료 횟수가 많은
@@ -2282,9 +2307,10 @@ const CookingCalendar: React.FC = () => {
             <SegmentedToggle
               value={scope}
               onChange={(key) => { setScope(key); if (key === 'household') setListKind('done'); }}
+              // 기본값이 「우리 식구 전체」라 **그쪽이 앞**이다(2026-11-05 요청 — 처음 켜진 칸이 맨 왼쪽에).
               options={[
-                { value: 'mine' as const, label: '내 요리만' },
                 { value: 'household' as const, label: '우리 식구 전체' },
+                { value: 'mine' as const, label: '내 요리만' },
               ]}
             />
             {scope === 'household' && (
@@ -2431,9 +2457,13 @@ const CookingCalendar: React.FC = () => {
                   key={key}
                   type="button"
                   onClick={() => {
+                    // 날짜를 눌러도 **월 보기 그대로** 둔다 — 눌린 날이 강조되고 아래에 그날의 카드가 뜬다.
+                    // 일·주로 바뀌는 건 위 [월][주][일]을 직접 눌렀을 때뿐이다(2026-11-05 요청).
                     setSelectedDay(key);
-                    setViewMode('day');
+                    // 흐리게 보이는 앞·뒤 달 날짜를 누르면 그 달로 넘어간다(안 넘기면 선택한 날이 화면 밖 달에 가 있다)
+                    if (!inMonth) setAnchorDate(d);
                   }}
+                  aria-pressed={isSelected}
                   style={{
                     position: 'relative',
                     height: 40,
@@ -2671,14 +2701,14 @@ const CookingCalendar: React.FC = () => {
                   // 점선 = 아직 안 한 것. 실선(완료 기록)과 눈으로 바로 갈린다.
                   border: planned ? `1px dashed ${PLAN_MARK_RING}` : '1px solid var(--line-200)',
                   background: planned ? '#FFFDF2' : (isToday ? 'var(--surface-sub)' : '#FFFFFF'),
+                  // 눌러 고른 날 — 월 보기의 선택 칸(검은 테두리)과 같은 말
+                  boxShadow: key === selectedDay ? '0 0 0 2px var(--ink-900)' : undefined,
                 }}
               >
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedDay(key);
-                    setViewMode('day');
-                  }}
+                  onClick={() => setSelectedDay(key)}   // 일 보기로 넘기지 않는다 — 그 줄이 강조되고 아래에 그날의 카드가 뜬다(2026-11-05)
+                  aria-pressed={key === selectedDay}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0,
                     border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
@@ -2796,44 +2826,29 @@ const CookingCalendar: React.FC = () => {
               봐도 알약이라 지루했고, 둘이 한 쌍이라는 것도 안 보였다. 여기서는
               둘 중 하나를 고르는 것이므로 테두리를 같이 쓰는 편이 맞다. */}
           {/* 즐겨찾기가 더해져 고르개가 길어졌다 — 폰 폭에서 기간 버튼이 카드 밖으로 밀려나므로 자리가 없으면 다음 줄로 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
-            {/* 위 `일 / 주 / 월` 과 **같은 알약 배지**로 맞췄다(2026-10-09 요청).
-                미끄러지는 판이었는데, 같은 화면에서 같은 일(하나 고르기)을 하는
-                줄끼리 모양이 달랐다. 건수는 라벨 옆 **배지 안**에 적는다. */}
-            <PillSelect
-              value={listKind}
-              onChange={(v) => setListKind(v)}
+          {/* 위계(2026-11-05 요청): ① 기간 → ② 그 기간의 요약(총 N회·사람별) → ③ 완료·기록·즐겨찾기 → ④ 목록.
+              예전엔 종류 알약이 맨 위, 기간이 그 옆이라 「무엇을 볼지」가 「언제부터 언제까지」보다 앞섰다.
+              기간은 **무슨 날짜인지 글자로** 적는다 — 「기간 전체」만으로는 언제부터인지 안 읽혔다. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '0 2px 2px' }}>
+            <MenuSelect
+              ariaLabel="기간"
+              align="left"
+              height={26}
+              value={span}
+              onChange={v => setSpan(v)}
               options={[
-                { value: 'done' as const, label: '완료', badge: listEntries?.length },
-                { value: 'write' as const, label: '기록', badge: listRecorded?.length },
-                { value: 'favorite' as const, label: '즐겨찾기', badge: listFavorites?.length },
+                { value: 'all', label: '기간 전체' },
+                { value: '365', label: '최근 1년' },
+                { value: '90', label: '최근 3개월' },
+                // `직접 고르기` → `기간 선택`(2026-10-09 요청).
+                { value: 'custom', label: '기간 선택' },
               ]}
             />
-
-            {/* 기간은 **오른쪽 끝**에. 왼쪽은 무엇을 보는지(완료·기록)이고
-                이쪽은 얼마나 넓게 보는지다.
-                버튼 4개(전체·1년·3개월·직접)였을 때는 고르개와 합쳐 폰 폭을 넘어 두 줄이 됐다(2026-10-08 지적)
-                → 폰 기본 선택창이 뜨는 드롭다운 하나로 줄여 한 줄에 넣는다. */}
-            {/* 기본 <select> 는 폰마다 시스템 선택창이 떠서 냉장고요리 드롭다운과 모양이 달랐다(2026-10-08) —
-                같은 모양의 MenuSelect 로. 화면 오른쪽 끝이라 목록도 오른쪽에 맞춘다.
-                「전체」만 두니 무엇이 전체인지 안 읽힌다는 지적으로 「기간 전체」. */}
-            <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
-              <MenuSelect
-                ariaLabel="기간"
-                align="right"
-                // 왼쪽 알약 배지(26)와 **같은 높이**여야 한 줄로 읽힌다(2026-10-09).
-                height={26}
-                value={span}
-                onChange={v => setSpan(v)}
-                options={[
-                  { value: 'all', label: '기간 전체' },
-                  { value: '365', label: '최근 1년' },
-                  { value: '90', label: '최근 3개월' },
-                  // `직접 고르기` → `기간 선택`(2026-10-09 요청).
-                  { value: 'custom', label: '기간 선택' },
-                ]}
-              />
-            </span>
+            {listPeriodText && (
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', fontVariantNumeric: 'tabular-nums' }}>
+                {listPeriodText}
+              </span>
+            )}
           </div>
 
           {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다.
@@ -2904,6 +2919,20 @@ const CookingCalendar: React.FC = () => {
               people={isInHousehold ? listSummary.people.map(p => ({ key: p.key, name: p.name, n: p.n, color: p.color })) : []}
             />
           )}
+
+          {/* 완료·기록·즐겨찾기 — 요약 **아래**(위 요약은 여기서 고른 종류의 숫자다). 위 `월 / 주 / 일` 과 같은 알약 배지(2026-10-09 요청).
+              건수는 라벨 옆 배지 안에 적는다. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '2px 2px 2px' }}>
+            <PillSelect
+              value={listKind}
+              onChange={(v) => setListKind(v)}
+              options={[
+                { value: 'done' as const, label: '완료', badge: listEntries?.length },
+                { value: 'write' as const, label: '기록', badge: listRecorded?.length },
+                { value: 'favorite' as const, label: '즐겨찾기', badge: listFavorites?.length },
+              ]}
+            />
+          </div>
 
           {/* 범위(내 것만/가족 전체) + "내 것은 빼고" 는 이제 위쪽 탭 바로
               아래 공용 토글로 옮겼다(2026-09-15) — 여기 따로 두면 같은
@@ -3120,8 +3149,24 @@ const CookingCalendar: React.FC = () => {
       )}
 
       {/* 일 보기 */}
-      {mode === 'calendar' && viewMode === 'day' && (
-        <div style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* 고른 날의 카드 — 일 보기뿐 아니라 **월·주 보기에서도** 날짜를 누르면 이 자리에 뜬다(2026-11-05 요청: 날짜를 눌러도 일 보기로
+          넘어가지 말고, 아래에 그날 계획한 요리·한 요리를 카드로). 월·주에서는 어느 날인지 머리글을 붙이고 위에 구분선을 둔다. */}
+      {mode === 'calendar' && (
+        <div style={{
+          padding: viewMode === 'day' ? '12px 14px 16px' : '14px 14px 16px',
+          borderTop: viewMode === 'day' ? undefined : '1px solid var(--line-200)',
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+        {viewMode !== 'day' && (() => {
+          const sd = new Date(`${selectedDay}T00:00:00`);
+          const isTodayHeader = selectedDay === toDateKey(new Date());
+          return (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
+              {sd.getMonth() + 1}월 {sd.getDate()}일 ({WEEKDAY_LABELS[sd.getDay()]})
+              {isTodayHeader && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)' }}>오늘</span>}
+            </div>
+          );
+        })()}
         {/* 아래 여백 0 이면 카드가 여러 개일 때 마지막 카드가 바깥 상자 밑선에 붙었다(2026-10-15) */}
           {/* 이 날의 **계획**. 완료 기록과 섞지 않고 위에 따로 둔다 —
               "할 것" 과 "했다" 는 다른 이야기다. */}
