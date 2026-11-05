@@ -4328,17 +4328,29 @@ def get_household_monthly_progress():
                     member_ids.append(user_id)
 
             placeholders = ','.join(['%s'] * len(member_ids))
+            # **달력(`/completed-calendar`)·이번 달 목표 게이지와 같은 기준으로 센다**(2026-11-05 지적: 월별 기록 팝업 숫자가 하단
+            # 요리 기록과 안 맞음 — 10월 팝업 11 / 달력 16). 달력은 완료 기록 + **직접 적은 수동 기록**(`user_manual_cook_logs`,
+            # 날짜는 log_date)을 같이 세고 레시피가 지워진 완료는 뺀다(INNER JOIN recipes). 여기만 완료 기록만 세서 어긋났다.
             cursor.execute(
-                f"""SELECT DATE_FORMAT(a.created_at, '%%Y-%%m') AS month,
-                           a.user_id, u.nickname, COUNT(*) AS n
-                    FROM user_completed_recipes a
-                    INNER JOIN users u ON u.id = a.user_id
-                    WHERE a.user_id IN ({placeholders})
-                      AND a.created_at >= DATE_SUB(
-                            DATE_FORMAT(CURDATE(), '%%Y-%%m-01'), INTERVAL %s MONTH)
-                    GROUP BY month, a.user_id, u.nickname
-                    ORDER BY month DESC, n DESC""",
-                member_ids + [months - 1]
+                f"""SELECT t.month, t.user_id, u.nickname, COUNT(*) AS n
+                    FROM (
+                        SELECT DATE_FORMAT(a.created_at, '%%Y-%%m') AS month, a.user_id
+                        FROM user_completed_recipes a
+                        INNER JOIN recipes r ON r.id = a.recipe_id
+                        WHERE a.user_id IN ({placeholders})
+                          AND a.created_at >= DATE_SUB(
+                                DATE_FORMAT(CURDATE(), '%%Y-%%m-01'), INTERVAL %s MONTH)
+                        UNION ALL
+                        SELECT DATE_FORMAT(l.log_date, '%%Y-%%m') AS month, l.user_id
+                        FROM user_manual_cook_logs l
+                        WHERE l.user_id IN ({placeholders})
+                          AND l.log_date >= DATE_SUB(
+                                DATE_FORMAT(CURDATE(), '%%Y-%%m-01'), INTERVAL %s MONTH)
+                    ) t
+                    INNER JOIN users u ON u.id = t.user_id
+                    GROUP BY t.month, t.user_id, u.nickname
+                    ORDER BY t.month DESC, n DESC""",
+                member_ids + [months - 1] + member_ids + [months - 1]
             )
             rows = cursor.fetchall()
 
