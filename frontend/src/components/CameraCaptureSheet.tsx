@@ -3,7 +3,6 @@ import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { UsageLine, useUsage } from './UsageMeter';
 import Sheet from './ui/Sheet';
-import Dialog from './ui/Dialog';
 
 /**
  * 네이티브 앱(안드로이드/iOS)에서는 `<input type=file>` 대신 진짜 OS 카메라·
@@ -25,6 +24,16 @@ async function photoToFile(webPath: string, index: number): Promise<File> {
 }
 
 export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
+
+type PickMode = Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>;
+const LAST_MODE_KEY = 'cm_camera_last_mode';
+const readLastMode = (): PickMode => {
+  try {
+    const v = localStorage.getItem(LAST_MODE_KEY);
+    if (v === 'receipt' || v === 'food-single' || v === 'food-multi') return v;
+  } catch { /* 저장소를 못 읽어도 기본값으로 */ }
+  return 'receipt';
+};
 
 interface CameraCaptureSheetProps {
   isOpen: boolean;
@@ -109,18 +118,21 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
   /**
-   * 앨범/파일 버튼을 누른 뒤, **사진을 고르기 전에** 모드를 먼저 묻는 중인지.
+   * 고른 종류(영수증 / 음식 1개 / 음식 여러 개). **종류는 여기서 한 번만 고른다.**
    *
-   * 왜 먼저 묻나: 파일 선택을 누르면 OS 가 `사진 보관함 / 사진 찍기 / 파일 선택` 을
-   * 띄우는데, 웹에서 촬영 항목만 빼는 표준 방법이 없다. 거기서 찍으면 위쪽 타일을
-   * 거치지 않아 **무엇을 찍었는지 모른 채** 처리된다(타일마다 프롬프트가 다르다).
+   * 예전엔 타일을 누르면 곧바로 카메라가 열렸고(종류+촬영), 아래 「사진 추가」를 누르면 같은 세 종류를
+   * 팝업으로 한 번 더 물었다(2026-11-06 「뭐가 뭔지 헷갈린다」). 이제 타일은 종류만 고르고, 아래 버튼 둘이
+   * 방법(촬영 / 앨범)만 고른다 — 팝업이 사라진다.
    *
-   * 예전엔 사진이 들어온 뒤 파일 시각으로 "방금 찍은 것" 을 짐작해 되물었는데,
-   * 기기에 따라 그 시각이 없거나 촬영 중 화면 상태가 날아가 물어보지 못하는 경우가
-   * 있었다. 그래서 **순서를 뒤집었다** — 고르기 전에 정하면 OS 메뉴에서 무엇을
-   * 누르든(보관함이든 촬영이든) 모드가 이미 정해져 있다.
+   * 무엇을 고르든 모드는 사진을 열기 **전에** 정해져 있다. 앨범 선택창에서 OS 가 「사진 찍기」를 함께
+   * 보여 줘도 어떤 종류인지 이미 안다(타일마다 서버 프롬프트가 다르다).
+   * 마지막에 고른 종류를 기억해 둔다 — 영수증만 계속 올리는 사람이 매번 다시 고르지 않게.
    */
-  const [choosingForPicker, setChoosingForPicker] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<PickMode>(readLastMode);
+  const chooseMode = (m: PickMode) => {
+    setSelectedMode(m);
+    try { localStorage.setItem(LAST_MODE_KEY, m); } catch { /* 저장이 안 돼도 이번 선택은 쓴다 */ }
+  };
   /**
    * 네이티브 카메라·앨범을 여는 데 실패한 이유(사용자가 그냥 닫은 것은 제외).
    *
@@ -142,7 +154,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
    * 보관함 API(여러 장 선택)를, 웹에서는 기존 `<input type=file multiple>`을. */
   const openPickerWith = async (mode: CaptureMode) => {
     pickerModeRef.current = mode;
-    setChoosingForPicker(false);
     setNativeError(null);
     if (Capacitor.isNativePlatform()) {
       try {
@@ -201,14 +212,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
     onCaptured(mode === 'file' ? pickerModeRef.current : mode, files);
   };
 
-  const handleClose = () => {
-    setChoosingForPicker(false);
-    onClose();
-  };
-
   return (
     <>
-    <Sheet open={isOpen} onClose={handleClose} title="사진으로 재료 담기" maxHeight="70dvh" hideFooter>
+    <Sheet open={isOpen} onClose={onClose} title="사진으로 재료 담기" maxHeight="70dvh" hideFooter>
       {/* 실제 촬영/선택은 숨겨진 input 두 개가 담당한다.
           capture="environment" 는 모바일에서 바로 후면 카메라를 연다.
           아래쪽 것은 capture가 없어 앨범·파일 앱을 그대로 보여준다 — 모바일에서는
@@ -243,7 +249,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           있었다. 세 모드가 모두 동작하게 되면서 알릴 내용이 없어져 걷어냈다.
           (시트를 여는 버튼 자체가 이미 "AI" 배지를 달고 있어 중복이기도 했다.) */}
       <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 6, color: '#1A1A1E' }}>
-        무엇을 찍을까요?
+        무엇을 담을까요?
       </div>
       {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다.
           단위를 `upload` 로 준다 — 여러 장을 올려도 LLM 호출은 한 번이라
@@ -278,71 +284,93 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           <div style={{ marginTop: 4, color: '#7A271A', wordBreak: 'break-all' }}>({nativeError})</div>
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
-        {OPTIONS.map(({ key, label, hint, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => openCameraFor(key)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              padding: '16px 6px',
-              borderRadius: 16,
-              border: '1px solid var(--line-200)',
-              background: 'var(--surface-sub)',
-              cursor: 'pointer',
-            }}
-          >
-            <span
+      <div role="radiogroup" aria-label="사진 종류" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
+        {OPTIONS.map(({ key, label, hint, icon: Icon }) => {
+          const on = selectedMode === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => chooseMode(key)}
               style={{
-                display: 'inline-flex',
+                display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                background: '#FFFFFF',
-                border: '1px solid var(--line-200)',
-                flexShrink: 0,
+                gap: 6,
+                // 고른 타일은 테두리가 2px 로 굵어지므로 안쪽 여백을 1px 줄여 크기가 안 변하게 한다.
+                padding: on ? '15px 5px' : '16px 6px',
+                borderRadius: 16,
+                border: on ? '2px solid var(--ink-900)' : '1px solid var(--line-200)',
+                background: on ? '#FFF8CC' : 'var(--surface-sub)',
+                cursor: 'pointer',
               }}
             >
-              <Icon />
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', textAlign: 'center' }}>{label}</span>
-            <span style={{ fontSize: 11, color: 'var(--ink-500)', textAlign: 'center', marginTop: -4 }}>{hint}</span>
-          </button>
-        ))}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: '#FFFFFF',
+                  border: '1px solid var(--line-200)',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon />
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', textAlign: 'center' }}>{label}</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-500)', textAlign: 'center', marginTop: -4 }}>{hint}</span>
+            </button>
+          );
+        })}
       </div>
 
+      {/* 방법 버튼 둘 — 위에서 고른 종류로 열린다. 촬영은 한 장, 앨범은 여러 장(maxFiles).
+          앨범 선택창에는 OS 가 「사진 찍기」를 함께 보여 주는데, 종류는 이미 정해져 있어 어느 쪽을 눌러도 같다. */}
       <button
         type="button"
-        // 바로 선택창을 열지 않고 먼저 종류를 묻는다 (openPickerWith 설명 참고).
-        //
-        // 이름을 "사진 추가" 로 둔 이유: 이 버튼을 누르면 OS 가 보관함/촬영/파일을
-        // 함께 띄우는데 그 메뉴는 웹에서 손댈 수 없다. "앨범/파일에서 선택" 이라고 하면
-        // 촬영이 나오는 게 앞뒤가 안 맞고, "여러 장 고르기" 라고 하면 촬영은 한 장이라
-        // 또 어긋난다. 세 경로를 다 포괄하는 말이어야 한다.
-        onClick={() => setChoosingForPicker(true)}
+        onClick={() => openCameraFor(selectedMode)}
         style={{
           width: '100%',
-          minHeight: 40,
-          padding: '10px 12px',
+          minHeight: 48,
+          padding: '12px',
           boxSizing: 'border-box',
-          borderRadius: 10,
-          border: '1px solid var(--line-200)',
+          borderRadius: 12,
+          border: 'none',
+          background: '#FFD600',
+          color: '#1A1A1E',
+          fontSize: 15,
+          fontWeight: 700,
+          cursor: 'pointer',
+          marginBottom: 8,
+        }}
+      >
+        사진 찍기
+      </button>
+      <button
+        type="button"
+        onClick={() => openPickerWith(selectedMode)}
+        style={{
+          width: '100%',
+          minHeight: 48,
+          padding: '12px',
+          boxSizing: 'border-box',
+          borderRadius: 12,
+          border: '1px solid var(--line-300)',
           background: '#FFFFFF',
-          color: 'var(--ink-700)',
-          fontSize: 13,
+          color: 'var(--ink-900)',
+          fontSize: 15,
           fontWeight: 600,
           cursor: 'pointer',
           marginBottom: 14,
         }}
       >
-        사진 추가 (최대 {maxFiles}장)
+        앨범에서 고르기 (최대 {maxFiles}장)
       </button>
 
       {/* 홈 화면 위젯은 네이티브 앱에서만 된다(PWA 로는 불가). 안드로이드 앱에 「재료 찍기」
@@ -354,64 +382,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
       </div>
     </Sheet>
 
-    {/* 앨범/파일에서 고르기 전에 종류를 정하는 팝업.
-        시트 위에 뜨므로 nested 로 한 단계 위 층에 올린다.
-        고르지 않으면 선택창이 열리지 않는다 — 모드 없이 처리되는 길을 없앴다. */}
-    <Dialog
-      open={choosingForPicker}
-      onClose={() => setChoosingForPicker(false)}
-      title="어떤 사진을 고르실 건가요?"
-      nested
-      dismissLabel="취소"
-    >
-      {/* 고른 종류는 그때 선택한 사진 **전체**에 적용된다. 여러 장을 한 번의 호출로
-          처리하느라 프롬프트가 하나뿐이라서, 종류를 섞으면 인식이 나빠진다. */}
-      {/* 두 문장은 하는 말이 다르다 — 앞은 "이렇게 동작한다", 뒤는 "이렇게 해 달라".
-          한 줄로 이어 붙이면 부탁이 설명에 묻혀서, 줄을 나눠 둔다. */}
-      <div style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12, wordBreak: 'keep-all', lineHeight: 1.6 }}>
-        고른 종류가 사진 전체에 적용돼요.
-        <br />
-        <b>같은 종류끼리</b> 골라 주세요.
-      </div>
-      <div style={{ display: 'grid', gap: 8 }}>
-        {OPTIONS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => openPickerWith(key)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              width: '100%',
-              minHeight: 56,
-              padding: '10px 14px',
-              boxSizing: 'border-box',
-              borderRadius: 12,
-              border: '1px solid var(--line-200)',
-              background: '#FFFFFF',
-              cursor: 'pointer',
-            }}
-          >
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: 'var(--surface-sub)',
-                flexShrink: 0,
-              }}
-            >
-              <Icon />
-            </span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>{label}</span>
-          </button>
-        ))}
-      </div>
-    </Dialog>
     </>
   );
 };

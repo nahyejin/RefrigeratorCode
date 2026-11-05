@@ -19,6 +19,7 @@ import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptureSheet';
 import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIngredient, type ConfirmedIngredient } from '../components/IngredientRecognitionSheet';
 import Dialog from '../components/ui/Dialog';
+import KebabMenu from '../components/ui/KebabMenu';
 import { shrinkImageForUpload } from '../utils/imageUtils';
 import { applyUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { useUsage } from '../components/UsageMeter';
@@ -303,27 +304,16 @@ function getDdayLabel(item: Ingredient): { text: string; urgent: boolean; estima
 }
 
 /**
- * 칸의 [모두 삭제] — 글자 없이 휴지통 아이콘만(2026-10-17 요청). 옆 정렬 드롭다운과 같은 28px 높이의 정사각형.
- * 글자가 없으니 화면낭독용 이름(aria-label)과 마우스를 올리면 뜨는 이름(title)을 꼭 단다.
- * 누르면 바로 지우지 않고 확인 팝업이 뜬다(handleRemoveAll).
+ * 칸의 [모두 삭제] — `⋯` 메뉴 뒤로(2026-11-06). 거의 안 누르는 위험한 동작인데 정렬 드롭다운 바로 옆에 휴지통이
+ * 놓여 있어 잘못 누르기 쉬웠다. 누르면 바로 지우지 않고 확인 팝업이 뜬다(handleRemoveAll).
+ * 재료 배지 하나를 지우는 `x` 는 한 번에 지워지는 게 이 화면의 핵심이라 그대로 둔다.
  */
 const REMOVE_ALL_LABEL: Record<StorageBox, string> = { frozen: '냉동', fridge: '냉장', room: '실온' };
 const RemoveAllButton: React.FC<{ box: StorageBox; onClick: () => void }> = ({ box, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label={`${REMOVE_ALL_LABEL[box]}보관 재료 모두 삭제`}
-    title="모두 삭제"
-    style={{ width: 28, height: 28, padding: 0, display: 'inline-flex', alignItems: 'center',
-             justifyContent: 'center', flexShrink: 0 }}
-    className="rounded border border-gray-300 bg-white text-[#5A5A62] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition"
-  >
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-         strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 7h16" /><path d="M10 11v6" /><path d="M14 11v6" />
-      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" /><path d="M9 7V4h6v3" />
-    </svg>
-  </button>
+  <KebabMenu
+    ariaLabel={`${REMOVE_ALL_LABEL[box]}보관 더보기`}
+    items={[{ label: '모두 삭제', onClick, danger: true }]}
+  />
 );
 
 const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSettingsClick, isFirstInFridge = false }) => {
