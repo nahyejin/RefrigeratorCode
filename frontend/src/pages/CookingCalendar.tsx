@@ -20,6 +20,7 @@ import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import { saveCalendarWidgetSnapshot, orderForLegend } from '../utils/widgetSnapshot';
 import DatePickerField from '../components/DatePickerField';
 import KebabMenu from '../components/ui/KebabMenu';
+import MenuSelect from '../components/ui/MenuSelect';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
 import Button from '../components/ui/Button';
@@ -2463,7 +2464,9 @@ const CookingCalendar: React.FC = () => {
                   <span style={{
                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    background: isSelected ? 'var(--brand)' : isToday ? 'var(--surface-sub)' : 'transparent',
+                    // 고른 날 = 옅은 회색 채운 원(2026-11-06: 노란색은 너무 튄다), 오늘 = 얇은 테두리 원 — 둘이 겹쳐도 구분된다.
+                    background: isSelected ? 'var(--line-200)' : 'transparent',
+                    boxShadow: isToday && !isSelected ? 'inset 0 0 0 1.5px var(--line-300)' : 'none',
                     fontSize: 13, fontWeight: isSelected || isToday || plans.has(key) ? 700 : 500,
                     color: '#1A1A1E', position: 'relative',
                   }}>{d.getDate()}</span>
@@ -2798,25 +2801,25 @@ const CookingCalendar: React.FC = () => {
           {/* 위계(2026-11-05 요청): ① 기간 → ② 그 기간의 요약(총 N회·사람별) → ③ 완료·기록·즐겨찾기 → ④ 목록.
               예전엔 종류 알약이 맨 위, 기간이 그 옆이라 「무엇을 볼지」가 「언제부터 언제까지」보다 앞섰다.
               기간은 **무슨 날짜인지 글자로** 적는다 — 「기간 전체」만으로는 언제부터인지 안 읽혔다. */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '0 2px 2px' }}>
-            {/* 기간 고르개(2026-11-06): 「기간 전체 ⌄」 드롭다운은 눌러 봐야 무엇이 있는지 알 수 있고, 닫힌 모양이 「전체」가 기간인지 종류인지 헷갈렸다.
-                선택지가 넷뿐이라 **한눈에 다 보이는 고르개**로 바꾼다. 날짜 글자는 그 옆(자리가 없으면 아랫줄)에 둔다. */}
-            <SegmentedToggle
+          {/* 기간 **상태(날짜 글자)와 선택(드롭다운)을 한 줄**에(2026-11-06 요청). 목록 영역에 토글이 너무 많았다 —
+              범위 3칸 + 기간 4칸 + 종류 3칸 — 기간은 선택지가 넷뿐이고 자주 안 바꾸니 작은 드롭다운 하나로 접는다.
+              드롭다운은 앱 공통 `MenuSelect`(알약·선 화살표)를 다시 그려 쓴다. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 2px 2px', minHeight: 28 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', fontVariantNumeric: 'tabular-nums' }}>
+              {listPeriodText || '기간을 골라 주세요'}
+            </span>
+            <MenuSelect
+              ariaLabel="기간"
+              align="right"
               value={span}
               onChange={v => setSpan(v)}
               options={[
                 { value: 'all' as const, label: '전체' },
-                { value: '365' as const, label: '1년' },
-                { value: '90' as const, label: '3개월' },
-                // `직접 고르기` → `기간 선택`(2026-10-09 요청) → 고르개 칸에서는 `직접 선택`(2026-11-06).
+                { value: '365' as const, label: '최근 1년' },
+                { value: '90' as const, label: '최근 3개월' },
                 { value: 'custom' as const, label: '직접 선택' },
               ]}
             />
-            {listPeriodText && (
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', fontVariantNumeric: 'tabular-nums' }}>
-                {listPeriodText}
-              </span>
-            )}
           </div>
 
           {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다.

@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 /**
- * 앱 공통 모양의 드롭다운 — 냉장고요리 정렬(`RecipeSortBar` 의 「재료매칭순 ∨」)과 같은 버튼·펼친 목록.
+ * 앱 공통 모양의 드롭다운 — **작은 알약 버튼 + 펼친 목록**.
  *
  * 기본 `<select>` 는 폰마다 시스템 선택창(아이폰 휠·안드로이드 대화상자)이 떠서 앱 다른 드롭다운과
  * 모양이 달랐다(2026-10-08 마이캘린더 기간 고르기 지적). 같은 생김새를 쓰려고 꺼냈다.
+ *
+ * 2026-11-06 다시 그렸다: 글자 13px 에 `∨` 글자 화살표를 달아 둔 사각 버튼이 「글씨가 크고 화살표가 이상하다」는 지적.
+ * 이제 글자 12.5px · 선으로 그린 작은 화살표(`stroke`, 열리면 뒤집힘) · 알약 모양이고, 고른 항목은 파란색이 아니라
+ * 앱의 다른 곳처럼 **굵은 글자 + 옅은 회색 바탕 + 체크**로 표시한다.
  */
 export interface MenuSelectOption<T extends string> {
   value: T;
@@ -22,7 +26,7 @@ interface MenuSelectProps<T extends string> {
 }
 
 function MenuSelect<T extends string>({
-  value, options, onChange, align = 'left', ariaLabel, height = 32,
+  value, options, onChange, align = 'left', ariaLabel, height = 28,
 }: MenuSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -54,17 +58,20 @@ function MenuSelect<T extends string>({
         aria-label={ariaLabel ? `${ariaLabel}: ${current.label}` : undefined}
         onClick={() => setOpen(o => !o)}
         style={{
-          position: 'relative', height, padding: '0 24px 0 10px',
-          border: '1px solid #D2D2D8', borderRadius: 6, background: '#FFFFFF',
-          fontSize: 13, fontWeight: 600, color: '#1A1A1E', textAlign: 'left',
+          height, padding: '0 10px 0 12px', display: 'inline-flex', alignItems: 'center', gap: 4,
+          border: '1px solid var(--line-300)', borderRadius: 9999, background: 'var(--surface)',
+          fontSize: 12.5, fontWeight: 600, color: 'var(--ink-900)',
           whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit',
         }}
       >
         {current.label}
-        <span aria-hidden style={{
-          position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 15, color: '#9A9AA2', pointerEvents: 'none',
-        }}>∨</span>
+        <svg
+          aria-hidden width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--ink-500)"
+          strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"
+          style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       </button>
       {open && (
         <div
@@ -73,13 +80,13 @@ function MenuSelect<T extends string>({
           style={{
             position: 'absolute', top: '100%', marginTop: 4,
             ...(align === 'right' ? { right: 0 } : { left: 0 }),
-            minWidth: '100%', backgroundColor: '#FFFFFF',
-            border: '1px solid #D2D2D8', borderRadius: '0.5rem', overflow: 'hidden',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            minWidth: '100%', background: 'var(--surface)', padding: 4,
+            border: '1px solid var(--line-200)', borderRadius: 12,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
             zIndex: 30,
           }}
         >
-          {options.map((o, i) => {
+          {options.map(o => {
             const on = o.value === value;
             return (
               <button
@@ -88,18 +95,21 @@ function MenuSelect<T extends string>({
                 role="option"
                 aria-selected={on}
                 onClick={() => { onChange(o.value); setOpen(false); }}
-                onMouseEnter={e => { if (!on) e.currentTarget.style.backgroundColor = '#F5F5F7'; }}
-                onMouseLeave={e => { if (!on) e.currentTarget.style.backgroundColor = '#FFFFFF'; }}
                 style={{
-                  display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left',
-                  fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
-                  fontFamily: 'inherit', border: 'none',
-                  borderTop: i > 0 ? '1px solid #F5F5F7' : 'none',
-                  color: on ? '#2563EB' : '#1A1A1E',
-                  backgroundColor: on ? '#EFF6FF' : '#FFFFFF',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  width: '100%', height: 38, padding: '0 10px', borderRadius: 8, textAlign: 'left',
+                  fontSize: 13.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap', cursor: 'pointer',
+                  fontFamily: 'inherit', border: 'none', color: 'var(--ink-900)',
+                  background: on ? 'var(--surface-sub)' : 'transparent',
                 }}
               >
                 {o.label}
+                {on && (
+                  <svg aria-hidden width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" />
+                  </svg>
+                )}
               </button>
             );
           })}
