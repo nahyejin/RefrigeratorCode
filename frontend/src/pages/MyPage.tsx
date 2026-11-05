@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CONTACT } from '../components/ContactBox';
 import { MenuGroup, MenuRow, MenuIcons } from '../components/MenuList';
 import { mergeLocalDone, toDateKey, formatWonShort, ESTIMATED_SAVINGS_PER_MEAL_DEFAULT } from './CookingCalendar';
-import RecentRecipesSheet from '../components/RecentRecipesSheet';
+import { getRecentRecipes, RECENT_CHANGED_EVENT } from '../utils/recentRecipes';
 import GroupTitle from '../components/ui/GroupTitle';
 import SegmentedToggle from '../components/ui/SegmentedToggle';
 import CloseButton from '../components/ui/CloseButton';
@@ -634,7 +634,14 @@ const MyPage: React.FC = () => {
   // 초기 상태는 빈 배열로 시작 (사용자별로 useEffect에서 로드)
   const [favoriteRecipes, setFavoriteRecipes] = useState<any[]>([]);
   /** 「최근 본」 목록 시트(2026-11-05) */
-  const [recentOpen, setRecentOpen] = useState(false);
+  // 최근 본 개수(배지용) — 다른 칸(즐겨찾기·기록·완료)과 같게 숫자를 단다. 이 기기에만 저장된 값이다.
+  const [recentCount, setRecentCount] = useState(() => getRecentRecipes().length);
+  useEffect(() => {
+    const load = () => setRecentCount(getRecentRecipes().length);
+    load();
+    window.addEventListener(RECENT_CHANGED_EVENT, load);
+    return () => window.removeEventListener(RECENT_CHANGED_EVENT, load);
+  }, []);
 
   // 이번 달 요리 요약(2026-11-06) — 「내 요리 프로필」 카드. 마이캘린더 목표 카드와 같은 재료로 센다:
   // 목표 = 그룹이면 그룹 목표(없으면 20), 혼자면 내 목표 · 절약액 = 횟수 × 1인 한 끼 × 식구 수.
@@ -1514,17 +1521,15 @@ const MyPage: React.FC = () => {
               icon: <><path d="M4 20h4l10-10-4-4L4 16z" /><path d="M13 7l4 4" /></> },
             { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed', recipes: displayCompletedRecipes,
               icon: <><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.7 2.7L16 9.5" /></> },
-            // 최근 본(2026-11-05) — 이 기기에서 2개월 안에 연 레시피를 시트로 보여 준다. 개수는 안 센다.
-            { label: '최근 본', count: 0, to: '', recipes: [] as any[],
+            // 최근 본(2026-11-05) — 이 기기에서 2개월 안에 연 레시피. 다른 칸처럼 화면(`/mypage/recent`)으로 가고 숫자 배지도 단다(2026-11-06 지적).
+            { label: '최근 본', count: recentCount, to: '/mypage/recent', recipes: [] as any[],
               icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
           ].map(({ label, count, to, recipes, icon }) => (
             <button
               key={label}
               type="button"
               aria-label={count > 0 ? `${label} ${count}개` : label}
-              onClick={() => (to
-                ? navigate(to, { state: { recipes, isHouseholdView: showAllHousehold } })
-                : setRecentOpen(true))}
+              onClick={() => navigate(to, { state: { recipes, isHouseholdView: showAllHousehold } })}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
                 padding: '6px 0', background: 'none', border: 'none', cursor: 'pointer',
@@ -1682,7 +1687,6 @@ const MyPage: React.FC = () => {
       </PullToRefresh>
 
       <BottomNavBar activeTab="mypage" />
-      <RecentRecipesSheet open={recentOpen} onClose={() => setRecentOpen(false)} />
       {/* 공유 요청 팝업은 AppRouter에 전역으로 마운트된 <ShareRequestPopup/>이
           담당한다 — 마이페이지에 들어와야만 뜨던 걸 앱 어느 탭에서든 뜨게
           하려고 이 화면 밖으로 옮겼다. */}

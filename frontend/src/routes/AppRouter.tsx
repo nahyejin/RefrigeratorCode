@@ -32,6 +32,7 @@ import IngredientInput from '../pages/IngredientInput';
 import RecipeList from '../pages/RecipeList';
 import MyPage from '../pages/MyPage';
 import IngredientDetail from '../pages/IngredientDetail';
+import RecentRecipesPage from '../pages/RecentRecipesPage';
 import AuthSuccess from '../pages/AuthSuccess';
 import JoinHousehold from '../pages/JoinHousehold';
 import CookingCalendar from '../pages/CookingCalendar';
@@ -58,6 +59,7 @@ const ROUTES = {
   MY_RECORDED: '/mypage/recorded',
   MY_COMPLETED: '/mypage/completed',
   MY_FAVORITE: '/mypage/favorite',
+  MY_RECENT: '/mypage/recent',
   JOIN_HOUSEHOLD: '/join-household',
   COOKING_CALENDAR: '/cooking-calendar',
 } as const;
@@ -290,6 +292,9 @@ function AppContent() {
             path={ROUTES.MY_FAVORITE} 
             element={<IngredientDetail customTitle="내가 즐겨찾는 레시피" />} 
           />
+
+          {/* 최근 본 레시피(최근 2개월, 이 기기) */}
+          <Route path={ROUTES.MY_RECENT} element={<RecentRecipesPage />} />
 
           {/* 어드민. 서버가 /api/admin/* 마다 is_admin 을 확인하므로 경로를
               아는 것만으로는 아무것도 볼 수 없다. */}
