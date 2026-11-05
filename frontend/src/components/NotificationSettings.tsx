@@ -92,7 +92,7 @@ const NotificationSettings: React.FC<{ title?: React.ReactNode }> = ({ title }) 
     <section
       style={{
         border: '1px solid var(--line-200)', borderRadius: 14, padding: '12px 14px',
-        background: 'var(--surface-sub)', display: 'flex', flexDirection: 'column', gap: 8,
+        background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 8,
       }}
     >
       {/* 스위치 자체(46x26)만 누르게 해 뒀더니, 그 작은 자리를 정확히

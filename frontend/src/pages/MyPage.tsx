@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import ContactBox from '../components/ContactBox';
+import { CONTACT } from '../components/ContactBox';
+import { MenuGroup, MenuRow, MenuIcons } from '../components/MenuList';
+import { mergeLocalDone, toDateKey, formatWonShort, ESTIMATED_SAVINGS_PER_MEAL_DEFAULT } from './CookingCalendar';
 import RecentRecipesSheet from '../components/RecentRecipesSheet';
 import GroupTitle from '../components/ui/GroupTitle';
 import SegmentedToggle from '../components/ui/SegmentedToggle';
@@ -633,6 +635,49 @@ const MyPage: React.FC = () => {
   const [favoriteRecipes, setFavoriteRecipes] = useState<any[]>([]);
   /** 「최근 본」 목록 시트(2026-11-05) */
   const [recentOpen, setRecentOpen] = useState(false);
+
+  // 이번 달 요리 요약(2026-11-06) — 「내 요리 프로필」 카드. 마이캘린더 목표 카드와 같은 재료로 센다:
+  // 목표 = 그룹이면 그룹 목표(없으면 20), 혼자면 내 목표 · 절약액 = 횟수 × 1인 한 끼 × 식구 수.
+  const [monthSummary, setMonthSummary] = useState<{
+    total: number; goal: number; savings: number; perMeal: number; familySize: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!isLoggedIn || !authUser?.id) { setMonthSummary(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const now = new Date();
+        const start = toDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+        const end = toDateKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+        const auth = { headers: { Authorization: `Bearer ${token}` } };
+        const params = new URLSearchParams({ start, end });
+        const [res, doneRes] = await Promise.all([
+          fetch(`${apiUrl}/api/households/me/completed-calendar?${params.toString()}`, auth),
+          // 내 완료 전체(레시피 id) — 기기 사본을 합칠 때 서버가 이미 아는 것을 거른다(캘린더와 같은 방식).
+          fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes`, auth).catch(() => null),
+        ]);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        let serverDoneIds: Set<number> | undefined;
+        if (doneRes && doneRes.ok) {
+          const d = await doneRes.json().catch(() => null);
+          if (d && Array.isArray(d.recipes)) serverDoneIds = new Set(d.recipes.map((r: any) => Number(r.id)));
+        }
+        const entries = mergeLocalDone(data.entries || [], Number(authUser.id), authUser.nickname || '', serverDoneIds)
+          .filter(e => e.day >= start && e.day <= end);
+        const goal = typeof data.group_goal === 'number' ? data.group_goal
+          : typeof data.my_personal_goal === 'number' ? data.my_personal_goal : 20;
+        const familySize = typeof data.family_size === 'number' ? data.family_size : 1;
+        const perMeal = typeof data.savings_per_meal === 'number' ? data.savings_per_meal : ESTIMATED_SAVINGS_PER_MEAL_DEFAULT;
+        if (!cancelled) setMonthSummary({ total: entries.length, goal, savings: entries.length * perMeal * familySize, perMeal, familySize });
+      } catch (e) {
+        console.warn('[MyPage] 이번 달 요약 조회 실패:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isLoggedIn, authUser?.id]);
   const [recordedRecipes, setRecordedRecipes] = useState<any[]>([]);
   const [completedRecipes, setCompletedRecipes] = useState<any[]>([]);
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
@@ -1345,7 +1390,7 @@ const MyPage: React.FC = () => {
   // =====================
 
   return (
-    <div className="bg-white min-h-screen max-w-[400px] mx-auto relative" style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen max-w-[400px] mx-auto relative" style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', background: 'var(--surface-sub)' }}>
       {/* 상단 GNB 는 AppRouter 의 TopNavBar 하나만 쓴다.
           예전에는 마이페이지가 똑같은 헤더를 하나 더 그리고 있어 두 개가 겹쳐 있었고,
           복제본은 폭이 400px 로 제한돼 있어 넓은 화면에서 정렬도 달라 보였다. */}
@@ -1369,7 +1414,8 @@ const MyPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 12,
-            background: 'var(--surface-sub)',
+            background: 'var(--surface)',
+            border: '1px solid var(--line-200)',
             borderRadius: 14,
           }}
         >
@@ -1397,7 +1443,8 @@ const MyPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 12,
-            background: 'var(--surface-sub)',
+            background: 'var(--surface)',
+            border: '1px solid var(--line-200)',
             borderRadius: 14,
           }}
         >
@@ -1412,6 +1459,150 @@ const MyPage: React.FC = () => {
           </Button>
         </section>
       )}
+
+      {/* 내 레시피 — 프로필 바로 아래(2026-11-06, 당근마켓 「나의 당근」 참고).
+          이 화면에서 제일 자주 쓰는 것은 「내가 모아 둔 레시피로 가는 문」이라 크레딧·그룹
+          카드보다 위로 올렸다. 입구 네 칸은 모두 **아이콘 + 글자**로 같은 모양이고, 숫자는
+          아이콘 오른쪽 위의 작은 노란 배지다(전에는 숫자 세 칸 + 시계 한 칸이 섞여 있었다).
+          토글(나의 것만 / 우리 식구 모두)은 이 카드 제목 줄 오른쪽에 둔다 — 아래 배지 숫자를
+          바꾸는 스위치라 숫자 바로 위에 붙어야 「이 기준으로 센 숫자」로 읽힌다. */}
+      <section style={{
+        margin: '12px 14px 0', background: 'var(--surface)', border: '1px solid var(--line-200)',
+        borderRadius: 14, overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '14px 14px 4px' }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>내 레시피</h2>
+          {isInHousehold && (
+            <SegmentedToggle
+              value={householdViewMode}
+              onChange={(v) => setHouseholdViewMode(v)}
+              options={[
+                // 기본값(나의 것만)이 앞에 온다.
+                { value: 'mine', label: '나의 것만' },
+                { value: 'all', label: '우리 식구 모두' },
+              ]}
+            />
+          )}
+        </div>
+        {/* `모두` 는 나 + 식구라서, 식구가 아무것도 안 했으면 `나의 것만` 과 같은 목록이 된다 —
+            이걸 켜면 남는 게 진짜 식구 몫이다. 남을 게 없으면 **눌리지 않게** 하고 이유를 적는다
+            (눌리는데 아무 일도 안 일어나는 게 제일 나쁘다). */}
+        {isInHousehold && showAllHousehold && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 0',
+                          cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={hideMine}
+              disabled={othersTotal === 0}
+              onChange={e => setHideMine(e.target.checked)}
+              style={{ width: 16, height: 16, flexShrink: 0 }}
+            />
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: othersTotal === 0 ? 'var(--ink-500)' : 'var(--ink-700)' }}>
+              내 것은 빼고 보기
+              <span style={{ marginLeft: 6, fontWeight: 400, color: 'var(--ink-500)' }}>
+                {othersTotal === 0 ? '식구 기록 없음' : `식구들 것 ${othersTotal}건`}
+              </span>
+            </span>
+          </label>
+        )}
+        <nav style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', padding: '10px 6px 14px' }}>
+          {[
+            // 목록을 보러 가는 입구. 전용 목록 화면은 그대로 두되(여기서 온 것을 그대로 그린다).
+            { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite', recipes: displayFavoriteRecipes,
+              icon: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" /> },
+            { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded', recipes: displayRecordedRecipes,
+              icon: <><path d="M4 20h4l10-10-4-4L4 16z" /><path d="M13 7l4 4" /></> },
+            { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed', recipes: displayCompletedRecipes,
+              icon: <><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.7 2.7L16 9.5" /></> },
+            // 최근 본(2026-11-05) — 이 기기에서 2개월 안에 연 레시피를 시트로 보여 준다. 개수는 안 센다.
+            { label: '최근 본', count: 0, to: '', recipes: [] as any[],
+              icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
+          ].map(({ label, count, to, recipes, icon }) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={count > 0 ? `${label} ${count}개` : label}
+              onClick={() => (to
+                ? navigate(to, { state: { recipes, isHouseholdView: showAllHousehold } })
+                : setRecentOpen(true))}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+                padding: '6px 0', background: 'none', border: 'none', cursor: 'pointer',
+                // 전역 `button { border-radius: 8px }` 무력화(2026-10-08 지적과 같은 이유).
+                borderRadius: 0, fontSize: 12.5, color: 'var(--ink-700)',
+              }}
+            >
+              <span style={{
+                position: 'relative', width: 48, height: 48, borderRadius: '50%',
+                background: 'var(--surface-sub)', color: 'var(--ink-900)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
+                     strokeLinecap="round" strokeLinejoin="round" aria-hidden>{icon}</svg>
+                {count > 0 && (
+                  <span aria-hidden style={{
+                    position: 'absolute', top: -4, right: -9, minWidth: 20, height: 18, padding: '0 5px',
+                    boxSizing: 'border-box', borderRadius: 9, background: 'var(--brand)', color: 'var(--ink-900)',
+                    fontSize: 11, fontWeight: 700, lineHeight: '18px', textAlign: 'center',
+                  }}>{count}</span>
+                )}
+              </span>
+              {label}
+            </button>
+          ))}
+        </nav>
+      </section>
+
+      {/* 내 요리 프로필(2026-11-06) — 이번 달 요리 요약. 마이캘린더의 이번 달 목표 카드와 **같은 재료**로 센다
+          (우리 식구 전체 · 완료 + 직접 기록 · 기기에만 있는 완료까지) — 두 화면의 숫자가 달라 보이면 안 된다.
+          연속 요리·배지·크레딧 보상은 두지 않는다: 날짜를 골라 직접 기록할 수 있어 몰아 채울 수 있고,
+          보상으로 줄 크레딧도 매력이 없다(2026-11-06 사용자 판단). 비회원에게는 잠근 모양으로 보여 준다. */}
+      <section style={{
+        margin: '12px 14px 0', padding: '14px 14px 14px', background: 'var(--surface)',
+        border: '1px solid var(--line-200)', borderRadius: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>내 요리 프로필</h2>
+          {isLoggedIn ? (
+            <button type="button" onClick={() => navigate('/cooking-calendar')}
+                    style={{ background: 'none', border: 'none', borderRadius: 0, padding: 0, cursor: 'pointer',
+                             fontSize: 12.5, color: 'var(--ink-500)' }}>
+              {new Date().getMonth() + 1}월 달력 ›
+            </button>
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ink-500)' }}>
+              {MenuIcons.admin}가입하면 열려요
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginTop: 14 }}>
+          {[
+            { label: '이번 달 요리', value: monthSummary ? `${monthSummary.total}회` : '–' },
+            { label: '목표 달성', value: monthSummary ? `${monthSummary.goal > 0 ? Math.min(100, Math.round(monthSummary.total / monthSummary.goal * 100)) : 0}%` : '–' },
+            { label: '아낀 금액(추정)', value: monthSummary ? `약 ${formatWonShort(monthSummary.savings)}` : '–' },
+          ].map(({ label, value }, i) => (
+            <div key={label} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 4px',
+              borderLeft: i === 0 ? 'none' : '1px solid var(--line-200)',
+            }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{label}</span>
+              {isLoggedIn ? (
+                <span style={{ fontSize: 19, fontWeight: 800, color: 'var(--ink-900)', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+              ) : (
+                <span aria-hidden style={{ display: 'block', width: 44, height: 20, borderRadius: 6, background: 'var(--line-200)' }} />
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 12, fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
+          {isLoggedIn
+            ? (monthSummary
+                ? `이번 달 목표 ${monthSummary.goal}회 · 1인 한 끼 ${monthSummary.perMeal.toLocaleString('ko-KR')}원 × 식구 ${monthSummary.familySize}명 기준 추정이에요.`
+                : '이번 달 기록을 불러오는 중이에요.')
+            : '요리 횟수·목표 달성·아낀 금액이 매달 쌓여요.'}
+        </div>
+      </section>
+
 
       {/* AI 사용량. 로그인 여부와 무관하게 보여준다 — 비회원도 한도가 있고,
           그 값을 보여줘야 "가입하면 더 쓸 수 있다"고 말할 수 있다.
@@ -1432,139 +1623,6 @@ const MyPage: React.FC = () => {
           <HouseholdSection onChange={loadHouseholdRecipeFeeds} guideExpand={showGuide && guideStep === 1} />
         </div>
       )}
-
-      {/* 알림 설정 — 그룹 설정 바로 아래. 임박 알림도 결국 "내 정보·설정"
-          묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
-          없으므로 로그인 상태에서만 보여준다). */}
-
-      {/* 한때 여기 회색 구분 밴드(`SectionBand`)가 있었다. **뺐다**(2026-10-08) —
-          묶음마다 제목과 테두리 박스가 생긴 뒤로는 경계를 그것들이 말한다.
-          제목 바로 위에 회색 띠가 또 있으면 구분선이 두 겹이 된다. */}
-      <GroupTitle>레시피 현황</GroupTitle>
-
-      {/* 그룹에 속해 있을 때만: 즐겨찾기/기록/완료 세 영역을 "우리 식구 모두"
-          볼지 "나의 것만" 볼지 고르는 상위 토글. 세 영역이 각각 따로 그룹
-          여부를 결정하면 헷갈리므로 하나로 묶어서 관리한다.
-          이 토글이 아래 요약 숫자와 목록 전체의 기준이 되므로, 숫자보다
-          먼저(위에) 와야 "이 기준으로 센 숫자구나"라고 읽힌다 — 전에는
-          숫자 카드 아래에 있어서 원인(토글)과 결과(숫자)의 순서가 거꾸로였다. */}
-      {/* 화면 전체의 기준을 바꾸는 자리라 **탭**으로 그린다. 요리 캘린더의
-          `달력 / 내 요리 / 우리 식구 요리` 와 같은 모양이다 — 같은 일을 하는
-          것은 같게 보여야 한다. 알약으로 뒀더니 아래 필터들과 구분이 안 됐다. */}
-      {/* 위 묶음들과 **같은 모양의 박스 하나**로 담는다(2026-10-08).
-          전에는 탭 · 체크박스 · 요약 숫자가 각각 따로 떠 있어서, 같은 이야기인데
-          세 덩어리로 보였다. 박스 테두리가 "여기까지가 레시피 현황" 을 말한다. */}
-      <div style={{
-        margin: '0 14px', border: '1px solid var(--line-200)', borderRadius: 14,
-        background: 'var(--surface)', overflow: 'hidden',
-      }}>
-      {/* 마이캘린더의 `내 요리만 / 우리 식구 전체` 와 **같은 부품**을 쓴다
-          (2026-10-08 지적: 밑줄 탭이라 탭처럼 보이지 않는다). 같은 일을 하는
-          고르개는 앱 어디서나 같은 모양이어야 한다. */}
-      {isInHousehold && (
-        // 토글과 `내 것은 빼고 보기` 를 **한 줄**에(2026-10-09 지적: 체크박스가 줄바꿈돼
-        // 아래 줄로 내려갔다). 폭이 모자라 글자를 두 줄로 쌓는다 — 위 `내 것은 빼고 보기`,
-        // 아래 `식구들 것 N건`. 두 줄이어도 토글(28px)과 같은 높이라 줄이 늘지 않는다.
-        // `모두` 는 나 + 식구라서, 식구가 아무것도 안 했으면 `나의 것만` 과 같은 목록이
-        // 된다 — 이걸 켜면 남는 게 진짜 식구 몫이다. 남을 게 없으면 **눌리지 않게** 하고
-        // 이유를 적는다(눌리는데 아무 일도 안 일어나는 게 제일 나쁘다).
-        <div style={{ padding: '12px 12px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <SegmentedToggle
-            value={householdViewMode}
-            onChange={(v) => setHouseholdViewMode(v)}
-            options={[
-              // 기본값(나의 것만)이 앞에 온다.
-              { value: 'mine', label: '나의 것만' },
-              { value: 'all', label: '우리 식구 모두' },
-            ]}
-          />
-          {showAllHousehold && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1,
-                            cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={hideMine}
-                disabled={othersTotal === 0}
-                onChange={e => setHideMine(e.target.checked)}
-                style={{ width: 16, height: 16, flexShrink: 0 }}
-              />
-              <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.3 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap',
-                               color: othersTotal === 0 ? 'var(--ink-500)' : 'var(--ink-700)' }}>
-                  내 것은 빼고 보기
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
-                  {othersTotal === 0 ? '식구 기록 없음' : `식구들 것 ${othersTotal}건`}
-                </span>
-              </span>
-            </label>
-          )}
-        </div>
-      )}
-
-      {/* 이 화면이 무엇을 담고 있는지 한눈에 알려주는 요약 줄.
-          예전에는 스크롤을 내려 봐야 각 목록에 뭐가 몇 개 있는지 알 수 있었다. */}
-      <nav
-        style={{
-          display: 'flex',
-          // 테두리·모서리는 바깥 박스가 갖는다 — 박스 안에 또 박스를 두면
-          // 선이 두 겹으로 보인다. 위에 고르개가 있을 때만 경계선을 둔다.
-          marginTop: isInHousehold ? 12 : 0,
-          borderTop: isInHousehold ? '1px solid var(--line-200)' : 'none',
-        }}
-      >
-        {[
-          // 목록을 보러 가는 입구. 전용 목록 화면은 그대로 두되(여기서 온 것을
-          // 그대로 그린다), 즐겨찾기·완료는 **쓰는 자리**로도 갈 수 있게 안내한다.
-          { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite', recipes: displayFavoriteRecipes },
-          { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded', recipes: displayRecordedRecipes },
-          { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed', recipes: displayCompletedRecipes },
-          // 최근 본(2026-11-05) — 숫자 대신 시계 아이콘. 이 기기에서 2개월 안에 연 레시피를 시트로 보여 준다.
-          { label: '최근 본', count: null as number | null, to: '', recipes: [] as any[] },
-        ].map(({ label, count, to, recipes }, i) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => (to
-              ? navigate(to, { state: { recipes, isHouseholdView: showAllHousehold } })
-              : setRecentOpen(true))}
-            style={{
-              flex: 1,
-              height: 62,
-              padding: 0,
-              boxSizing: 'border-box',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 2,
-              background: 'var(--surface)',
-              border: 'none',
-              // ⚠️ `index.css` 의 전역 규칙 `button { border-radius: 8px }` 때문에
-              // 칸마다 모서리가 둥글어, 박스 안에서 **종이 세 장이 겹친 것처럼**
-              // 보였다(2026-10-08 지적). 모서리는 바깥 박스만 갖는다.
-              borderRadius: 0,
-              borderLeft: i === 0 ? 'none' : '1px solid var(--line-200)',
-              cursor: 'pointer',
-            }}
-          >
-            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink-900)', lineHeight: 1.15, display: 'inline-flex', alignItems: 'center', height: 23 }}>
-              {count === null ? (
-                <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </svg>
-              ) : count}
-            </span>
-            {/* 라벨 뒤의 `›` — 숫자만 있으면 **읽을 것**처럼 보이고, 눌러서
-                목록으로 가는 자리라는 게 안 읽힌다(2026-10-08). */}
-            <span style={{ fontSize: 12, color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-              {label}<span aria-hidden style={{ fontSize: 13, color: 'var(--line-300)' }}>›</span>
-            </span>
-          </button>
-        ))}
-      </nav>
-      </div>
 
       {/* 제목을 밖에서 달지 않는다 — 알림을 지원하지 않는 기기에서는 이 카드가
           아무것도 그리지 않아서 **제목만 남았다**(2026-10-08 지적). 제목을
@@ -1590,102 +1648,36 @@ const MyPage: React.FC = () => {
               쓸모가 있다 (냉장고요리의 `즐겨찾기만` 보기)
           여기 다 펼쳐 두니 마이페이지가 계속 길어졌고, 정작 필요한 순간에는
           그 목록이 다른 화면에 있었다. */}
-      {/* 개발자에게 말 거는 자리 + 방침·약관.
+      {/* 메뉴 묶음(2026-11-06, 당근마켓 「나의 당근」 참고).
+          예전에는 사용 가이드·문의·방침·약관이 회색 칸 속에 모양이 다른 버튼·작은 링크로
+          흩어져 있었고, 내 정보 수정·회원 탈퇴는 위쪽 버튼/수정 팝업 안쪽에 숨어 있었다.
+          「눌러서 어딘가로 가는 줄」은 한 모양(아이콘 · 글자 · ›)으로 모으고 성격별로 제목을 붙인다.
+          회원 탈퇴는 팝업 안에도 그대로 있다 — 여기는 **찾기 쉽게** 한 곳 더 둔 입구다. */}
+      <MenuGroup title="도움말 · 설정">
+        <MenuRow icon={MenuIcons.guide} label="사용 가이드 다시 보기"
+                 onClick={() => { requestUsageGuideReplay(); navigate('/my-fridge'); }} />
+        {isLoggedIn && <MenuRow icon={MenuIcons.user} label="내 정보 수정" onClick={() => setEditOpen(true)} />}
+        {isLoggedIn && <MenuRow icon={MenuIcons.exit} label="회원 탈퇴" muted onClick={() => setShowDeleteConfirm(true)} />}
+      </MenuGroup>
 
-          처음에는 「내 정보 수정」 모달 안, 회원탈퇴 바로 위에 뒀다.
-          「그만 쓸까」 하는 순간이 「말이나 해 볼까」 하는 순간이기도 하니까.
-          그런데 그 모달은 닉네임을 고치러 들어가는 곳이지, 불편한 걸 말하러
-          들어가는 곳이 아니다. **열어야만 보이는 것은 없는 것과 같다** —
-          실제로 화면에서 찾을 수가 없었다. 그래서 페이지 본문으로 꺼냈다.
-          맨 아래에 두는 건 흔한 자리라(앱을 훑다 끝에서 만난다), 찾을 때
-          어디를 봐야 할지도 분명하다. */}
-      {/* 배경을 회색으로 감싸 위 카드 영역("즐겨찾기/기록/완료" 요약, 그
-          아래 바로가기 버튼들)과 같은 흰 배경 카드라 하나로 붙어 보이던
-          것을 분리한다(실사용 지적: "우리식구 모두/나의 것만 카드영역에
-          같이 잡혀있어서 헷갈리네", 2026-09-14). */}
-      {/* 화면 아래 끝까지 채운다(flex: 1) — 내용이 짧으면(비로그인 등) 회색 칸이 중간에 떠 있고 그 아래가 하얗게
-          비어 보였다(2026-09-26 지적 — 이 칸은 바닥에 붙어 있어야 한다). 페이지 전체의 아래 여백(pb-24, 하단 메뉴
-          피하기용)도 이 칸 안으로 옮겼다 — 밖에 두면 회색 아래에 흰 띠가 남는다. 아래 여백 150px 는 하단 메뉴 + 요리 AI
-          버튼(오른쪽 아래) 높이 — 맨 끝까지 내렸을 때 인스타그램 아이디·방침 링크가 버튼에 가리지 않게. */}
-      {/* 남는 높이를 회색으로 채운다 — 내용이 짧아도 회색 칸이 중간에 떠 있고
-          그 아래가 하얗게 비어 보이던 것(2026-09-26 지적)을 막는 역할은
-          여기가 계속 한다. 광고는 **띠가 아니라 여기** 있다 — 띠 안에 넣으면
-          띠가 다시 커진다. */}
-      <div style={{ marginTop: 24, background: 'var(--surface-sub)', flex: 1,
-                    display: 'flex', flexDirection: 'column' }}>
-        {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시(광고 단위 ID 가 없으면 아무것도 안 그린다) */}
-        <div style={{ padding: '0 14px' }}>
-          <BottomCoupangAd showCondition={true} />
-        </div>
+      <MenuGroup title="고객지원">
+        <MenuRow icon={MenuIcons.instagram} label="인스타그램으로 문의하기" href={`https://ig.me/m/${CONTACT.instagram}`} />
+        <MenuRow icon={MenuIcons.shield} label="개인정보처리방침" to="/privacy" />
+        <MenuRow icon={MenuIcons.file} label="이용약관" to="/terms" />
+      </MenuGroup>
 
-      {/* 문의 띠 — **바닥에 붙고, 맨 위를 보고 있을 때는 없다.**
-          한때 이 칸은 높이 326px 짜리 회색 덩어리였다. 고정하면 크레딧 카드를
-          덮었고(실측 390x560), 흐름에 두면 스크롤할 때 따라 올라왔다. 한 줄로
-          줄이고 조건을 붙여 둘 다 피한다(2026-10-08).
+      {/* 어드민 입구 — 보안 장치가 아니다(서버가 /api/admin/* 마다 is_admin 을 확인한다). 관리자 한 명만
+          보는 줄이라 맨 아래에 둔다. */}
+      {isAdmin && (
+        <MenuGroup title="관리">
+          <MenuRow icon={MenuIcons.admin} label="어드민 (사용자 · 요청 · 대시보드)" to="/admin" />
+        </MenuGroup>
+      )}
 
-          아래 여백 71px = 하단 메뉴(65) + 6. 오른쪽 여백 80px = 요리 AI 버튼
-          (바닥에서 80~136px, 오른쪽 72px)을 피하려고 — 안 띄우면 인스타그램
-          줄의 오른쪽 끝이 버튼에 깔린다. */}
-      <div
-        style={{
-          // **붙어 있지도, 갑자기 나타나지도 않는다**(2026-10-10 요청) — 페이지 맨 끝에 그냥 놓인다.
-          // 예전에는 조금 내려가면 바닥에 붙어 떠오르는 띠였는데(스크롤하면 갑자기 나타남) 없앴다.
-          marginTop: 'auto',
-          background: 'var(--surface-sub)', borderTop: '1px solid var(--line-200)',
-          // 좌우 14px — 위 카드들과 같은 폭.
-          paddingTop: 10, paddingLeft: 14, paddingRight: 14,
-          // 116px = 하단 메뉴(65) + 요리 AI 버튼(바닥에서 80~136px)을 피할 만큼.
-          paddingBottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
-        }}
-      >
-        {/* 사용 가이드 다시 보기(2026-10-29) — 첫 방문에 [이 재료로 요리 보기]로 바로 요리 화면에 간 사람은 가이드를 건너뛰고
-            다음 방문에 한 번 보게 되는데, 놓쳤거나 다시 보고 싶은 사람이 직접 찾을 수 있어야 한다. 비로그인에게도 보인다.
-            **바로 아래 문의 줄과 같은 모양·같은 폭**으로 그 위에 붙인다(사용자 요청: 「불편한 점이나 요청이 있다면」 줄과 레벨을 맞추고 바로 위에). */}
-        <button
-          type="button"
-          onClick={() => { requestUsageGuideReplay(); navigate('/my-fridge'); }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-            width: '100%', boxSizing: 'border-box', minHeight: 44, padding: '0 12px', marginBottom: 8,
-            borderRadius: 10, border: '1px solid var(--line-200)', background: 'var(--surface)',
-            color: 'var(--ink-900)', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
-          }}
-        >
-          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-                         whiteSpace: 'nowrap', fontSize: 12.5, fontWeight: 700 }}>
-            사용 방법이 궁금하다면
-          </span>
-          <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--ink-700)',
-                         fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
-            사용 가이드 다시 보기 ›
-          </span>
-        </button>
-        <ContactBox compact />
-        {/* 어드민 입구(2026-10-29 이동) — 예전엔 그룹 설정 아래 큰 버튼이었는데, 관리자 한 명만 보는 줄이라 모두가 쓰는 위쪽
-            카드들 사이에 둘 이유가 없다. 문의·가이드 줄과 같은 모양으로 하단 칸 **맨 아래**(문의 줄·방침 링크 밑)에 둔다(사용자: 맨 아래로). 보안 장치가 아니다 — 서버가
-            /api/admin/* 마다 is_admin 을 확인한다. 여기서 감추는 건 "찾기 쉽게" 하려는 것이다. */}
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => navigate('/admin')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-              width: '100%', boxSizing: 'border-box', minHeight: 44, padding: '0 12px', marginTop: 14,
-              borderRadius: 10, border: '1px solid var(--line-200)', background: 'var(--surface)',
-              color: 'var(--ink-900)', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
-            }}
-          >
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-                           whiteSpace: 'nowrap', fontSize: 12.5, fontWeight: 700 }}>
-              어드민
-            </span>
-            <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--ink-700)',
-                           fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
-              사용자 · 요청 · 대시보드 ›
-            </span>
-          </button>
-        )}
-      </div>
+      {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시(광고 단위 ID 가 없으면 아무것도 안 그린다).
+          아래 여백 116px = 하단 메뉴(65) + 요리 AI 버튼(바닥에서 80~136px) — 맨 끝까지 내렸을 때 가리지 않게. */}
+      <div style={{ padding: '24px 14px calc(116px + env(safe-area-inset-bottom, 0px))' }}>
+        <BottomCoupangAd showCondition={true} />
       </div>
       </PullToRefresh>
 

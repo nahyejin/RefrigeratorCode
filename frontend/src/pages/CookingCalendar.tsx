@@ -47,7 +47,7 @@ type Mode = 'calendar' | 'list';
  */
 type Scope = 'mine' | 'household';
 
-interface CalendarEntry {
+export interface CalendarEntry {
   day: string; // YYYY-MM-DD
   created_at: string; // ISO timestamp
   recipe_id: number | null;
@@ -83,7 +83,7 @@ function eulReul(word: string): string {
   return (code - 0xAC00) % 28 !== 0 ? '을' : '를';
 }
 
-function toDateKey(d: Date): string {
+export function toDateKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -334,7 +334,7 @@ const PlusIcon: React.FC = () => (
 // 것처럼 오해하지 않게 한다. 한 끼당 절약액은 지역/식습관에 따라 체감이
 // 달라 식구 수처럼 직접 조정 가능하다 — 이 값은 서버에서 안 내려온 동안(첫
 // 로딩 중) 쓰는 기본값일 뿐, 실제 값은 households/users.savings_per_meal.
-const ESTIMATED_SAVINGS_PER_MEAL_DEFAULT = 8000; // 원, 외식/배달 대비 집밥 한 끼당 대략적인 절약분
+export const ESTIMATED_SAVINGS_PER_MEAL_DEFAULT = 8000; // 원, 외식/배달 대비 집밥 한 끼당 대략적인 절약분
 
 function formatWon(n: number): string {
   return n.toLocaleString('ko-KR');
@@ -348,7 +348,7 @@ function formatWon(n: number): string {
  * 들어갈 폭이 190px 뿐인데, `이번달 절약액 약 160,000원 (목표 달성 시 240,000원)`
  * 은 270px 이다. 어차피 **추정치**(`약`)라 만원 아래 자리는 뜻이 없다.
  */
-function formatWonShort(n: number): string {
+export function formatWonShort(n: number): string {
   if (n >= 10000) {
     const man = n / 10000;
     // 11.5만원처럼 소수 한 자리까지만. 10만 이상은 반올림해서 정수로.
@@ -381,7 +381,7 @@ function readFridgeBoxes(): Partial<Record<StorageKind, FridgeItem[]>> {
  * 완료는 로그인 전에 눌렀거나 서버 반영이 실패했으면 기기에만 남는다.
  * 서버 것만 그리면 분명히 눌렀는데 목록이 비어 보인다.
  */
-function mergeLocalDone(
+export function mergeLocalDone(
   server: CalendarEntry[], meId: number, meName: string, serverDoneIds?: Set<number>,
 ): CalendarEntry[] {
   let local: any[] = [];
