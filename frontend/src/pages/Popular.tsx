@@ -2,11 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { fetchCsvOnce } from '../utils/csvOnce';
 import { takePrefetchedPopular } from '../utils/recipePrefetch';
 import SectionIcon from '../components/ui/SectionIcon';
-import GroupTitle from '../components/ui/GroupTitle';
 import SegmentedToggle from '../components/ui/SegmentedToggle';
+import Chip from '../components/ui/Chip';
+import MenuSelect from '../components/ui/MenuSelect';
+import RecipeRow from '../components/RecipeRow';
 import LoadingIndicator from '../components/LoadingIndicator';
 import Toast from '../components/Toast';
-import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
@@ -23,14 +24,12 @@ import { getProxiedImageUrl, filterRecipesWithValidThumbnails } from '../utils/i
 import { calculateMatchRate } from '../utils/recipeUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
-import RecipeCard from '../components/RecipeCard';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState, lookupRecipeActionState, guardGuestSave } from '../utils/recipeStorage';
 import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import RecipeToast from '../components/RecipeToast';
 import RecipeSortBar from '../components/RecipeSortBar';
-import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 import { decodeRecipesText } from '../utils/textUtils';
 import { useAuth } from '../context/AuthContext';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
@@ -56,12 +55,15 @@ const initialFilterState: FilterState = {
 };
 
 // 기간 옵션 상수
-/** 제목 옆 `(총 N건)`. 오른쪽 끝에 따로 적던 것을 제목 옆 작은 글씨로 옮겼다(2026-10-08). */
-const CountNote: React.FC<{ n: number }> = ({ n }) => (
-  <span style={{ fontWeight: 500, color: 'var(--ink-400)' }}>
-    (총 {n.toLocaleString('ko-KR')}건)
-  </span>
-);
+type PopularView = 'popular' | 'special' | 'rising' | 'naver' | 'youtube';
+const VIEW_CHIPS: { value: PopularView; label: string }[] = [
+  { value: 'popular', label: '인기 레시피' },
+  { value: 'special', label: '특별한 날' },
+  { value: 'rising', label: '급상승' },
+  { value: 'naver', label: '네이버' },
+  { value: 'youtube', label: '유튜브' },
+];
+const PAGE_SIZE = 20;
 
 const PERIOD_OPTIONS = [
   { value: 'week', label: '최근 7일' },
@@ -681,8 +683,10 @@ const Popular = () => {
   }, [toast]);
   /** 인기 급상승에서 무엇을 보고 있나. 요리와 테마가 한 자리를 나눠 쓴다. */
   const [risingTab, setRisingTab] = useState<'dish' | 'theme'>('dish');
-  /** 인기 레시피를 어디 것으로 보고 있나. 네이버가 기본 — 건수가 훨씬 많다. */
-  const [feedTab, setFeedTab] = useState<'naver' | 'youtube'>('naver');
+  /** 지금 보는 구역(칩). 인기 레시피 = 네이버·유튜브를 섞어서, 네이버/유튜브 칩은 한쪽만. */
+  const [view, setView] = useState<PopularView>('popular');
+  /** 한 번에 그리는 행 수 — 100건이 넘는 목록의 행마다 재료 계산이 돌아서 끊어 그린다. */
+  const [shown, setShown] = useState(PAGE_SIZE);
   const [includeKeyword, setIncludeKeyword] = useState('');
 
   // 버튼 상태 통일: {done, write, share, favorite}
@@ -713,61 +717,6 @@ const Popular = () => {
   const [naverRecipes, setNaverRecipes] = useState<any[]>([]);
   // 썸네일 로드 실패한 레시피 ID 추적 (404 등)
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<number>>(new Set());
-  // 프리미엄 요리 섹션 스크롤 상태
-  const premiumScrollRef = React.useRef<HTMLDivElement>(null);
-  const [showPremiumLeftButton, setShowPremiumLeftButton] = useState(false);
-  const [showPremiumRightButton, setShowPremiumRightButton] = useState(true);
-
-  // 프리미엄 요리 섹션 스크롤 상태 체크
-  useEffect(() => {
-    const checkScroll = () => {
-      if (premiumScrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = premiumScrollRef.current;
-        setShowPremiumLeftButton(scrollLeft > 0);
-        setShowPremiumRightButton(scrollLeft < scrollWidth - clientWidth - 10);
-      }
-    };
-
-    const container = premiumScrollRef.current;
-    if (container) {
-      checkScroll();
-      container.addEventListener('scroll', checkScroll);
-      window.addEventListener('resize', checkScroll);
-    }
-
-    return () => {
-      if (container) {
-        container.removeEventListener('scroll', checkScroll);
-        window.removeEventListener('resize', checkScroll);
-      }
-    };
-  }, [youtubeRecipes, naverRecipes]);
-
-  // 프리미엄 요리 섹션 스크롤 상태 체크
-  useEffect(() => {
-    const checkScroll = () => {
-      if (premiumScrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = premiumScrollRef.current;
-        setShowPremiumLeftButton(scrollLeft > 0);
-        setShowPremiumRightButton(scrollLeft < scrollWidth - clientWidth - 10);
-      }
-    };
-
-    const container = premiumScrollRef.current;
-    if (container) {
-      checkScroll();
-      container.addEventListener('scroll', checkScroll);
-      window.addEventListener('resize', checkScroll);
-    }
-
-    return () => {
-      if (container) {
-        container.removeEventListener('scroll', checkScroll);
-        window.removeEventListener('resize', checkScroll);
-      }
-    };
-  }, [youtubeRecipes, naverRecipes]);
-
   useEffect(() => {
     fetchCsvOnce('/ingredient_profile_dict_with_substitutes.csv')
       .then(csv => {
@@ -1610,6 +1559,41 @@ const Popular = () => {
     return [...notInHead, ...inHead].slice(0, 20);
   }, [premiumPool, youtubeRecipes, naverRecipes]);
 
+  /**
+   * 「인기 레시피」 칩의 목록 — 네이버(100건)와 유튜브(22건 안팎)를 **비율대로 섞는다.**
+   * 이어 붙이면 유튜브가 맨 끝에 묻히고, 한 줄씩 번갈아 놓으면 유튜브가 앞쪽에 몰린다.
+   * 각 글의 「자기 목록 안 순서 ÷ 자기 목록 길이」로 줄을 세우면 둘 다 고르게 퍼진다.
+   */
+  const mixedRecipes = React.useMemo(() => {
+    const tag = (list: any[]) => list.map((r, i) => ({ r, k: (i + 0.5) / list.length }));
+    return [...tag(naverRecipes), ...tag(youtubeRecipes)].sort((a, b) => a.k - b.k).map(x => x.r);
+  }, [naverRecipes, youtubeRecipes]);
+
+  const viewRecipes = React.useMemo(() => {
+    const list = view === 'naver' ? naverRecipes
+      : view === 'youtube' ? youtubeRecipes
+      : view === 'special' ? premiumRecipes
+      : mixedRecipes;
+    return list.filter((r: any) => !failedThumbnailIds.has(r.id));
+  }, [view, naverRecipes, youtubeRecipes, premiumRecipes, mixedRecipes, failedThumbnailIds]);
+
+  // 구역·기간이 바뀌면 다시 20건부터.
+  useEffect(() => { setShown(PAGE_SIZE); }, [view, period, dateRange]);
+
+  const risingRows = risingTab === 'dish' ? dishRankings : themeRankings;
+  const countNote = view === 'rising'
+    ? `인기 급상승 TOP ${risingRows.length}`
+    : `총 ${viewRecipes.length.toLocaleString('ko-KR')}건`;
+
+  // 직접 고른 기간은 고른 날짜를 그대로 보여 준다(`기간선택` 이라고만 적혀 있으면 무슨 기간인지 모른다).
+  const periodSelectOptions = periodOptions.map(o => ({
+    value: o.value,
+    label: o.label,
+    short: o.value === 'custom' && dateRange[0] && dateRange[1]
+      ? `${String(dateRange[0].getMonth() + 1).padStart(2, '0')}.${String(dateRange[0].getDate()).padStart(2, '0')}~${String(dateRange[1].getMonth() + 1).padStart(2, '0')}.${String(dateRange[1].getDate()).padStart(2, '0')}`
+      : undefined,
+  }));
+
   return (
     <>
       <div className="popular-page" style={{padding: '76px 20px 80px 20px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
@@ -1618,53 +1602,44 @@ const Popular = () => {
             이미 같은 말을 하고 있어서, 제목은 그 목차를 한 번 더 읽어 주는
             줄이었다. 화면 이름은 하단 탭의 `요즘인기` 가 말한다. */}
 
-        {/* 기간 선택 바.
-            이 컨트롤은 아래의 모든 섹션에 함께 적용되는 **화면 전체 조건**인데,
-            예전에는 오른쪽 끝에 라벨 없이 28px 짜리 작은 버튼으로만 놓여 있어서
-            무엇을 제어하는지도, 어디까지 영향을 주는지도 알 수 없었다.
-            게다가 냉장고요리 탭의 같은 성격 컨트롤(높이 40, 선택 시 검정)과
-            규격이 달라(높이 28, 선택 시 회색) 이 화면만 다른 앱처럼 보였다.
-            → 라벨을 붙이고 왼쪽으로 정렬하며, 규격을 냉장고요리와 맞춘다. */}
-        {/* 이 줄은 "아래 전체에 걸리는 조건" 이다.
-            **퀵버튼으로 되돌렸다**(2026-10-08) — 고를 게 셋뿐인데 드롭다운은
-            한 번 더 누르게 만든다. 모양은 마이캘린더의 `일 / 주 / 월` 과 같은
-            규격(높이 26 · 알약 · 고른 것만 검은 면)이다. 거기서도 높이 30 짜리
-            회색 알약이 투박하다는 지적을 받아 같이 낮췄다. */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginRight: 2 }}>기간</span>
-          {periodOptions.map(opt => {
-            const on = period === opt.value;
-            // 직접 고른 기간은 고른 날짜를 그대로 보여 준다 — `기간선택` 이라고만
-            // 적혀 있으면 지금 무슨 기간을 보는지 알 수 없다.
-            const label = opt.value === 'custom' && dateRange[0] && dateRange[1] ? periodLabel : opt.label;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  if (opt.value === 'custom') {
-                    setTempDateRange(dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : [null, null]);
-                    setDateModalOpen(true);
-                    return;
-                  }
-                  setPeriod(opt.value);
-                  setDateRange([null, null]);
-                  setTempDateRange([null, null]);
-                }}
-                aria-pressed={on}
-                style={{
-                  height: 26, padding: '0 12px', boxSizing: 'border-box',
-                  borderRadius: 9999, fontSize: 12.5, fontWeight: on ? 700 : 600,
-                  background: on ? 'var(--ink-900)' : 'var(--surface)',
-                  color: on ? '#FFFFFF' : 'var(--ink-700)',
-                  border: on ? 'none' : '1px solid var(--line-300)',
-                  cursor: 'pointer', whiteSpace: 'nowrap',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
+        {/* 구역 칩 — 한 번에 하나. 모양은 앱 공용 `Chip`(알약, 고른 것만 검은 면). */}
+        <div style={{ display: 'flex', gap: 5, overflowX: 'auto', padding: '0 0 2px', scrollbarWidth: 'none' }}>
+          {VIEW_CHIPS.map(c => (
+            <Chip
+              key={c.value}
+              size="sm"
+              interactive
+              selected={view === c.value}
+              role="button"
+              aria-pressed={view === c.value}
+              onClick={() => setView(c.value)}
+              style={{ flexShrink: 0, padding: '0 9px', fontSize: 12.5 }}
+            >
+              {c.label}
+            </Chip>
+          ))}
+        </div>
+
+        {/* 건수(왼쪽) · 기간(오른쪽). 기간은 이 화면의 모든 구역에 걸리는 조건이다 —
+            셋뿐이던 검은 알약 퀵버튼을 같은 줄의 작은 드롭다운으로 줄였다(마이캘린더 기간과 같은 부품). */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '14px 0 4px', minHeight: 28 }}>
+          <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>{countNote}</span>
+          <MenuSelect<string>
+            value={period}
+            align="right"
+            ariaLabel="기간"
+            options={periodSelectOptions}
+            onChange={(v) => {
+              if (v === 'custom') {
+                setTempDateRange(dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : [null, null]);
+                setDateModalOpen(true);
+                return;
+              }
+              setPeriod(v);
+              setDateRange([null, null]);
+              setTempDateRange([null, null]);
+            }}
+          />
         </div>
 
         {/* 기간선택 모달 */}
@@ -1737,368 +1712,94 @@ const Popular = () => {
           </div>
         )}
 
-        {/* 특별한 날 특별한 음식 섹션 */}
-        {(() => {
-          if (premiumRecipes.length === 0) return null;
+        {/* 본문 — **칩으로 한 번에 하나씩** 본다(2026-11-06 당근식 개편).
+            전에는 「특별한 날」 가로 카드 → 「인기 레시피」 가로 카드 → 「급상승」 표가 위아래로 이어져
+            한 화면에 카드 1.3장밖에 안 보였고, 구역마다 고르개(네이버/유튜브·요리/테마)가 따로 있었다.
+            이제 칩 한 줄이 구역을 고르고, 레시피는 한 줄짜리 세로 행(`RecipeRow`)으로 5~6개씩 보인다. */}
+        {!loading && view !== 'rising' && viewRecipes.length === 0 && (
+          <p style={{ margin: '48px 0', textAlign: 'center', fontSize: 13.5, color: 'var(--ink-500)' }}>
+            이 기간에는 보여 드릴 레시피가 없어요.
+          </p>
+        )}
+        {view !== 'rising' && viewRecipes.slice(0, shown).map((recipe, index) => (
+          <RecipeRow
+            key={`${view}-${recipe.id}`}
+            recipe={recipe}
+            rank={view === 'special' ? undefined : index + 1}
+            // 「특별한 날」 행은 상태 맵(buttonStates)을 만드는 목록(유튜브·네이버)에 없을 수 있다 — 맵에 없으면 기기 목록을 직접 본다.
+            recipeActionState={lookupRecipeActionState(buttonStates, recipe.id) || getRecipeActionState(recipe.id)}
+            onRecipeAction={(r) => handleRecipeAction(recipe.id, { action: r.action })}
+            myIngredients={myIngredients}
+            substituteTable={substituteTable}
+            onThumbnailError={(recipeId) => {
+              setFailedThumbnailIds(prev => (prev.has(recipeId) ? prev : new Set([...prev, recipeId])));
+            }}
+          />
+        ))}
+        {view !== 'rising' && viewRecipes.length > shown && (
+          <button
+            type="button"
+            onClick={() => setShown(n => n + PAGE_SIZE)}
+            style={{
+              display: 'block', width: '100%', height: 44, margin: '14px 0 0', borderRadius: 12,
+              border: '1px solid var(--line-300)', background: 'var(--surface)', cursor: 'pointer',
+              fontSize: 13.5, fontWeight: 600, color: 'var(--ink-700)', fontFamily: 'inherit',
+            }}
+          >
+            더 보기 ({viewRecipes.length - shown}건 남음)
+          </button>
+        )}
 
-          return (
-            <>
-            <GroupTitle style={{ margin: '14px 2px 6px' }}>
-              특별한 날 특별한 음식 <CountNote n={premiumRecipes.length} />
-            </GroupTitle>
-            <section style={{
-          // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
-          // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
-          // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
-          // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
-          margin: '0 -20px 0', padding: '0 20px 14px', background: '#FFFFFF',
-          // 박스 테두리도, 회색 띠도 쓰지 않는다 — 구역은 제목과 흰 여백으로만 가른다
-          // (2026-10-10: 두꺼운 회색 줄은 촌스럽다는 지적. 유튜브 앱도 지금은 선 없이 여백으로 가른다).
-        }}>
-              {/* 문구 변천:
-                  ① "값비싼 재료가 들어간 레시피를 모았어요" — 비싼 재료를 사게 하려는
-                     의도가 그대로 드러나 보였음
-                  ② "기념일이나 손님상에 어울리는 레시피예요" — 기념일/손님상으로 못박으니
-                     "그런 날" 이 아닌 사람에게는 남의 이야기가 됨. 실제로는 아이에게 잘
-                     먹이고 싶은 날처럼 아무 날에도 보게 되는 목록임
-                  ③ "평소엔 잘 안 쓰는 재료로 만드는 요리예요" — 자주 쓰는 재료가 들어간
-                     경우도 있어 사실과 어긋남
-                  → 단정할 수 있는 만큼만 말한다 */}
-              {/* 설명 줄(`특별한 재료로 만드는 요리예요`)도 **뺐다**(2026-10-08) —
-                  제목이 이미 `특별한 날 특별한 음식` 이라고 말한다. */}
-              {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
-              {/* 건수는 제목 옆 작은 글씨로 옮겼다 — 오른쪽 끝에 따로 적을 만큼
-                  중요한 숫자가 아니다(2026-10-08 지적). */}
-              <IngredientLegend swatchesHidden style={{ marginBottom: 6, marginTop: 0 }} />
-              
-              {/* 가로 스크롤 컨테이너 (버튼 포함) */}
-              <div style={{ position: 'relative', margin: '0 -20px' }}>
+        {/* 급상승 — 요리/테마 둘이 한 자리를 나눠 쓴다. 표 대신 순위 행. */}
+        {view === 'rising' && (
+          <>
+            <div style={{ display: 'flex', margin: '6px 0 4px' }}>
+              <SegmentedToggle
+                value={risingTab}
+                onChange={(v) => setRisingTab(v)}
+                options={[
+                  { value: 'dish' as const, label: '요리', disabled: dishRankings.length === 0 },
+                  { value: 'theme' as const, label: '테마', disabled: themeRankings.length === 0 },
+                ]}
+              />
+            </div>
+            {risingRows.length === 0 && !loading && (
+              <p style={{ margin: '48px 0', textAlign: 'center', fontSize: 13.5, color: 'var(--ink-500)' }}>
+                이 기간에는 보여 드릴 순위가 없어요.
+              </p>
+            )}
+            {risingRows.map((row: any, idx: number) => {
+              const badge = row.isNew ? '신규'
+                : row.multiplier && row.multiplier > 1 ? `▴${row.multiplier}배`
+                : row.rate > 0 ? `▴${row.rate}%` : '';
+              return (
                 <div
-                  ref={premiumScrollRef}
-                  style={{
-                    display: 'flex',
-                    overflowX: 'auto',
-                    overflowY: 'hidden',
-                    gap: '16px',
-                    // 화면 끝까지 흐르되 첫 카드는 20px 안쪽에서 시작(유튜브 앱의 가로 선반처럼)
-                    paddingLeft: 20,
-                    paddingRight: 20,
-                    // 카드 맨 위가 이 상자의 맨 위와 딱 붙어 있으면
-                    // `overflow-y: hidden` 이 **테두리 위 그림자를 잘라** 카드
-                    // 윗선이 흐려 보인다. 3px 만 띄운다(아래는 이미 8px).
-                    paddingTop: '3px',
-                    paddingBottom: '8px',
-                    WebkitOverflowScrolling: 'touch',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#D2D2D8 transparent',
-                    scrollBehavior: 'smooth'
-                  }}
-                  className="custom-scrollbar"
+                  key={row.id ?? row.name}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/ingredient/${encodeURIComponent(row.name)}` + (risingTab === 'dish' ? '?minCount=2' : ''))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/ingredient/${encodeURIComponent(row.name)}` + (risingTab === 'dish' ? '?minCount=2' : '')); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, height: 58, borderBottom: '1px solid var(--line-200)', cursor: 'pointer' }}
                 >
-                  {premiumRecipes
-                    .filter(recipe => !failedThumbnailIds.has(recipe.id))
-                    .map((recipe, index) => {
-                      return (
-                        <div
-                          key={recipe.id}
-                          style={{
-                            flex: '0 0 280px',
-                            minWidth: '280px',
-                            maxWidth: '280px',
-                            display: 'flex',
-                            flexDirection: 'column'
-                          }}
-                        >
-                              <RecipeCard
-                                recipe={recipe}
-                                index={index}
-                                // 「특별한 날」 카드는 위 상태 맵(buttonStates)을 만드는
-                                // 목록(유튜브·네이버)에 없다 — 그래서 완료·즐겨찾기를
-                                // 눌러 두고 다른 탭 갔다 오면 풀려 보였다(2026-09-15).
-                                // 맵에 없으면 기기 목록을 직접 본다.
-                                recipeActionState={lookupRecipeActionState(buttonStates, recipe.id) || getRecipeActionState(recipe.id)}
-                                onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
-                                isLast={true}
-                                myIngredients={myIngredients}
-                            substituteTable={substituteTable}
-                                showRank={false}
-                                isHorizontal={true}
-                                variant="browse"
-                                onThumbnailError={(recipeId) => {
-                                  setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
-                                }}
-                              />
-                        </div>
-                      );
-                    })}
+                  <span style={{
+                    flex: 'none', width: 24, textAlign: 'center', fontSize: 17, fontWeight: 800,
+                    fontVariantNumeric: 'tabular-nums', color: idx < 3 ? 'var(--ink-900)' : 'var(--ink-500)',
+                  }}>{idx + 1}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {row.name}
+                  </span>
+                  {badge && (
+                    <span style={{ fontSize: 11.5, fontWeight: 700, borderRadius: 6, padding: '2px 7px', background: '#FFF1A8', color: '#6B5200' }}>
+                      {badge}
+                    </span>
+                  )}
+                  <span style={{ width: 46, textAlign: 'right', fontSize: 13, color: 'var(--ink-700)', fontVariantNumeric: 'tabular-nums' }}>
+                    {row.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}개
+                  </span>
                 </div>
-
-                {/* 왼쪽 스크롤 버튼 */}
-                {showPremiumLeftButton && (
-                  <div
-                    onClick={() => {
-                      if (premiumScrollRef.current) {
-                        premiumScrollRef.current.scrollBy({ left: -296, behavior: 'smooth' });
-                      }
-                    }}
-                    style={{
-                      position: 'absolute',
-                      left: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      zIndex: 10,
-                      pointerEvents: 'auto',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        pointerEvents: 'auto',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '26px',
-                          color: '#6A6A73',
-                          fontWeight: 400,
-                          lineHeight: 1,
-                          pointerEvents: 'none'
-                        }}
-                      >
-                        ‹
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 오른쪽 스크롤 버튼 */}
-                {showPremiumRightButton && (
-                  <div
-                    onClick={() => {
-                      if (premiumScrollRef.current) {
-                        premiumScrollRef.current.scrollBy({ left: 296, behavior: 'smooth' });
-                      }
-                    }}
-                    style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      zIndex: 10,
-                      pointerEvents: 'auto',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        pointerEvents: 'auto',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '26px',
-                          color: '#6A6A73',
-                          fontWeight: 400,
-                          lineHeight: 1,
-                          pointerEvents: 'none'
-                        }}
-                      >
-                        ›
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-            </>
-          );
-        })()}
-
-        {/* 인기 레시피 — **두 곳을 한 자리에 겹친다.**
-            유튜브와 네이버가 각각 제목 + 범례 + 가로 목록으로 따로 있었다.
-            둘 다 "요즘 인기" 라는 같은 이야기인데, 세로로 줄줄이 놓이니
-            화면을 한참 내려야 아래 것이 보이고 위아래를 비교할 수도 없다.
-            급상승 표와 같은 방식으로 묶는다 — 목록은 하나만 그린다.
-
-            네이버를 기본으로 둔다: 건수가 훨씬 많고(100 vs 22) 냉장고 재료와
-            겹치는 것도 그쪽이 많다. */}
-        {(naverRecipes.length > 0 || youtubeRecipes.length > 0) && (() => {
-          const list = feedTab === 'naver' ? naverRecipes : youtubeRecipes;
-          return (
-        <>
-        <GroupTitle style={{ margin: '14px 2px 6px' }}>
-          인기 레시피 <CountNote n={list.length} />
-        </GroupTitle>
-        <section style={{
-          // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
-          // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
-          // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
-          // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
-          margin: '0 -20px 0', padding: '0 20px 14px', background: '#FFFFFF',
-          // 박스 테두리도, 회색 띠도 쓰지 않는다 — 구역은 제목과 흰 여백으로만 가른다
-          // (2026-10-10: 두꺼운 회색 줄은 촌스럽다는 지적. 유튜브 앱도 지금은 선 없이 여백으로 가른다).
-        }}>
-
-          {/* 어디 것인지 고른다. 모양은 마이캘린더의 `내 요리만 / 우리 식구 전체`
-              와 같은 공용 부품이다(2026-10-08 지적: 높이를 통일해 달라).
-              직접 만든 30px 짜리였던 것을 `SegmentedToggle`(28px)로 바꿨다.
-              **왼쪽 정렬** — 총 건수는 제목 옆으로 옮겨서 오른쪽에 둘 것이 없다. */}
-          <div style={{ display: 'flex', marginBottom: 8 }}>
-            <SegmentedToggle
-              value={feedTab}
-              onChange={(v) => setFeedTab(v)}
-              options={[
-                { value: 'naver' as const, label: '네이버', disabled: naverRecipes.length === 0 },
-                { value: 'youtube' as const, label: '유튜브', disabled: youtubeRecipes.length === 0 },
-              ]}
-            />
-          </div>
-
-           <VirtualizedHorizontalRecipeList
-             key={feedTab}
-             variant="browse"
-             recipes={list.filter(recipe => !failedThumbnailIds.has(recipe.id))}
-             myIngredients={myIngredients}
-             substituteTable={substituteTable}
-             recipeActionStates={buttonStates}
-             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
-             cardWidth={300}
-             cardHeight={290}
-             gap={16}
-             showRank={true}
-             edgePad={20}
-             compactSectionGap
-             onThumbnailError={(recipeId) => {
-               setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
-             }}
-           />
-        </section>
-        </>
-          );
-        })()}
-
-        {/* 인기 급상승 — **요리와 테마를 한 자리에 겹친다.**
-            표 두 개가 위아래로 있었다. 실측: 각 280×338px 이 437px 떨어져
-            **합쳐서 846px** — 휴대폰 한 화면(812px)을 꽉 채우고도 더 스크롤해야
-            둘 다 본다. 게다가 `max-w-[280px] mx-auto` 라 375px 화면에서 좌우
-            95px 이 빈 채로 좁은 표만 가운데 있었다.
-
-            나란히 놓는 것도 생각했지만 375px 을 둘로 나누면 187px 이라
-            `순위·이름·레시피 수` 에 `▴2배` 배지까지 들어갈 자리가 안 나온다.
-            **탭으로 겹치면** 높이는 절반이 되고, 표는 화면 폭을 다 쓴다. */}
-        {(dishRankings.length > 0 || themeRankings.length > 0) && (
-        <>
-        <GroupTitle style={{ margin: '14px 2px 6px' }}>
-          인기 급상승 TOP 10{' '}
-          <CountNote n={(risingTab === 'dish' ? dishRankings : themeRankings).length} />
-        </GroupTitle>
-        <section style={{
-          // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
-          // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
-          // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
-          // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
-          margin: '0 -20px 0', padding: '0 20px 14px', background: '#FFFFFF',
-          // 박스 테두리도, 회색 띠도 쓰지 않는다 — 구역은 제목과 흰 여백으로만 가른다
-          // (2026-10-10: 두꺼운 회색 줄은 촌스럽다는 지적. 유튜브 앱도 지금은 선 없이 여백으로 가른다).
-        }}>
-
-          {/* 요리 / 테마. 마이캘린더와 같은 공용 고르개다.
-              가운데 정렬이었는데 **왼쪽**으로 옮겼다(2026-10-08 지적) —
-              이 화면의 다른 고르개(기간·네이버/유튜브)가 모두 왼쪽에서 시작한다. */}
-          <div style={{ display: 'flex', marginBottom: 10 }}>
-            <SegmentedToggle
-              value={risingTab}
-              onChange={(v) => setRisingTab(v)}
-              options={[
-                { value: 'dish' as const, label: '요리', disabled: dishRankings.length === 0 },
-                { value: 'theme' as const, label: '테마', disabled: themeRankings.length === 0 },
-              ]}
-            />
-          </div>
-
-          {/* 표는 하나다. 고른 쪽의 줄만 그린다.
-              폭을 화면 끝까지 늘리면 요리명과 레시피 수 사이가 휑하게 벌어진다
-              (375px 화면에서 가운데 130px 이 빈 칸이었다). 내용에 맞는 폭으로
-              **가운데** 둔다. */}
-          {/* 글자 15 → 13px, 머리글은 12px 회색 굵게(2026-10-10 지적: 이 표만 다른 화면보다 글자가 크다).
-              세 칸 모두 **가운데 정렬** — 레시피 수 칸은 오른쪽에 붙어 있어서 머리글과 어긋났다.
-              칸 폭을 고정(`fixed`)하고, 숫자와 배지는 각자 정해진 폭에 둬서 줄마다 숫자 자릿수가
-              맞는다(배지가 없는 줄도 같은 자리를 비워 둔다). */}
-          <table className="border-collapse font-sans"
-                 style={{ background: '#FFFFFF', width: '100%', maxWidth: 340, margin: '0 auto', tableLayout: 'fixed', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7' }}>
-                <th className="py-2 px-2 text-center whitespace-nowrap" style={{ width: 52, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>순위</th>
-                <th className="py-2 px-2 text-center whitespace-nowrap" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
-                  {risingTab === 'dish' ? '요리명' : '테마명'}
-                </th>
-                <th className="py-2 px-2 text-center whitespace-nowrap" style={{ width: 128, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>레시피 수</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(risingTab === 'dish' ? dishRankings : themeRankings).map((row: any, idx: number) => (
-                <tr key={row.id ?? row.name}>
-                  <td className="py-2 px-2 text-center text-[#8A8A90] font-normal whitespace-nowrap">{idx + 1}</td>
-                  <td className="py-2 px-2 text-center whitespace-nowrap"
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    <span
-                      style={{ cursor: 'pointer', color: '#1A1A1E', fontWeight: 500 }}
-                      onClick={() => navigate(`/ingredient/${encodeURIComponent(row.name)}`
-                        + (risingTab === 'dish' ? '?minCount=2' : ''))}
-                      title="해당 키워드 상세 보기"
-                    >
-                      {row.name}
-                    </span>
-                  </td>
-                  {/* 숫자와 배지를 **오른쪽에 붙여** 나란히 둔다. 예전에는 칸
-                      안에서 절대배치로 겹쳐 놨는데, 폭이 좁아지면 숫자를 덮었다. */}
-                  <td className="py-2 px-2 whitespace-nowrap">
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      <span style={{ color: '#3A3A42', width: 32, textAlign: 'right' }}>
-                        {row.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      </span>
-                      <span style={{ width: 54, textAlign: 'left', display: 'inline-flex' }}>
-                      {(row.isNew || row.rate > 0 || (row.multiplier !== undefined && row.multiplier > 1)) && (
-                        <span
-                          style={{
-                            display: 'inline-block', padding: '2px 6px', borderRadius: 4,
-                            fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-                            backgroundColor: (row.isNew || row.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
-                            color: (row.isNew || row.rate >= 0) ? '#E85A4F' : '#3A6EA5',
-                          }}
-                        >
-                          {row.isNew ? '✦신규'
-                            : row.multiplier && row.multiplier > 1 ? `▴${row.multiplier}배`
-                            : row.rate > 0 ? `▴${row.rate}%` : ''}
-                        </span>
-                      )}
-                      </span>
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-        </>
+              );
+            })}
+          </>
         )}
 
         {/* 한때 여기 `특정 재료·테마 등 키워드로 찾아보기` 검색창이 있었다.
