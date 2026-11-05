@@ -28,6 +28,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { MenuChevron, MenuCheck, menuPanelStyle, menuItemStyle } from './ui/MenuSelect';
 import { useNavigate } from 'react-router-dom';
 import { fetchCsvOnce } from '../utils/csvOnce';
 import CloseButton from './ui/CloseButton';
@@ -149,9 +150,10 @@ const STYLES = {
     // `필터` 를 아이콘만 남겨서 벌었다.
     minHeight: 32,
     border: '1px solid #D2D2D8',
-    borderRadius: 6,
+    // 사각(6) → 알약(2026-11-06): 마이캘린더·내냉장고의 칩·드롭다운과 같은 모양으로.
+    borderRadius: 9999,
     fontSize: 12.5,
-    padding: '0 9px',
+    padding: '0 11px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
@@ -194,9 +196,9 @@ const STYLES = {
     // 같은 줄에서 높이가 달라 보이지 않게. 40 → 32 도 함께(2026-10-09).
     minHeight: 32,
     border: '1px solid #D2D2D8',
-    borderRadius: 6,
-    fontSize: 13,
-    padding: '0 20px 0 8px',
+    borderRadius: 9999,
+    fontSize: 12.5,
+    padding: '0 24px 0 12px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
@@ -223,12 +225,11 @@ const STYLES = {
   },
   selectArrow: {
     position: 'absolute' as const,
-    right: 8,
+    right: 10,
     top: '50%',
     transform: 'translateY(-50%)',
     pointerEvents: 'none' as const,
-    fontSize: 15,
-    color: '#9A9AA2',
+    display: 'inline-flex' as const,
     marginLeft: 'auto'
   },
   /**
@@ -247,8 +248,9 @@ const STYLES = {
     height: 15,
     padding: '0 6px',
     borderRadius: 9999,
-    background: '#FFD600',
-    color: '#1A1A1E',
+    // 원색 노랑 → 옅은 노랑(2026-11-06: 마이캘린더에서 원색이 튄다는 지적과 같은 이유. 앱 토큰 `--brand-soft` / `--brand-on-soft`).
+    background: '#FFF1A8',
+    color: '#6B5200',
     fontSize: 10,
     fontWeight: 800 as const,
     lineHeight: '15px',
@@ -880,11 +882,12 @@ const RecipeSortBar = ({
                   지적) — 매칭도 버튼에 배지가 둘 다 붙으면(범위 + 부족 개수)
                   이 칸이 가장 먼저 좁아지는데(`selectContainer` 참고), 짧아진
                   지금도 그 극단적인 경우엔 말줄임표로 더 접힐 수 있다. */}
+              {/* 닫혀 있을 때는 짧게(2026-11-06: 「재료매칭순」이 칩 줄에서 「재료매...」로 잘렸다) — 펼친 목록에는 전체 이름이 나온다. */}
               <span style={STYLES.selectLabel}>{sortType === 'latest' ? '최신순' :
                sortType === 'popular' ? '인기순' :
-               sortType === 'match' ? '재료매칭순' :
-               sortType === 'expiry' ? '임박순' : '재료매칭순'}</span>
-              <span style={STYLES.selectArrow}>∨</span>
+               sortType === 'match' ? '매칭순' :
+               sortType === 'expiry' ? '임박순' : '매칭순'}</span>
+              <span style={STYLES.selectArrow}><MenuChevron open={isSortDropdownOpen} /></span>
             </button>
             {isSortDropdownOpen && (
               <div style={{
@@ -893,10 +896,7 @@ const RecipeSortBar = ({
                 left: 0,
                 right: 0,
                 marginTop: '4px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #D2D2D8',
-                borderRadius: '0.5rem',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                ...menuPanelStyle,
                 zIndex: (isExpiryModalOpen || isMatchRateModalOpen || isFilterModalOpen) ? 1 : 20,
                 overflow: 'visible',
                 minWidth: '130px'
@@ -971,33 +971,10 @@ const RecipeSortBar = ({
                       setSortType(option.value);
                       setIsSortDropdownOpen(false);
                     }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: sortType === option.value ? '#2563EB' : '#1A1A1E',
-                      backgroundColor: sortType === option.value ? '#EFF6FF' : '#FFFFFF',
-                      border: 'none',
-                      cursor: 'pointer',
-                      borderTop: option.value !== 'latest' ? '1px solid #F5F5F7' : 'none',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (sortType !== option.value) {
-                        e.currentTarget.style.backgroundColor = '#F5F5F7';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (sortType !== option.value) {
-                        e.currentTarget.style.backgroundColor = '#FFFFFF';
-                      }
-                    }}
+                    style={menuItemStyle(sortType === option.value)}
                   >
                     {option.label}
+                    {sortType === option.value && <MenuCheck />}
                   </button>
                 ))}
               </div>

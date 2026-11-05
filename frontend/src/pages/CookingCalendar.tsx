@@ -1925,7 +1925,8 @@ const CookingCalendar: React.FC = () => {
   })();
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 72, paddingBottom: 84 }}>
+    // 모음 화면 = 옅은 회색 바탕 + 흰 카드(2026-11-06 규칙 — 마이페이지와 같다). 목록 화면(요즘인기·냉장고요리)은 흰 바탕.
+    <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 72, paddingBottom: 84, background: 'var(--surface-sub)', minHeight: '100vh' }}>
       {/* 다른 그룹원이 완료·기록·즐겨찾기를 하면 이 화면 내용이 바뀌는데, 그걸
           보려면 예전엔 탭을 벗어났다 돌아오는 수밖에 없었다 — 당겨서
           새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
@@ -1941,7 +1942,7 @@ const CookingCalendar: React.FC = () => {
         <section style={{
           margin: '0 14px 12px', padding: '18px 16px',
           display: 'flex', alignItems: 'center', gap: 12,
-          background: 'var(--surface-sub)', borderRadius: 14,
+          background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 14,
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>로그인이 필요합니다</div>
@@ -1988,7 +1989,7 @@ const CookingCalendar: React.FC = () => {
           예전에는 제목·월별 기록 보기·목표 N회·목표수정이 한 줄에, 달성 문장·절약액·범례·자세히 보기가 세 줄에 있어서
           달력이 시작되기 전에 화면 대부분이 숫자였다. 월별 기록 보기·목표 수정·식구 수·1인 한 끼는 **펼쳤을 때** 보인다.
           제목 줄 전체가 펼침 버튼이다. */}
-      <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 14, background: 'var(--surface-sub)' }}>
+      <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--line-200)' }}>
         {/* 제목 줄(2026-11-06 되돌림): 접는 카드로 만들면서 월별 기록 보기·목표 수정을 펼침 안으로 넣었더니 「어디 있는지 애매하다」는 지적.
             원래 자리 그대로 — 왼쪽은 제목 옆 「월별 기록 보기」, 오른쪽은 목표 숫자 옆 ✎(목표 수정). 펼침은 아래 절약액 줄이 맡는다.
             줄 높이를 36px 로 고정하고 줄바꿈을 막는다(2026-11-06 지적: 연필을 누르는 순간 카드 높이가 달라졌다 — 수정 칸이 길어 줄이 꺾였다).

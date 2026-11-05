@@ -13,7 +13,46 @@ import React, { useEffect, useRef, useState } from 'react';
 export interface MenuSelectOption<T extends string> {
   value: T;
   label: string;
+  /** 닫혀 있을 때(고른 값을 다시 읽는 자리)만 쓰는 짧은 글자. 펼친 목록에는 `label` 이 그대로 나온다. */
+  short?: string;
 }
+
+/**
+ * 드롭다운 공용 조각(2026-11-06) — 앱의 드롭다운이 셋(`MenuSelect`·`SortDropdown`·`RecipeSortBar` 안의 정렬)이라 모양이 제각각이었다
+ * (둘은 글자 `∨` 화살표 + 파란 선택 표시). 화살표·펼친 목록 모양은 여기 하나만 쓴다.
+ */
+export const MenuChevron: React.FC<{ open?: boolean }> = ({ open }) => (
+  <svg
+    aria-hidden width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--ink-500)"
+    strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"
+    style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
+  >
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
+
+export const MenuCheck: React.FC = () => (
+  <svg aria-hidden width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+
+/** 펼친 목록 상자 */
+export const menuPanelStyle: React.CSSProperties = {
+  background: 'var(--surface)', padding: 4,
+  border: '1px solid var(--line-200)', borderRadius: 12,
+  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+};
+
+/** 펼친 목록의 한 줄 — 고른 항목은 굵은 글자 + 옅은 회색 바탕(+ 체크는 `MenuCheck`). */
+export const menuItemStyle = (on: boolean): React.CSSProperties => ({
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+  width: '100%', height: 38, padding: '0 10px', borderRadius: 8, textAlign: 'left',
+  fontSize: 13.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap', cursor: 'pointer',
+  fontFamily: 'inherit', border: 'none', color: 'var(--ink-900)',
+  background: on ? 'var(--surface-sub)' : 'transparent',
+});
 
 interface MenuSelectProps<T extends string> {
   value: T;
@@ -64,14 +103,8 @@ function MenuSelect<T extends string>({
           whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit',
         }}
       >
-        {current.label}
-        <svg
-          aria-hidden width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--ink-500)"
-          strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"
-          style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        {current.short ?? current.label}
+        <MenuChevron open={open} />
       </button>
       {open && (
         <div
@@ -80,9 +113,7 @@ function MenuSelect<T extends string>({
           style={{
             position: 'absolute', top: '100%', marginTop: 4,
             ...(align === 'right' ? { right: 0 } : { left: 0 }),
-            minWidth: '100%', background: 'var(--surface)', padding: 4,
-            border: '1px solid var(--line-200)', borderRadius: 12,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+            minWidth: '100%', ...menuPanelStyle,
             zIndex: 30,
           }}
         >
@@ -95,21 +126,10 @@ function MenuSelect<T extends string>({
                 role="option"
                 aria-selected={on}
                 onClick={() => { onChange(o.value); setOpen(false); }}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                  width: '100%', height: 38, padding: '0 10px', borderRadius: 8, textAlign: 'left',
-                  fontSize: 13.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap', cursor: 'pointer',
-                  fontFamily: 'inherit', border: 'none', color: 'var(--ink-900)',
-                  background: on ? 'var(--surface-sub)' : 'transparent',
-                }}
+                style={menuItemStyle(on)}
               >
                 {o.label}
-                {on && (
-                  <svg aria-hidden width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                       strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12.5l4.5 4.5L19 7.5" />
-                  </svg>
-                )}
+                {on && <MenuCheck />}
               </button>
             );
           })}

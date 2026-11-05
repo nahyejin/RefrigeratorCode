@@ -424,7 +424,8 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
  * 보관함 한 칸 — **무채색 옅은 면**(2026-10-10). 처음엔 칸마다 하늘·민트·크림을 깔았는데 파랑·초록·노랑이
  * 촌스럽다는 지적이라 세 칸 모두 같은 옅은 회색으로 통일. 선·띠 없이 면 하나로 칸을 가르고, 칩·버튼은 흰 바탕이라 또렷하다.
  */
-const SECTION_BG = '#F6F6F8';
+// 2026-11-06 바탕 규칙(모음 화면 = 옅은 회색 바탕 + 흰 카드): 페이지 바탕이 회색이 되면서 보관함 면은 흰색 + 옅은 테두리.
+const SECTION_BG = '#FFFFFF';
 const SECTION_TINT: Record<StorageBox, string> = {
   frozen: SECTION_BG,
   fridge: SECTION_BG,
@@ -435,6 +436,7 @@ const sectionStyle = (kind: StorageBox): React.CSSProperties => ({
   marginBottom: 12,
   borderRadius: 18,
   background: SECTION_TINT[kind],
+  border: '1px solid var(--line-200)',
 });
 
 interface ScrollablePillSectionProps {
@@ -2514,11 +2516,11 @@ const MyFridge: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ background: 'var(--surface-sub)' }}>
       {/* 위 여백 76 = 헤더(56) + 20. **냉장고요리 검색창과 같은 자리**에서
           시작해야 한다(2026-10-09 지적: 이 화면만 위가 유독 넓다).
           전에는 80 + 아래 컨테이너의 marginTop 8 = 88 이었다. */}
-      <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 76 }}>
+      <div className="w-full p-0 m-0 pb-24" style={{ paddingTop: 76 }}>
         {/* 한때 여기 `내 냉장고 재료 추가` 제목(18px)이 있었다. **뺐다**(2026-10-08).
             제목 + 아래 여백으로 58px 를 쓰면서, 하는 말은 바로 아래 입력창의
             `추가할 재료명을 입력하세요` 와 **같은 말**이었다. 설명은 이미 쓰는
@@ -2875,7 +2877,7 @@ const MyFridge: React.FC = () => {
               칸 안 스크롤은 없앴다 — 재료가 많으면 `더보기` 로 펼친다. */}
           <div
             data-guide-target="storage-areas"
-            style={{ background: '#FFFFFF' }}
+            style={{ background: 'transparent' }}
           >
           {/* 냉동보관 */}
           <div style={sectionStyle('frozen')}>
