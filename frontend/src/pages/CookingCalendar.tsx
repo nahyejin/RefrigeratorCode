@@ -20,6 +20,7 @@ import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import { saveCalendarWidgetSnapshot, orderForLegend } from '../utils/widgetSnapshot';
 import DatePickerField from '../components/DatePickerField';
 import MenuSelect from '../components/ui/MenuSelect';
+import KebabMenu from '../components/ui/KebabMenu';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
 import Button from '../components/ui/Button';
@@ -465,7 +466,9 @@ const CookingCalendar: React.FC = () => {
   const location = useLocation();
   const { isLoggedIn, user: authUser, loading: authLoading } = useAuth();
 
-  const [viewMode, setViewMode] = React.useState<ViewMode>('month');
+  // 월 보기 하나만 쓴다(2026-11-06 요청: 월 달력 + 아래 고른 날 카드면 충분하다 — 주·일 보기는 필요 없다).
+  // 주·일 분기 코드는 아래에 남아 있지만 이 값이 늘 'month' 라 도달하지 않는다.
+  const viewMode: ViewMode = 'month';
   /**
    * 어느 탭으로 열지.
    *
@@ -1951,28 +1954,76 @@ const CookingCalendar: React.FC = () => {
           달력이 시작되기 전에 화면 대부분이 숫자였다. 월별 기록 보기·목표 수정·식구 수·1인 한 끼는 **펼쳤을 때** 보인다.
           제목 줄 전체가 펼침 버튼이다. */}
       <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 14, background: 'var(--surface-sub)' }}>
-        <button
-          type="button"
-          onClick={() => setGoalCardExpanded((v) => !v)}
-          aria-expanded={goalCardExpanded}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-            padding: 0, border: 'none', borderRadius: 0, background: 'transparent', cursor: 'pointer',
-            color: 'var(--ink-900)', textAlign: 'left',
-          }}
-        >
-          <span style={{ fontSize: 15, fontWeight: 700 }}>{anchorDate.getMonth() + 1}월 목표</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-            {monthlyTotal} / {myGoal}회
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-500)"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
-              style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+        {/* 제목 줄(2026-11-06 되돌림): 접는 카드로 만들면서 월별 기록 보기·목표 수정을 펼침 안으로 넣었더니 「어디 있는지 애매하다」는 지적.
+            원래 자리 그대로 — 왼쪽은 제목 옆 「월별 기록 보기」, 오른쪽은 목표 숫자 옆 ✎(목표 수정). 펼침은 아래 절약액 줄이 맡는다. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px 8px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>{anchorDate.getMonth() + 1}월 목표</span>
+            {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데, 쌓인 것을 못 보면 목표를 세워 둔 보람이 없다. */}
+            {isLoggedIn && (
+              <button
+                type="button"
+                onClick={() => setProgressOpen(true)}
+                style={{
+                  minHeight: 24, padding: '0 9px', borderRadius: 9999,
+                  border: '1px solid var(--line-300)', background: 'var(--surface)',
+                  fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                월별 기록 보기
+              </button>
+            )}
           </span>
-        </button>
+          {editingGoal ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="number"
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveGoal();
+                  if (e.key === 'Escape') setEditingGoal(false);
+                }}
+                // 칸을 벗어나면 그대로 저장한다(2026-10-08). [적용]을 찾아 눌러야만 반영되면, 숫자를 고쳐 놓고 딴 데를 누른 사람은 **고친 줄 알고 떠난다.**
+                onBlur={() => handleSaveGoal()}
+                autoFocus
+                style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
+              />
+              <button
+                type="button"
+                // blur 가 먼저 나가면 이 버튼이 사라져 클릭이 씹힌다.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleSaveGoal}
+                style={{ height: 28, padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+              >
+                적용
+              </button>
+            </span>
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {monthlyTotal} / {myGoal}회
+              </span>
+              {/* 목표 저장은 계정에 묶인 값이다(households/users 테이블) — 게스트는 고쳐도 저장할 곳이 없으니 로그인 유도로. */}
+              <button
+                type="button"
+                aria-label={isLoggedIn ? '목표 횟수 수정' : '로그인하고 목표 설정'}
+                onClick={() => {
+                  if (!isLoggedIn) { navigate('/login'); return; }
+                  setGoalInput(String(myGoal));
+                  setEditingGoal(true);
+                }}
+                style={{
+                  width: 28, height: 28, padding: 0, border: 'none', borderRadius: 8, background: 'transparent',
+                  cursor: 'pointer', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <PencilIcon />
+              </button>
+            </span>
+          )}
+        </div>
         {/* 그룹이면 완료 횟수가 많은 사람부터 순서대로 색을 나눠 채운다.
             혼자면(그룹 아님) 단색 막대 그대로. */}
         <div style={{ display: 'flex', height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden', marginTop: 10 }}>
@@ -2000,7 +2051,15 @@ const CookingCalendar: React.FC = () => {
               {nicknameById.get(seg.uid) || '?'} {seg.count}회
             </span>
           ))}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
+          <button
+            type="button"
+            onClick={() => setGoalCardExpanded((v) => !v)}
+            aria-expanded={goalCardExpanded}
+            style={{
+              marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, padding: 0, border: 'none',
+              borderRadius: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: 'var(--ink-500)', whiteSpace: 'nowrap',
+            }}
+          >
             {groupAchievementRate}%
             {/* 아직 한 번도 안 했어도 **목표를 채우면 얼마인지**는 보여 준다. 0원만 띄우고 마는 건 아무 말도 안 하는 것과 같다. */}
             {monthlyTotal > 0 && (
@@ -2009,67 +2068,19 @@ const CookingCalendar: React.FC = () => {
             {monthlyTotal === 0 && myGoal > 0 && (
               <> · 목표 달성 시 <b style={{ color: 'var(--ink-900)' }}>{formatWonShort(goalSavings)}</b></>
             )}
-          </span>
+            {/* 절약액이 어떻게 나온 건지(계산식 · 1인 한 끼 · 식구 수)는 이 줄을 누르면 펼쳐진다. */}
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-500)"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+              style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
         </div>
 
         {goalCardExpanded && (
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line-200)' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 8px', marginBottom: 10 }}>
-              {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데, 쌓인 것을 못 보면 목표를 세워 둔 보람이 없다. */}
-              {isLoggedIn && (
-                <button
-                  type="button"
-                  onClick={() => setProgressOpen(true)}
-                  style={{
-                    minHeight: 24, padding: '0 9px', borderRadius: 9999,
-                    border: '1px solid var(--line-300)', background: 'var(--surface)',
-                    fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  월별 기록 보기
-                </button>
-              )}
-              {editingGoal ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input
-                    type="number"
-                    value={goalInput}
-                    onChange={(e) => setGoalInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveGoal();
-                      if (e.key === 'Escape') setEditingGoal(false);
-                    }}
-                    // 칸을 벗어나면 그대로 저장한다(2026-10-08). [적용]을 찾아 눌러야만 반영되면, 숫자를 고쳐 놓고 딴 데를 누른 사람은 **고친 줄 알고 떠난다.**
-                    onBlur={() => handleSaveGoal()}
-                    autoFocus
-                    style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
-                  />
-                  <button
-                    type="button"
-                    // blur 가 먼저 나가면 이 버튼이 사라져 클릭이 씹힌다.
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={handleSaveGoal}
-                    style={{ height: 28, padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
-                  >
-                    적용
-                  </button>
-                </span>
-              ) : (
-                // 목표 저장은 계정에 묶인 값이다(households/users 테이블) — 게스트는 고쳐도 저장할 곳이 없으니 로그인 유도로.
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isLoggedIn) { navigate('/login'); return; }
-                    setGoalInput(String(myGoal));
-                    setEditingGoal(true);
-                  }}
-                  style={{ minHeight: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  {isLoggedIn ? `목표 ${myGoal}회 수정` : '로그인하고 목표 설정'}
-                </button>
-              )}
-            </div>
             {/* 계산식과 값 고치기는 **접어 둔다.** 매번 읽을 문장이 아니고,
                 한 끼 추정액·식구 수는 한 번 정해 두면 다시 손댈 일이 드물다.
                 늘 펴 두면 정작 금액보다 이 줄이 길어서 눈이 그쪽으로 간다. */}
@@ -2286,18 +2297,18 @@ const CookingCalendar: React.FC = () => {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
           </button>
           </span>
-          <MenuSelect
-            ariaLabel="보기 단위"
-            align="right"
-            height={28}
-            value={viewMode}
-            onChange={(v) => setViewMode(v)}
-            options={[
-              { value: 'month' as const, label: '월' },
-              { value: 'week' as const, label: '주' },
-              { value: 'day' as const, label: '일' },
-            ]}
-          />
+          {/* 「오늘」로 돌아오는 버튼 — 월 보기만 남으면서 월/주/일 선택이 있던 자리에 둔다. 다른 달을 넘겨 보다가 오늘로 돌아오는 길이 없었다. */}
+          <button
+            type="button"
+            onClick={() => { const t = new Date(); setAnchorDate(t); setSelectedDay(toDateKey(t)); }}
+            style={{
+              height: 28, padding: '0 12px', borderRadius: 9999, flexShrink: 0,
+              border: '1px solid var(--line-300)', background: 'var(--surface)',
+              fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
+            }}
+          >
+            오늘
+          </button>
         </div>
 
         {/* 그룹 요약 + 인원별 색 범례.
@@ -2384,8 +2395,9 @@ const CookingCalendar: React.FC = () => {
                     position: 'relative',
                     height: 40,
                     borderRadius: 10,
-                    border: isSelected ? '2px solid var(--ink-900)' : '1px solid transparent',
-                    background: isToday ? 'var(--surface-sub)' : 'transparent',
+                    // 고른 날 표시: 예전엔 굵은 검정 테두리 상자(2px)였다 — 투박하다는 지적(2026-11-06). 이제 날짜 숫자 뒤의 노란 원이다.
+                    border: 'none',
+                    background: 'transparent',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -2404,14 +2416,17 @@ const CookingCalendar: React.FC = () => {
                       width={32}
                       style={{
                         position: 'absolute', top: '50%', left: '50%',
-                        marginTop: dayEntries.length > 0 ? -8 : 0,
+                        marginTop: dayEntries.length > 0 ? -4 : 0,
                         transform: 'translate(-50%, -50%)',
                         pointerEvents: 'none',
                       }}
                     />
                   )}
                   <span style={{
-                    fontSize: 13, fontWeight: isToday || plans.has(key) ? 700 : 500,
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: isSelected ? 'var(--brand)' : isToday ? 'var(--surface-sub)' : 'transparent',
+                    fontSize: 13, fontWeight: isSelected || isToday || plans.has(key) ? 700 : 500,
                     color: '#1A1A1E', position: 'relative',
                   }}>{d.getDate()}</span>
                   {dayEntries.length > 0 && renderDayDots(dayEntries)}
@@ -2933,19 +2948,14 @@ const CookingCalendar: React.FC = () => {
                     </span>
                   </button>
                   {canDeleteRecorded && (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingRecordedDelete({ id: r.id, title: r.title, kind: isFav ? 'favorite' : 'write' })}
-                      aria-label={`${r.title} ${isFav ? '즐겨찾기 해제' : '기록 취소'}`}
-                      style={{
-                        flexShrink: 0, height: 26, padding: '0 10px', borderRadius: 9999,
-                        border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
-                        fontSize: 11, fontWeight: 700, color: '#B03A28', cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {isFav ? '즐겨찾기 해제' : '기록 취소'}
-                    </button>
+                    <KebabMenu
+                      ariaLabel={`${r.title} 더보기`}
+                      items={[{
+                        label: isFav ? '즐겨찾기 해제' : '기록 취소',
+                        danger: true,
+                        onClick: () => setConfirmingRecordedDelete({ id: r.id, title: r.title, kind: isFav ? 'favorite' : 'write' }),
+                      }]}
+                    />
                   )}
                 </div>
                 );
@@ -3041,19 +3051,14 @@ const CookingCalendar: React.FC = () => {
                         )}
                       </button>
                       {canCancel && (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingCompletedDelete(e)}
-                          aria-label={isMine || !authUser?.id ? '완료 취소' : `${e.nickname}님 완료 취소`}
-                          style={{
-                            flexShrink: 0, height: 26, padding: '0 10px', borderRadius: 9999,
-                            border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
-                            fontSize: 11, fontWeight: 700, color: '#B03A28', cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          완료 취소
-                        </button>
+                        <KebabMenu
+                          ariaLabel={`${e.title} 더보기`}
+                          items={[{
+                            label: isMine || !authUser?.id ? '완료 취소' : `${e.nickname}님 완료 취소`,
+                            danger: true,
+                            onClick: () => setConfirmingCompletedDelete(e),
+                          }]}
+                        />
                       )}
                     </div>
                   </div>
@@ -3169,20 +3174,12 @@ const CookingCalendar: React.FC = () => {
                   </span>
                 </button>
                 {/* 완료 기록과 같은 이유로, 같은 그룹이면 서로의 계획도 대신
-                    취소할 수 있다(2026-09-14, 당사자에게 알림 + 복구 가능). */}
-                <button
-                  type="button"
-                  onClick={() => setConfirmingPlan(planned)}
-                  aria-label={`${planned.title} 계획 취소`}
-                  style={{
-                    flexShrink: 0, height: 28, padding: '0 10px', borderRadius: 9999,
-                    border: '1px solid #D8C27A', background: '#FFFFFF',
-                    fontSize: 11.5, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  계획 취소
-                </button>
+                    취소할 수 있다(2026-09-14, 당사자에게 알림 + 복구 가능).
+                    글자 알약 → `⋯` 메뉴(2026-11-06): 거의 안 누르는 기능이 카드에서 제일 눈에 띄었다. */}
+                <KebabMenu
+                  ariaLabel={`${planned.title} 더보기`}
+                  items={[{ label: '계획 취소', danger: true, onClick: () => setConfirmingPlan(planned) }]}
+                />
               </div>
             );
           })}
@@ -3309,41 +3306,22 @@ const CookingCalendar: React.FC = () => {
                       </button>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      {isMine && !isManual && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDateInput(e.day);
-                            setEditingDateKey(dateKey);
-                          }}
-                          aria-label="완료일자 수정"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 8px', borderRadius: 9999, flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
-                        >
-                          <PencilIcon />
-                          완료일자 수정
-                        </button>
-                      )}
-                      {/* 잘못 등록한 완료 기록을 지우는 길이 조리 상세 시트
-                          안에만 있어 너무 숨어 있다는 지적(2026-09-13) —
-                          이 카드에 바로 둔다. 아이콘만 있던 휴지통 버튼을
-                          "계획 취소"와 같은 글자 버튼(명칭 "완료 취소")으로
-                          통일 — 달력·목록 어디서 봐도 같은 말로 읽힌다
-                          (실사용 지적, 2026-09-15). */}
-                      <button
-                        type="button"
-                        onClick={() => setConfirmingCompletedDelete(e)}
-                        aria-label={isMine || !authUser?.id ? '완료 취소' : `${e.nickname}님 완료 취소`}
-                        style={{
-                          flexShrink: 0, height: 26, padding: '0 10px', borderRadius: 9999,
-                          border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
-                          fontSize: 11, fontWeight: 700, color: '#B03A28', cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        완료 취소
-                      </button>
-                    </div>
+                    // 「완료일자 수정」「완료 취소」 글자 알약 둘 → `⋯` 메뉴(2026-11-06 — 완료 취소 버튼이 매력 없다는 지적).
+                    // 잘못 등록한 완료 기록을 지우는 길이 조리 상세 시트 안에만 있어 너무 숨어 있다는 지적(2026-09-13)으로
+                    // 카드에 바로 둔 것이므로, 카드 오른쪽 메뉴에는 그대로 있다.
+                    <KebabMenu
+                      ariaLabel={`${e.title} 더보기`}
+                      items={[
+                        ...(isMine && !isManual
+                          ? [{ label: '완료일자 수정', onClick: () => { setDateInput(e.day); setEditingDateKey(dateKey); } }]
+                          : []),
+                        {
+                          label: isMine || !authUser?.id ? '완료 취소' : `${e.nickname}님 완료 취소`,
+                          danger: true,
+                          onClick: () => setConfirmingCompletedDelete(e),
+                        },
+                      ]}
+                    />
                   )
                 )}
               </div>
