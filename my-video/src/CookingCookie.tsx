@@ -36,6 +36,20 @@ const STORY: Shot[] = [
   ] },
 ];
 
+// 반죽 만들기(104529, 25분 원본, 사용자가 나중에 올림) — 달걀 → 버터·슈가파우더 → 김 → 가루 체 치기 → 손으로 반죽
+// 받아쓰기: 「김도 쿠키에 넣자」 9:17 · 「응가 같다 응가」 21:22 · 「빵 만들기가 쉽지가 않네」 21:32
+const DOUGH: Shot[] = [
+  { kind: "video", src: "d1.mp4", from: 0, to: 4.0, step: "달걀 톡톡" },
+  { kind: "video", src: "d2.mp4", from: 0, to: 7.6, step: "말랑한 버터에\n슈가파우더 섞고" },
+  { kind: "video", src: "d3a.mp4", from: 0, to: 5.2, audio: true, talk: [{ at: 2.6, len: 2.4, text: "김도 쿠키에 넣자", who: "" }] },
+  { kind: "video", src: "d3b.mp4", from: 0, to: 4.5, step: "우리 집은 김 쿠키!" },
+  { kind: "video", src: "d4.mp4", from: 0, to: 9.5, step: "가루는 체에 솔솔" },
+  { kind: "video", src: "d5.mp4", from: 0, to: 20.0, audio: true, lines: [{ at: 0.2, len: 19.6, text: "손으로 조물조물\n말랑말랑 반죽 만지기" }], talk: [
+    { at: 6.0, len: 3.2, text: "응가 같다 응가", who: "" },
+    { at: 16.4, len: 2.8, text: "빵 만들기가 쉽지가 않네", who: "" },
+  ] },
+];
+
 // 반죽을 틀로 꾹 누르고 쑥 빼기 — 오감 놀이
 const SHAPE: Shot[] = [
   { kind: "video", src: "shape1.mp4", from: 0, to: 7.8, audio: true, lines: [{ at: 0.2, len: 7.5, text: "곰돌이 · 토끼 틀로\n쿠키 모양 찍기" }] },
@@ -78,14 +92,14 @@ const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
   { kind: "transition", len: OUTRO_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...STORY, ...SHAPE, ...OVEN, ...DONE, ...EAT, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...STORY, ...DOUGH, ...SHAPE, ...OVEN, ...DONE, ...EAT, ...TAIL];
 export const COOKING_COOKIE_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(4.2);
 const sum = (xs: Shot[]) => xs.reduce((a, x) => a + shotLen(x), 0);
-const SHAPE_FROM = sum([...OPEN, ...STORY]);
+const SHAPE_FROM = sum([...OPEN, ...STORY, ...DOUGH]);
 const OVEN_FROM = SHAPE_FROM + sum(SHAPE) + f(2.4); // 오븐 사진 다음부터
 const OVEN_LEN = sum(OVEN) - f(2.4);
-const COOK_START = SHAPE_FROM;
+const COOK_START = sum([...OPEN, ...STORY]);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
   Math.min(
@@ -227,7 +241,7 @@ const RecipeTitle: React.FC = () => {
     <div style={{ position: "absolute", top: 210, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, opacity: Math.min(p, out), transform: `translateY(${(1 - p) * -24}px)`, fontFamily: FONT_FAMILY }}>
       <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 52, fontWeight: 800, padding: "10px 34px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.25)" }}>도아랑 같이 만드는</div>
       <div style={{ color: WHITE, fontSize: 92, fontWeight: 900, lineHeight: 1.15, textAlign: "center", whiteSpace: "pre-line", textShadow: "0 4px 18px rgba(0,0,0,0.7), 0 0 4px rgba(0,0,0,0.6)" }}>
-        {"곰돌이 · 토끼\n쿠키"}
+        {"곰돌이 · 토끼\n김 쿠키"}
       </div>
     </div>
   );
