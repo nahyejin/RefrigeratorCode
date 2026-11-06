@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, INK, WHITE, YELLOW, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 import { Intro, INTRO, CTA_LEN, Mark } from "./ReelOverview";
+import { SearchBanner } from "./TalkReels";
 
 // 요리 릴스 6편 — 마트에서 도아가 고른 쿠키 믹스로 집에서 쿠키 만들기(2026-11-05). 오감 놀이 각도(사용자).
 // 마트(091212) → 저녁 먹으며 곰돌이 틀(102447) → 반죽 꾹·쑥(123514, 240fps) → 오븐 구경(123925·130041) → 다 구운 쿠키(131506) → 먹기·친구 나눠 주기(132155).
@@ -21,7 +22,7 @@ type Shot =
 
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
-// 첫 장면 = 반죽을 틀에 꾹꾹 누르며 웃는 도아(사용자 2026-11-05: 핵심은 오감 놀이) + 후킹(육아 고민 「집에서 뭐 하지?」 + 해결)
+// 첫 장면 = 반죽 위에 틀을 놓는 도아(사용자가 보낸 사진, 2026-11-06)(사용자 2026-11-05: 핵심은 오감 놀이) + 후킹(육아 고민 「집에서 뭐 하지?」 + 해결)
 const HOOK = { at: 0, len: 3.4, text: "아이랑 집에서 뭐 하지?\n쿠키 반죽 하나로\n오감 놀이 끝", sub: "반죽 꾹 · 틀 쏙 · 오븐 구경" };
 const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(3.4), origin: "50% 40%" }];
 
@@ -37,12 +38,10 @@ const STORY: Shot[] = [
 ];
 
 // 반죽 만들기(104529, 25분 원본, 사용자가 나중에 올림) — 달걀 → 버터·슈가파우더 → 김 → 가루 체 치기 → 손으로 반죽
-// 받아쓰기: 「김도 쿠키에 넣자」 9:17 · 「응가 같다 응가」 21:22 · 「빵 만들기가 쉽지가 않네」 21:32
+// 김 넣는 장면은 뺌(사용자 2026-11-06). 받아쓰기: 「응가 같다 응가」 21:22 · 「빵 만들기가 쉽지가 않네」 21:32
 const DOUGH: Shot[] = [
   { kind: "video", src: "d1.mp4", from: 0, to: 4.0, step: "달걀 톡톡" },
   { kind: "video", src: "d2.mp4", from: 0, to: 7.6, step: "말랑한 버터에\n슈가파우더 섞고" },
-  { kind: "video", src: "d3a.mp4", from: 0, to: 5.2, audio: true, talk: [{ at: 2.6, len: 2.4, text: "김도 쿠키에 넣자", who: "" }] },
-  { kind: "video", src: "d3b.mp4", from: 0, to: 4.5, step: "우리 집은 김 쿠키!" },
   { kind: "video", src: "d4.mp4", from: 0, to: 9.5, step: "가루는 체에 솔솔" },
   { kind: "video", src: "d5.mp4", from: 0, to: 20.0, audio: true, lines: [{ at: 0.2, len: 19.6, text: "손으로 조물조물\n말랑말랑 반죽 만지기" }], talk: [
     { at: 6.0, len: 3.2, text: "응가 같다 응가", who: "" },
@@ -93,12 +92,19 @@ const EAT: Shot[] = [
   { kind: "video", src: "eat3.mp4", from: 0, to: 2.9, audio: true, talk: [{ at: 0.1, len: 2.7, text: "도아가 만들었다고 자랑해", who: "" }] },
 ];
 
+// 쿡매치 앱 녹화(085344, 상태 표시줄 잘라 냄 884 폭): 「쿠키」 검색 → 필터(테마) → 목록 → 「오븐」 테마로 좁히기(842건 → 122건)
+const APP: Shot[] = [
+  { kind: "video", src: "app_raw.mp4", from: 1.5, to: 9.0, rate: 1.5, app: true, step: "아이랑 만들 쿠키는\n쿡매치에서 「쿠키」 검색" },
+  { kind: "video", src: "app_raw.mp4", from: 20.0, to: 40.0, rate: 4, app: true, step: "인기 쿠키 레시피가\n한가득" },
+  { kind: "video", src: "app_raw.mp4", from: 52.0, to: 58.5, rate: 1.3, app: true, step: "필터에서 「오븐」 테마 고르면" },
+  { kind: "video", src: "app_raw.mp4", from: 59.0, to: 76.0, rate: 3.5, app: true, step: "집에서 구울 수 있는\n오븐 쿠키만 쏙" },
+];
 const OUTRO_LEN = INTRO + 75;
 const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
   { kind: "transition", len: OUTRO_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...STORY, ...DOUGH, ...SHAPE, ...OVEN, ...DONE, ...EAT, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...STORY, ...DOUGH, ...SHAPE, ...OVEN, ...DONE, ...EAT, ...APP, ...TAIL];
 export const COOKING_COOKIE_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(4.2);
 const sum = (xs: Shot[]) => xs.reduce((a, x) => a + shotLen(x), 0);
@@ -106,6 +112,8 @@ const SHAPE_FROM = sum([...OPEN, ...STORY, ...DOUGH]);
 const OVEN_FROM = SHAPE_FROM + sum(SHAPE) + f(2.4); // 오븐 사진 다음부터
 const OVEN_LEN = sum(OVEN) - f(2.4);
 const COOK_START = sum([...OPEN, ...STORY]);
+const BANNER_FROM = sum([...OPEN, ...STORY, ...DOUGH, ...SHAPE, ...OVEN, ...DONE, ...EAT]);
+const CTA_AT = BANNER_FROM + sum(APP);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
   Math.min(
@@ -247,7 +255,7 @@ const RecipeTitle: React.FC = () => {
     <div style={{ position: "absolute", top: 210, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, opacity: Math.min(p, out), transform: `translateY(${(1 - p) * -24}px)`, fontFamily: FONT_FAMILY }}>
       <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 52, fontWeight: 800, padding: "10px 34px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.25)" }}>도아랑 같이 만드는</div>
       <div style={{ color: WHITE, fontSize: 92, fontWeight: 900, lineHeight: 1.15, textAlign: "center", whiteSpace: "pre-line", textShadow: "0 4px 18px rgba(0,0,0,0.7), 0 0 4px rgba(0,0,0,0.6)" }}>
-        {"곰돌이 · 토끼\n김 쿠키"}
+        {"곰돌이 · 토끼\n쿠키"}
       </div>
     </div>
   );
@@ -303,10 +311,10 @@ const Hook: React.FC = () => {
   // 썸네일로 쓰므로 첫 프레임부터 꽉 보이게 — 사라질 때만 페이드(COOKING_REEL_GUIDE 0-1)
   const o = interpolate(frame, [len - 6, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", top: 930, left: 30, right: 30, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
-      <span style={{ display: "inline-block", whiteSpace: "pre-line", wordBreak: "keep-all", fontSize: 108, fontWeight: 900, lineHeight: 1.16, color: YELLOW, textShadow: "0 6px 22px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.8)" }}>{HOOK.text}</span>
-      <div style={{ marginTop: 26 }}>
-        <span style={{ display: "inline-block", backgroundColor: WHITE, color: INK, fontSize: 64, fontWeight: 900, padding: "10px 36px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.35)" }}>{HOOK.sub}</span>
+    <div style={{ position: "absolute", top: 1440, left: 30, right: 30, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
+      <span style={{ display: "inline-block", whiteSpace: "pre-line", wordBreak: "keep-all", fontSize: 92, fontWeight: 900, lineHeight: 1.14, color: YELLOW, textShadow: "0 6px 22px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.8)" }}>{HOOK.text}</span>
+      <div style={{ marginTop: 18 }}>
+        <span style={{ display: "inline-block", backgroundColor: WHITE, color: INK, fontSize: 56, fontWeight: 900, padding: "8px 32px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.35)" }}>{HOOK.sub}</span>
       </div>
     </div>
   );
@@ -322,6 +330,9 @@ export const CookingCookie: React.FC = () => {
       </Sequence>
       <Sequence from={OVEN_FROM} durationInFrames={OVEN_LEN}>
         <Caption from={4} len={OVEN_LEN - 6} text={OVEN_CAPTION} />
+      </Sequence>
+      <Sequence from={BANNER_FROM} durationInFrames={CTA_AT - BANNER_FROM}>
+        <SearchBanner bottom={120} scale={0.82} panel />
       </Sequence>
       <Sequence from={COOK_START} durationInFrames={TITLE_LEN}>
         <RecipeTitle />
