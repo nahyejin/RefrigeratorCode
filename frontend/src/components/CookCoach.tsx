@@ -156,7 +156,9 @@ const CookCoach: React.FC<{
       }
       setMessages(prev => [...prev, { role: 'assistant', content: String(data.reply || '') }]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '답을 가져오지 못했어요. 잠시 뒤 다시 물어봐 주세요.');
+      setError(e instanceof TypeError
+        ? '서버에 연결하지 못했어요. 잠시 뒤 다시 물어봐 주세요.'
+        : e instanceof Error ? e.message : '답을 가져오지 못했어요. 잠시 뒤 다시 물어봐 주세요.');
     } finally {
       setLoading(false);
       void refreshUsage();

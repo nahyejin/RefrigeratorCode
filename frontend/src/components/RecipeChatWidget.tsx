@@ -68,6 +68,8 @@ type ChatMessage = {
   /** 타이핑 애니메이션용. content는 fullContent를 향해 점점 채워지는 중간 상태다. */
   fullContent?: string;
   typing?: boolean;
+  /** 서버 오류·연결 실패로 답을 못 받아 안내 문구만 들어간 말풍선. 한 번 물었다고 치지 않는다. */
+  failed?: boolean;
 };
 
 /** 타이핑 애니메이션 속도 — 한 번에 채우는 글자 수 / 그 간격(ms) */
@@ -203,6 +205,10 @@ function threadTitle(thread: ChatThread): string {
 const RecipeChatWidget: React.FC = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  /** 지금 대화를 나눈 화면 주소. 다른 화면에서 다시 열면 새 대화를 시작한다(`openWidget`). */
+  const convoPathRef = useRef<string | null>(null);
+  /** 열기 동작(새 대화 판단 포함) — 아래 `openWidget` 이 채운다. 숨겨진 화면에서는 기본 동작(그냥 열기). */
+  const openFreshRef = useRef<() => void>(() => setOpen(true));
   // 요리 드로어가 열려 있는 동안은 둥근 AI 버튼을 숨긴다 — 드로어 안에 요리 한 건 전용 「쿡 코치」가 따로 있어서
   // 둘이 한 화면에 뜨면 어느 쪽에 물어야 하는지 헷갈린다(2026-11-06).
   const [cookOpen, setCookOpen] = useState(false);
@@ -349,7 +355,7 @@ const RecipeChatWidget: React.FC = () => {
   //  훅 개수가 바뀌어 React 오류가 난다.)
   // 이 컴포넌트는 AppRouter 에 한 번만 심겨 앱 어디서나 떠 있으므로, 화면을 옮기지 않고 열기만 하면 된다.
   React.useEffect(() => {
-    const onOpen = () => setOpen(true);
+    const onOpen = () => openFreshRef.current();
     window.addEventListener('cookmatch-open-chat', onOpen);
     return () => window.removeEventListener('cookmatch-open-chat', onOpen);
   }, []);
@@ -365,7 +371,8 @@ const RecipeChatWidget: React.FC = () => {
   if (hideOnAuth) return null;
 
   /** 답을 한 번 받은 대화. 여기서부터는 이어서 못 묻고 새 대화로 간다(아래 입력 자리). */
-  const answered = messages.some(m => m.role === 'assistant');
+  // 오류 안내(`failed`)는 답이 아니다 — 서버가 죽어서 실패했는데 「이 대화는 여기까지예요」로 잠그면 다시 물을 길이 없다(2026-11-06).
+  const answered = messages.some(m => m.role === 'assistant' && !m.failed);
 
   const startNewThread = () => {
     setThreadId(createThreadId());
@@ -376,13 +383,18 @@ const RecipeChatWidget: React.FC = () => {
 
   const openWidget = () => {
     // 이 컴포넌트는 페이지를 옮겨도 앱 전체에 계속 떠 있는 채로 마운트돼 있다
-    // (AppRouter 에 한 번만 심어짐). 그래서 `messages` 는 **다른 화면에 갔다
-    // 와도 메모리에 그대로 남아 있다** — 여기서 매번 새 대화로 초기화하면,
-    // 질문을 던지고 다른 화면을 봤다가 돌아왔을 뿐인데 방금 그 대화가 사라지고
-    // 예시 질문이 다시 떴다(실사용 보고). 진짜 "새 대화"는 사용자가 직접
-    // 눌러서 시작하게 하고(`startNewThread`, 헤더의 + 버튼), 여기서는 열기만 한다.
+    // (AppRouter 에 한 번만 심어짐). 그래서 `messages` 는 다른 화면에 갔다 와도 메모리에 남는다.
+    //   · 같은 화면에서 내렸다 다시 열면 → 대화를 **그대로** 보여 준다(질문을 던지고 다른 화면을 봤다가 돌아왔더니 방금 그
+    //     대화가 사라졌다는 실사용 보고가 있었다).
+    //   · **다른 화면으로 옮긴 뒤** 다시 열면 → 새 대화(2026-11-06 사용자: 「쿡 픽 내렸다가 페이지 이동한 뒤 다시 켜면 새 대화창이
+    //     떠야지」). 화면마다 조언의 기준이 다르고(냉장고요리 조건·요즘인기 구역), 앞 대화는 한 번 묻고 닫혀 있어서다.
+    //     지난 대화는 `⋯ → 지난 대화` 에 그대로 남는다.
+    if (messages.length > 0 && convoPathRef.current && convoPathRef.current !== location.pathname) {
+      startNewThread();
+    }
     setOpen(true);
   };
+  openFreshRef.current = openWidget;
 
 
   const openThread = (thread: ChatThread) => {
@@ -412,6 +424,7 @@ const RecipeChatWidget: React.FC = () => {
       return;
     }
 
+    convoPathRef.current = location.pathname;
     const nextMessages: ChatMessage[] = [...messages, { role: 'user', content }];
     setMessages(nextMessages);
     setInput('');
@@ -462,11 +475,14 @@ const RecipeChatWidget: React.FC = () => {
         },
       ]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : '채팅 요청에 실패했습니다.';
+      // 서버에 닿지 못하면 브라우저가 영어 `Failed to fetch` 를 준다 — 사람 말로 바꾼다(2026-11-06 서버가 내려갔을 때 그대로 보였다).
+      const message = err instanceof TypeError
+        ? '서버에 연결하지 못했어요. 잠시 뒤 다시 물어봐 주세요.'
+        : err instanceof Error ? err.message : '채팅 요청에 실패했습니다.';
       setError(message);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: message },
+        { role: 'assistant', content: message, failed: true },
       ]);
     } finally {
       setLoading(false);
