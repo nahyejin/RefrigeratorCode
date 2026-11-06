@@ -419,6 +419,34 @@ def _page_block(page_context):
     return out
 
 
+def _basis(considered, picked, parsed, matched_names, page_context, reranked=False):
+    """답 맨 아래에 붙는 **「왜 이렇게 골랐나」 근거**(2026-11-06 「몇 개를 보았고 무슨 근거로 골랐는지 맨 밑에」).
+
+    LLM 이 쓰게 두지 않고 **서버가 실제로 쓴 조건을 그대로** 적는다 — 말로 지어내면 근거가 아니라 변명이 된다.
+    `considered` 는 검색이 추려 와서 LLM 에게 넘긴 후보 수, `picked` 는 사용자에게 내보낸 수다
+    (전체에서 몇 개를 훑었는지는 세지 않는다 — 센 적 없는 숫자를 적지 않는다).
+    """
+    lines = []
+    if parsed.get('keywords'):
+        lines.append('찾은 말: ' + ', '.join(parsed['keywords'][:5]))
+    if parsed.get('ignore_fridge'):
+        lines.append('냉장고 재료는 따지지 않았어요')
+    elif matched_names:
+        lines.append('냉장고에서 겹친 재료: ' + ', '.join(matched_names))
+        lines.append('만들 수 있는 정도(매칭률)가 높은 순으로 정렬했어요')
+    if parsed.get('include_ingredients'):
+        lines.append('꼭 넣을 재료: ' + ', '.join(parsed['include_ingredients'][:5]))
+    if parsed.get('exclude_ingredients'):
+        lines.append('뺀 재료: ' + ', '.join(parsed['exclude_ingredients'][:5]))
+    if isinstance(page_context, dict) and page_context.get('page') in _PAGE_LABEL:
+        screen = [str(x).strip()[:40] for x in (page_context.get('lines') or []) if str(x).strip()][:3]
+        if screen:
+            lines.append(f"보고 있던 화면({_PAGE_LABEL[page_context['page']]}) 조건: " + ' · '.join(screen))
+    if reranked:  # 2차 호출이 실제로 성공했을 때만 — 실패해서 낱말 점수 순으로 나갔으면 말하지 않는다
+        lines.append('고른 뒤 질문에 맞는지 한 번 더 확인했어요')
+    return {'considered': int(considered), 'picked': int(picked), 'lines': lines}
+
+
 def _prioritize_ingredients(ingredients, expiry_days):
     """냉장고 재료를 **쓸 순서**로 세운다: 유통기한 짧은 식재료 → 기한 모르는 식재료 → 조미료.
 
@@ -1263,6 +1291,8 @@ def handle_chat(get_db):
         # 「아이가 먹을 음식」에 아이스크림을 내놓던 예전으로 돌아간다.
         # 호출이 깨졌을 때만(None) 예전 순서로 간다.
         print(f"[chat][timing] 검색(재시도 포함) {time.time() - t_search:.2f}초, 후보 {len(recipes)}건", flush=True)
+        n_considered = len(recipes)
+        reranked_ok = False
         if recipes:
             common = _load_common_ingredients(get_db)
             t_llm2 = time.time()
@@ -1271,6 +1301,7 @@ def handle_chat(get_db):
                                       common=common)
             print(f"[chat][timing] 2차 호출(후보 재정렬, {len(recipes)}건 대상) "
                   f"{time.time() - t_llm2:.2f}초", flush=True)
+            reranked_ok = ranked is not None
             recipes = (_spread_ingredients(recipes, want=SEARCH_LIMIT, common=common)
                        if ranked is None else ranked)
     else:
@@ -1316,6 +1347,10 @@ def handle_chat(get_db):
         # "실제로 뭘 근거로 골랐는지 · 어떻게 정렬했는지"를 서버가 덧붙인다.
         parsed['reply'] = parsed['reply'].rstrip() + f'\n\n가지고 계신 재료 중 {matched_phrase} 골랐고, 매칭률 높은 순으로 정렬했어요.'
 
+    basis = None
+    if parsed['recipe_search'] and recipes:
+        basis = _basis(n_considered, len(recipes), parsed, matched_names, page_context, reranked_ok)
+
     allowed_links = {r['link'] for r in recipes}
     parsed['reply'] = re.sub(
         r'https?://\S+',
@@ -1355,6 +1390,7 @@ def handle_chat(get_db):
     return jsonify({
         'reply': parsed['reply'],
         'recipes': recipes,
+        'basis': basis,
         'keywords': parsed['keywords'],
         # 프론트가 아직 keyword(단수)를 읽고 있을 수 있어 대표 낱말도 함께 보낸다
         'keyword': parsed['keywords'][0] if parsed['keywords'] else '',

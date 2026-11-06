@@ -55,6 +55,11 @@ type ChatMessage = {
   content: string;
   recipes?: ChatRecipe[];
   /**
+   * **왜 이렇게 골랐나**(2026-11-06). 서버가 실제로 쓴 조건을 그대로 적어 보낸다 — 답 맨 아래에 작게 붙는다.
+   * `considered` = 검색이 추려 LLM 에게 넘긴 후보 수, `picked` = 내보낸 수.
+   */
+  basis?: { considered: number; picked: number; lines: string[] } | null;
+  /**
    * 무엇에 대한 답인가.
    *
    * 이 대화창은 레시피만 받는 곳이 아니다 — 요리하다 막혀서 묻기도 하고,
@@ -469,6 +474,7 @@ const RecipeChatWidget: React.FC = () => {
           fullContent: data.reply || '레시피를 찾아봤어요.',
           typing: true,
           recipes: Array.isArray(data.recipes) ? data.recipes : [],
+          basis: data.basis || null,
           intent: data.intent || 'recipe',
           helpTitle: data.help_title || '',
           action: data.action || null,
@@ -767,6 +773,20 @@ const RecipeChatWidget: React.FC = () => {
                         ))}
                       </div>
                     )}
+                    {/* 맨 아래 「왜 이렇게 골랐나」 — 서버가 실제로 쓴 조건 그대로(후보 몇 개 → 몇 개). 접어 두고 필요할 때만 편다. */}
+                    {!msg.typing && msg.basis && msg.basis.picked > 0 && (
+                      <details
+                        className="mt-2"
+                        style={{ background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 12, padding: '8px 12px' }}
+                      >
+                        <summary style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer', listStyle: 'none' }}>
+                          근거 · 후보 {msg.basis.considered}개를 살펴보고 {msg.basis.picked}개를 골랐어요 ▾
+                        </summary>
+                        <ul style={{ margin: '8px 0 0', paddingLeft: 16, fontSize: 12, lineHeight: 1.6, color: 'var(--ink-500)' }}>
+                          {msg.basis.lines.map((line, i) => (<li key={i}>{line}</li>))}
+                        </ul>
+                      </details>
+                    )}
                   </div>
                 </div>
               ))}
@@ -829,6 +849,10 @@ const RecipeChatWidget: React.FC = () => {
                 머리말에도 있지만 거기는 폭이 좁아 값을 못 적는다. 누르기
                 직전이 알아야 할 때다. */}
             <div style={{ padding: '6px 12px 0', background: '#F5F5F7' }}>
+              {/* 쿡 픽이 무엇인지 한 줄 — 쿡 코치가 「이 요리를 도와드려요」 를 달고 있는 것처럼(2026-11-06). */}
+              <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink-500)', textAlign: 'center', marginBottom: 2 }}>
+                냉장고 재료와 지금 보는 화면을 보고, 질문에 맞는 레시피를 골라 드려요
+              </div>
               <UsageLine cost={chatCost} costOnly />
             </div>
             <form
