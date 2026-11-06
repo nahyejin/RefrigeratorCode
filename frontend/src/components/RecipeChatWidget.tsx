@@ -138,7 +138,16 @@ function getFridgeItems(): { name: string; daysLeft: number | null }[] {
 }
 
 export function getFridgeIngredientNames(): string[] {
-  return getFridgeItems().map((item) => item.name);
+  // 곧 상하는 것부터, 기한 모르는 것은 뒤로(2026-11-06). 서버가 앞에서부터 자르므로 잘려 나가는 쪽이 덜 급한 재료가 되게.
+  return getFridgeItems()
+    .map((item, i) => ({ ...item, i }))
+    .sort((a, b) => {
+      if (a.daysLeft === null && b.daysLeft === null) return a.i - b.i;
+      if (a.daysLeft === null) return 1;
+      if (b.daysLeft === null) return -1;
+      return a.daysLeft - b.daysLeft || a.i - b.i;
+    })
+    .map((item) => item.name);
 }
 
 /** 유통기한 정보가 있는 재료만, 이름과 남은 일수로 서버에 보낼 형태로 추려낸다. */

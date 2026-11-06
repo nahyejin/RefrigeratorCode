@@ -368,6 +368,30 @@ JSON 만 답해라:
         return None
 
 
+def _prioritize_ingredients(ingredients, expiry_days):
+    """냉장고 재료를 **쓸 순서**로 세운다: 유통기한 짧은 식재료 → 기한 모르는 식재료 → 조미료.
+
+    왜 필요한가(2026-11-06): 클라이언트는 냉동 → 냉장 → 실온 칸 순서로 이름만 늘어놓아 보낸다. 서버는 그 앞에서부터
+    자른다 — 프롬프트는 40개(`MAX_INGREDIENTS`), **레시피 매칭률 계산은 20개**(`_search_recipes` 의 `match_source`).
+    그래서 재료가 스무 개를 넘으면 실온 칸과 냉장 칸 뒷부분이 매칭에서 조용히 빠졌고, 곧 상하는 재료가 뒤쪽 칸에 있으면
+    그것도 빠졌다. 자르기 **전에** 이 순서로 세우면 잘려 나가는 쪽이 늘 「덜 급한 것·양념」이다.
+    """
+    seasoning_set = _load_seasoning_set()
+    core, unknown, seasoning, seen = [], [], [], set()
+    for name in ingredients:
+        if name in seen:
+            continue
+        seen.add(name)
+        if name in seasoning_set:
+            seasoning.append(name)
+        elif expiry_days.get(name) is not None:
+            core.append(name)
+        else:
+            unknown.append(name)
+    core.sort(key=lambda n: expiry_days[n])
+    return core + unknown + seasoning
+
+
 def _fridge_detail_block(ingredients, expiry_days):
     """답변(reply) 문장에서 재료를 이름으로 부를 때 참고할 우선순위 목록을 만든다.
 
@@ -944,11 +968,12 @@ def handle_chat(get_db):
     quota_user_id, quota_device_id = usage_quota.caller_identity()
     usage = None
     messages = body.get('messages') or []
+    # 자르는 건 **순서를 세운 뒤에**(아래 `_prioritize_ingredients`). 여기서는 터무니없이 긴 입력만 막는다.
     ingredients = [
         str(name).strip()
         for name in (body.get('ingredients') or [])
         if str(name).strip()
-    ][:MAX_INGREDIENTS]
+    ][:200]
     session_id = (body.get('session_id') or '').strip()
 
     # 재료별 유통기한(D-day). reply 문장에서 어떤 재료를 이름으로 부를지 정할 때만 쓴다
@@ -964,6 +989,8 @@ def handle_chat(get_db):
             continue
         if name:
             expiry_days[name] = days
+
+    ingredients = _prioritize_ingredients(ingredients, expiry_days)[:MAX_INGREDIENTS]
 
     if not messages or not any(m.get('role') == 'user' and (m.get('content') or '').strip() for m in messages):
         return jsonify({'error': '메시지를 입력해 주세요.'}), 400
