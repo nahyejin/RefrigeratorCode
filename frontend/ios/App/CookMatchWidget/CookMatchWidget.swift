@@ -5,12 +5,12 @@ import SwiftUI
 //
 //  왜 이렇게 나뉘나:
 //    · 작은(정사각형) 위젯은 **탭 영역을 하나만** 가질 수 있다(iOS 제약: widgetURL 하나).
-//      그래서 작은 것은 가장 자주 쓰는 「요리 AI」 하나로 두고, 아이콘 셋은 장식이 아니라
+//      그래서 작은 것은 가장 자주 쓰는 「쿡 픽」 하나로 두고, 아이콘 셋은 장식이 아니라
 //      실제로 누를 수 있는 중간 크기에서 보여 준다.
 //    · 중간(가로) 위젯은 Link 를 여러 개 넣을 수 있어 세 버튼을 각각 연결한다.
 //
 //  누르면 앱이 `com.cookmatch.app://camera|chat|plan` 으로 열리고, 웹 쪽
-//  NativeShortcutBridge 가 받아서 각각 카메라 시트·요리 AI 대화창·이번 주 식단으로 보낸다
+//  NativeShortcutBridge 가 받아서 각각 카메라 시트·쿡 픽 대화창·이번 주 식단으로 보낸다
 //  (안드로이드와 같은 주소를 쓴다 — 한쪽만 바뀌는 일이 없게).
 //
 //  색: 흰 카드 + 옅은 회색 둥근 네모 타일 + 잉크색 아이콘. 다크 모드에서는 진회색 카드로 뒤집는다
@@ -103,18 +103,18 @@ private enum Icon {
 
 // MARK: - 정사각형(작은) 위젯 — 탭 하나
 
-/// 윗줄 넓은 「요리 AI」 타일 + 아랫줄 「재료 찍기」·「AI 식단」 타일 — 줄 높이·간격(8pt)이 같아 한 그리드에 선다.
+/// 윗줄 넓은 「쿡 픽」 타일 + 아랫줄 「재료 찍기」·「식단 짜기」 타일 — 줄 높이·간격(8pt)이 같아 한 그리드에 선다.
 struct CookMatchSmallView: View {
     var body: some View {
         VStack(spacing: 8) {
-            Tile(systemName: Icon.chat, title: "요리 AI", horizontal: true, iconSize: 18, textSize: 14)
+            Tile(systemName: Icon.chat, title: "쿡 픽", horizontal: true, iconSize: 18, textSize: 14)
             HStack(spacing: 8) {
                 Tile(systemName: Icon.camera, title: "재료 찍기", iconSize: 18)
-                Tile(systemName: Icon.plan, title: "AI 식단", iconSize: 18)
+                Tile(systemName: Icon.plan, title: "식단 짜기", iconSize: 18)
             }
         }
-        // 작은 위젯은 탭 영역이 하나뿐이라 전체를 「요리 AI」로 연결한다.
-        // 재료 찍기·AI 식단은 눌러도 같은 곳으로 가므로, 그 둘을 각각 쓰려면 가로 위젯을 쓴다.
+        // 작은 위젯은 탭 영역이 하나뿐이라 전체를 「쿡 픽」로 연결한다.
+        // 재료 찍기·식단 짜기은 눌러도 같은 곳으로 가므로, 그 둘을 각각 쓰려면 가로 위젯을 쓴다.
         .widgetURL(W.chat)
     }
 }
@@ -135,8 +135,8 @@ struct CookMatchMediumView: View {
     var body: some View {
         HStack(spacing: 8) {
             Link(destination: W.camera) { Tile(systemName: Icon.camera, title: "재료 찍기", iconSize: 22) }
-            Link(destination: W.chat) { Tile(systemName: Icon.chat, title: "요리 AI", iconSize: 22) }
-            Link(destination: W.plan) { Tile(systemName: Icon.plan, title: "AI 식단", iconSize: 22) }
+            Link(destination: W.chat) { Tile(systemName: Icon.chat, title: "쿡 픽", iconSize: 22) }
+            Link(destination: W.plan) { Tile(systemName: Icon.plan, title: "식단 짜기", iconSize: 22) }
         }
     }
 }
@@ -163,7 +163,7 @@ struct CookMatchQuickWidget: Widget {
             CookMatchMediumView().cookMatchBackground()
         }
         .configurationDisplayName("쿡매치 (가로)")
-        .description("재료 찍기·요리 AI·AI 식단 바로 열기")
+        .description("재료 찍기·쿡 픽·식단 짜기 바로 열기")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -176,7 +176,7 @@ struct CookMatchSmallWidget: Widget {
             CookMatchSmallView().cookMatchBackground()
         }
         .configurationDisplayName("쿡매치 (정사각형)")
-        .description("누르면 요리 AI 가 바로 열려요")
+        .description("누르면 쿡 픽이 바로 열려요")
         .supportedFamilies([.systemSmall])
     }
 }

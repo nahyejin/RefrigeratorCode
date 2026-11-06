@@ -102,8 +102,8 @@ div select { z-index: auto !important; }
 `;
 
 
-/** llm_usage.kind → 화면 이름. 예전엔 vision 이 아니면 전부 '요리 AI' 라 식단 짜기가 챗봇과 구분이 안 됐다. */
-const AI_KIND: Record<string, string> = { chat: 'AI 챗봇', vision: 'AI 사진 등록', plan: 'AI 식단 짜기' };
+/** llm_usage.kind → 화면 이름. 예전엔 vision 이 아니면 전부 '요리 AI' 라 식단 짜기가 챗봇과 구분이 안 됐다. (2026-11-06 이름: 쿡 픽·쿡 코치·식단 짜기.) */
+const AI_KIND: Record<string, string> = { chat: '쿡 픽', coach: '쿡 코치', vision: 'AI 사진 등록', plan: '식단 짜기(AI)' };
 const aiKindName = (kind: string) => AI_KIND[kind] || kind;
 
 const S = {
@@ -153,6 +153,7 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
   const chat = policy.credits?.chat ?? 1;
   const vision = policy.credits?.vision ?? 2;
   const plan = policy.credits?.plan ?? 3;
+  const coach = policy.credits?.coach ?? 1;
 
   return (
     <div style={{ ...S.card, marginBottom: 10 }}>
@@ -198,8 +199,8 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
           </div>
 
           <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
-            <b>한 번 쓸 때 드는 크레딧</b> — AI 챗봇 질문 <b>{chat}</b>, AI 사진 등록 <b>{vision}</b>
-            (사진 장수와 무관), AI 식단 짜기 <b>{plan}</b>.
+            <b>한 번 쓸 때 드는 크레딧</b> — 쿡 픽 질문 <b>{chat}</b>, 쿡 코치 질문 <b>{coach}</b>, AI 사진 등록 <b>{vision}</b>
+            (사진 장수와 무관), 식단 짜기(조건을 적어 AI 가 짤 때) <b>{plan}</b>.
             <br />
             사진이 여러 장이어도 LLM 호출은 한 번이라, 장수만큼 매기면 여러 장을 한 번에
             올리는 것에 벌금을 매기는 꼴이 된다.
@@ -2125,7 +2126,7 @@ const TL_ACTION: Record<string, string> = {
   favorite_add: '즐겨찾기 추가', favorite_remove: '즐겨찾기 취소', complete_add: '완료 추가', complete_remove: '완료 취소',
   record_add: '기록 추가', record_remove: '기록 취소', plan_add: '요리 계획 담기', plan_remove: '요리 계획 빼기', plan_apply: '식단 적용', share_link: '레시피 링크 복사(공유)',
 };
-const TL_AI: Record<string, string> = { chat: '챗봇', vision: '사진 인식', plan: 'AI 식단' };
+const TL_AI: Record<string, string> = { chat: '쿡 픽', coach: '쿡 코치', vision: '사진 인식', plan: '식단 짜기' };
 
 /** 한 줄 설명과 색 구분(kind): 화면/행동/팝업/AI/가입 */
 function describeEvent(e: any): { text: string; kind: 'screen' | 'act' | 'cta' | 'ai' | 'auth' | 'visit' } {
@@ -4181,8 +4182,8 @@ const Admin: React.FC = () => {
 
           {/* "사용량" 과 "토큰" 이 뭔지 매번 헷갈리므로 표 옆에 적어 둔다. */}
           <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7, padding: '0 4px 8px' }}>
-            <b>오늘 / 이번 주</b>는 <b>쓴 크레딧</b>이에요 — AI 챗봇 {policy?.credits?.chat ?? 1},
-            AI 사진 등록 {policy?.credits?.vision ?? 2}, AI 식단 짜기 {policy?.credits?.plan ?? 3}.
+            <b>오늘 / 이번 주</b>는 <b>쓴 크레딧</b>이에요 — 쿡 픽 {policy?.credits?.chat ?? 1}, 쿡 코치 {policy?.credits?.coach ?? 1},
+            AI 사진 등록 {policy?.credits?.vision ?? 2}, 식단 짜기 {policy?.credits?.plan ?? 3}.
             사용자에게 보이는 숫자가 이것이고, 막히는 것도 이 단위예요 —
             <b> 잔액</b>이 0이 되거나 그날 <b>하루 상한</b>만큼 썼으면 못 써요.
             <br />

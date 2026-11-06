@@ -450,14 +450,15 @@ export const UsageGauge: React.FC = () => {
         </svg>
       </button>
 
-      {/* 어디에 쓰이는지 **세 군데를 다 적는다.** 식단 짜기가 빠져 있어서,
+      {/* 어디에 쓰이는지 **네 군데를 다 적는다.** 식단 짜기가 빠져 있어서,
           크레딧이 줄어 있는데 왜 줄었는지 알 수 없는 경우가 생겼다.
           값은 서버가 정하는 것이라 서버가 준 값을 그대로 쓴다. */}
       <div style={{ display: detail ? 'flex' : 'none', flexWrap: 'wrap', gap: 6 }}>
         {[
           ['재료 담기', (usage.credits as any)?.vision ?? 2],
-          ['요리 AI', (usage.credits as any)?.chat ?? 1],
-          ['식단 짜기', (usage.credits as any)?.plan ?? 2],
+          ['쿡 픽', (usage.credits as any)?.chat ?? 1],
+          ['쿡 코치', (usage.credits as any)?.coach ?? 1],
+          ['식단 짜기', (usage.credits as any)?.plan ?? 3],
         ].map(([label, cost]) => (
           <span key={label as string} style={{
             fontSize: 11.5, padding: '4px 9px', borderRadius: 9999,

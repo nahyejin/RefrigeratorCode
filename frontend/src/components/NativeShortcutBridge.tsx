@@ -7,7 +7,7 @@ import { closeTopOnBack } from '../utils/closeOnBack';
 /**
  * 홈 화면 위젯·바로가기로 앱이 열렸을 때 갈 곳을 정한다 — 화면은 없다.
  *
- * 안드로이드 홈 화면의 쿡매치 위젯(3×1, 「재료 찍기」·「요리 AI」·「AI 식단」)은 사진을 직접 찍지 못한다(OS 제한: 위젯은
+ * 안드로이드 홈 화면의 쿡매치 위젯(3×1, 「재료 찍기」·「쿡 픽」·「식단 짜기」)은 사진을 직접 찍지 못한다(OS 제한: 위젯은
  * 그림과 버튼만 그릴 수 있다). 그래서 위젯은 `com.cookmatch.app://camera` 로 앱을 열고,
  * 그 주소를 여기서 받아 내 냉장고 화면의 카메라 시트를 바로 띄운다(`?camera=1`).
  *
@@ -66,7 +66,7 @@ const NativeShortcutBridge: React.FC = () => {
         return;
       }
       if (host === CHAT_URL_HOST) {
-        // 요리 AI 위젯은 앱 어디서 열리든 그 자리에서 대화창만 띄운다(RecipeChatWidget 이 전역).
+        // 쿡 픽 위젯은 앱 어디서 열리든 그 자리에서 대화창만 띄운다(RecipeChatWidget 이 전역).
         window.dispatchEvent(new CustomEvent('cookmatch-open-chat'));
       }
     };
@@ -86,7 +86,7 @@ const NativeShortcutBridge: React.FC = () => {
     let removeBack: (() => void) | null = null;
     if (Capacitor.getPlatform() === 'android') {
       App.addListener('backButton', () => {
-        // 열려 있는 창(시트·확인창·요리 AI 대화창)이 있으면 그것부터 닫는다
+        // 열려 있는 창(시트·확인창·쿡 픽 대화창)이 있으면 그것부터 닫는다
         if (closeTopOnBack()) return;
         const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
         if (idx > 0) window.history.back();

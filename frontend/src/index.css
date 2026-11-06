@@ -735,13 +735,19 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   color: #9A9AA2;
 }
 /* 어두운 쿡 코치 카드 안의 입력칸 */
-.ai-chat-input.ai-chat-input-dark {
-  background: #2B2B31;
+/* 위쪽 전역 `input { background:#FFF !important; color:#1A1A1E !important }`(로그인 파란 배경 차단용)이 이 입력칸을 흰 바탕+짙은 글씨로
+   덮어, 안내 문구(반투명 흰색)가 흰 바탕에 묻혀 안 보였다(2026-11-06). 같은 `!important` 에서는 구체성이 높은 쪽이 이기므로
+   여기도 `!important` 로 둔다. 자동완성 파란 배경 차단은 그대로 유효하다(이 칸은 자동완성 대상이 아니다). */
+.ai-chat-input.ai-chat-input-dark,
+.ai-chat-input.ai-chat-input-dark:focus,
+.ai-chat-input.ai-chat-input-dark:active {
+  background: #2B2B31 !important;
+  background-color: #2B2B31 !important;
   border-color: rgba(255,255,255,0.12);
-  color: #FFFFFF;
+  color: #FFFFFF !important;
 }
 .ai-chat-input.ai-chat-input-dark::placeholder { color: rgba(255,255,255,0.5); }
-.ai-chat-input.ai-chat-input-dark:disabled { background: #232327; color: rgba(255,255,255,0.4); }
+.ai-chat-input.ai-chat-input-dark:disabled { background: #232327 !important; color: rgba(255,255,255,0.4) !important; }
 
 /* 패널 헤더 / 답변 말풍선의 AI 아바타 (FAB와 동일한 평평한 노란 원 + ✦) */
 .ai-avatar-mark {

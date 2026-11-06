@@ -10,7 +10,6 @@ import { UtensilsIcon } from './ui/Icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
-import CloseButton from './ui/CloseButton';
 import { useCloseOnBack } from '../utils/closeOnBack';
 import { openCookMode, subscribeCookMode } from '../utils/cookMode';
 import { getPageContext } from '../utils/pageContext';
@@ -355,7 +354,7 @@ const RecipeChatWidget: React.FC = () => {
     }
   }, [open, view]);
 
-  // 홈 화면 위젯의 「AI 챗봇」 버튼 → NativeShortcutBridge 가 이 이벤트를 쏜다.
+  // 홈 화면 위젯의 「쿡 픽」 버튼 → NativeShortcutBridge 가 이 이벤트를 쏜다.
   // (훅이라 아래 `if (hideOnAuth) return null` 보다 위에 있어야 한다 — 아래 있으면 로그인 화면을 드나들 때
   //  훅 개수가 바뀌어 React 오류가 난다.)
   // 이 컴포넌트는 AppRouter 에 한 번만 심겨 앱 어디서나 떠 있으므로, 화면을 옮기지 않고 열기만 하면 된다.
@@ -506,10 +505,12 @@ const RecipeChatWidget: React.FC = () => {
   };
 
   const keyboardOpen = !!viewportInfo && viewportInfo.keyboardInset > 60;
-  const panelBottom = keyboardOpen ? viewportInfo!.keyboardInset + 8 : 76;
+  // 거의 전체 높이(2026-11-06 「창이 너무 작다, 핸드폰으로 본다」): 아래는 하단 메뉴 자리까지 내려오고 위·아래 여백만 남긴다.
+  // 열려 있는 동안 떠 있는 알약은 숨고, 접는 길은 머리줄의 ⌄ · 바깥 어두운 곳 · 휴대폰 뒤로가기다.
+  const panelBottom = keyboardOpen ? viewportInfo!.keyboardInset + 8 : 12;
   const panelHeight = viewportInfo
-    ? Math.min(Math.max(320, viewportInfo.height - panelBottom - 16), 640)
-    : 'min(80dvh, 640px)';
+    ? Math.min(Math.max(320, viewportInfo.height - panelBottom - 24), 760)
+    : 'min(calc(100dvh - 36px), 760px)';
 
   return (
     <>
@@ -581,7 +582,20 @@ const RecipeChatWidget: React.FC = () => {
                   { label: '새 대화', onClick: startNewThread },
                 ]}
               />
-              <CloseButton onClick={() => setOpen(false)} absolute={false} />
+              {/* 닫기(×)가 아니라 **접기(⌄)** — 접어도 대화는 그대로이고 쿡 코치와 같은 모양이다. */}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="접기"
+                style={{
+                  width: 36, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+                  color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M6 9.5l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
           </header>
 
@@ -793,7 +807,7 @@ const RecipeChatWidget: React.FC = () => {
 
               {loading && (
                 /* **기다림은 앱 안에서 한 모양이어야 한다.**
-                   AI 식단·사진 인식이 쓰는 `StepLoading` 을 그대로 쓴다.
+                   식단 짜기·사진 인식이 쓰는 `StepLoading` 을 그대로 쓴다.
                    점 세 개짜리 한 줄이었는데, 챗봇이 이제 LLM 을 두 번 부르므로
                    (검색어 뽑기 → 후보 중에서 고르기) 그만큼 더 기다린다.
                    무슨 일이 일어나는 중인지 보이지 않으면 멈춘 것처럼 읽힌다. */
@@ -823,7 +837,7 @@ const RecipeChatWidget: React.FC = () => {
 
           {view === 'chat' && (
             <>
-            {/* **한 대화에 한 번만 묻는다**(2026-11-06) — AI 식단 추천과 같은 규칙. 이어서 또 물으면 위의 답이 어느 질문에
+            {/* **한 대화에 한 번만 묻는다**(2026-11-06) — 식단 짜기와 같은 규칙. 이어서 또 물으면 위의 답이 어느 질문에
                 대한 것인지 흐려지고, 크레딧이 언제 나갔는지도 헷갈린다. 다시 물으려면 `새 대화` 이고 앞의 것은 지난 대화로 남는다. */}
             {answered ? (
               <div style={{ padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))', background: '#F5F5F7' }}>

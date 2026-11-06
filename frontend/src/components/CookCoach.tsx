@@ -43,7 +43,6 @@ const FAB_RIGHT = 'max(16px, calc((100vw - 460px) / 2 + 16px))';
  *  같은 층끼리는 나중에 그려진 것이 위라서, 아래 JSX 에서 **어둡게 누르는 판 → 카드 → 버튼** 순서로 둔다. */
 const LAYER = 'var(--z-modal)' as unknown as number;
 /** `Sheet` 위쪽의 손잡이(26) + 제목줄(52). 카드 윗변을 이 아래에 맞춘다. */
-const SHEET_TITLE_H = 78;
 /** 어두운 카드의 색 */
 const INK = '#1A1A1E';
 const SURFACE2 = '#2B2B31';
@@ -77,29 +76,6 @@ const CookCoach: React.FC<{
   const [error, setError] = React.useState('');
   const endRef = React.useRef<HTMLDivElement>(null);
 
-  // 카드 윗변 = 레시피 창 제목줄 바로 아래. 창이 올라오는 애니메이션이 끝난 뒤에도 다시 잰다.
-  const [top, setTop] = React.useState<number | null>(null);
-  React.useEffect(() => {
-    if (!open) return;
-    const measure = () => {
-      const r = anchor?.current?.getBoundingClientRect();
-      // 창이 아직 올라오는 중이거나 화면 크기가 막 바뀐 순간에는 윗변이 화면 밖으로 잡힌다 — 그때 값은 쓰지 않는다.
-      setTop(r && r.top + SHEET_TITLE_H < window.innerHeight - 220 ? Math.round(r.top + SHEET_TITLE_H) : null);
-    };
-    measure();
-    const timers = [120, 300, 800].map(ms => window.setTimeout(measure, ms));
-    window.addEventListener('resize', measure);
-    // 레시피 창의 크기나 위치가 바뀌면(내용 불러오기·화면 회전) 다시 잰다.
-    const el = anchor?.current;
-    const ro = el && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
-    if (el && ro) ro.observe(el);
-    return () => {
-      timers.forEach(t => window.clearTimeout(t));
-      window.removeEventListener('resize', measure);
-      ro?.disconnect();
-    };
-  }, [open, anchor]);
-
   // 모바일 키보드가 뜨면 보이는 화면이 줄어든다 — 카드가 키보드 뒤로 잘리지 않게 실제 보이는 높이를 따라간다(쿡 픽과 같은 방식).
   const [vv, setVv] = React.useState<{ keyboard: number } | null>(null);
   React.useEffect(() => {
@@ -113,7 +89,8 @@ const CookCoach: React.FC<{
     return () => { v.removeEventListener('resize', update); v.removeEventListener('scroll', update); };
   }, [open]);
   const keyboardOpen = !!vv && vv.keyboard > 60;
-  const cardBottom = keyboardOpen ? vv!.keyboard + 8 : 92;
+  // 카드가 화면 아래(하단 메뉴 자리)까지 내려온다 — 세로로 더 길게(2026-11-06 「GNB 영역을 살짝 가릴 정도로」). 열려 있는 동안은 아래 알약을 숨긴다.
+  const cardBottom = keyboardOpen ? vv!.keyboard + 8 : 12;
 
   // 다른 요리로 바뀌면 대화를 비운다(요리 한 건 전용이라 이어 갈 맥락이 없다).
   React.useEffect(() => {
@@ -178,8 +155,9 @@ const CookCoach: React.FC<{
           aria-hidden
           onClick={() => setOpen(false)}
           style={{
-            position: 'fixed', left: 0, right: 0, bottom: 0, top: top ?? 0,
-            background: 'rgba(0,0,0,0.34)', zIndex: LAYER, animation: 'sheet-fade 0.18s ease-out',
+            // 화면 **전체**를 덮는다(레시피 창 제목줄까지) — 카드 윗변부터만 덮었더니 제목줄이 그대로 밝아 딤이 안 느껴졌다.
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.55)', zIndex: LAYER, animation: 'sheet-fade 0.18s ease-out',
           }}
         />
       )}
@@ -190,7 +168,8 @@ const CookCoach: React.FC<{
           aria-label="쿡 코치"
           style={{
             position: 'fixed', left: 12, right: 12, margin: '0 auto', maxWidth: 420, zIndex: LAYER,
-            top: top ?? '22dvh',
+            // 거의 전체 높이(2026-11-06 「창이 너무 작다, 핸드폰으로 본다」) — 위·아래 여백만 남겨 뒤 화면이 딤으로 보이게 한다.
+            top: 'calc(env(safe-area-inset-top, 0px) + 10px)', maxHeight: 760,
             bottom: keyboardOpen ? cardBottom : `calc(${cardBottom}px + env(safe-area-inset-bottom, 0px))`,
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             background: INK, color: '#FFFFFF', borderRadius: 22,
@@ -343,7 +322,7 @@ const CookCoach: React.FC<{
 
       {/* ── 우하단 떠 있는 버튼 ───────────────────────────────
           버튼이 `overflow: hidden`(스쳐 가는 빛줄기를 가두려고)이라 AI 배지·횟수 표시는 **버튼 밖** 형제로 둔다. */}
-      {!(open && keyboardOpen) && (
+      {!open && (
         <div style={{
           position: 'fixed', right: FAB_RIGHT, bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
           zIndex: LAYER,

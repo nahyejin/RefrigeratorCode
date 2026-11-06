@@ -38,7 +38,7 @@
                 <data android:scheme="com.cookmatch.app" android:host="camera" />
             </intent-filter>
 
-            <!-- 위젯의 「요리 AI」 버튼 -->
+            <!-- 위젯의 「쿡 픽」 버튼 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -46,7 +46,7 @@
                 <data android:scheme="com.cookmatch.app" android:host="chat" />
             </intent-filter>
 
-            <!-- 위젯의 「AI 식단」 버튼 -->
+            <!-- 위젯의 「식단 짜기」 버튼 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -64,7 +64,7 @@
 
         </activity>
 
-        <!-- 홈 화면 위젯 3×1 — 재료 찍기 / 요리 AI / AI 식단 -->
+        <!-- 홈 화면 위젯 3×1 — 재료 찍기 / 쿡 픽 / 식단 짜기 -->
         <receiver
             android:name=".QuickWidgetProvider"
             android:label="@string/widget_quick_label"
@@ -77,7 +77,7 @@
                 android:resource="@xml/quick_widget_info" />
         </receiver>
 
-        <!-- 홈 화면 위젯 2×2(정사각형) — 같은 셋, 윗줄에 요리 AI 를 크게 -->
+        <!-- 홈 화면 위젯 2×2(정사각형) — 같은 셋, 윗줄에 쿡 픽을 크게 -->
         <receiver
             android:name=".QuickWidgetSquareProvider"
             android:label="@string/widget_quick_square_label"

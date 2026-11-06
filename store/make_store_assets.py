@@ -227,7 +227,7 @@ def _feature_graphic(icon, variant):
             t = x / W
             dp.line([(x, 0), (x, H)], fill=tuple(int(BRAND_LIGHT[i] + (BRAND[i] - BRAND_LIGHT[i]) * t) for i in range(3)) + (255,))
 
-    # 오른쪽: 실제 앱 화면(뒤 = 챗봇, 앞 = AI 식단)
+    # 오른쪽: 실제 앱 화면(뒤 = 쿡 픽, 앞 = 식단 짜기)
     _paste_card(img, _phone_card(load_frame("chat"), 228, 560, 26), 596, 70, 7, 0.55 if dark else 0.35)
     _paste_card(img, _phone_card(load_frame("diet"), 240, 560, 26), 770, 44, -5, 0.6 if dark else 0.4)
 
@@ -251,7 +251,7 @@ def _feature_graphic(icon, variant):
         d.rounded_rectangle([54, 246, 70 + tw, 312], radius=14, fill=(255, 255, 255, 235))
     d.text((62, 240), line2, font=hf, fill=key_c)
 
-    d.text((64, 350), "AI 식단 · 사진 한 장 재료 등록 · 요리 챗봇", font=font(23, 600), fill=sub_c)
+    d.text((64, 350), "식단 짜기 · 사진 한 장 재료 등록 · 쿡 픽", font=font(23, 600), fill=sub_c)
     return img.convert("RGB")
 
 
@@ -324,7 +324,7 @@ INSETS = {
 # 보여줄지(원본 높이 대비 비율, 상태바 자른 뒤 기준) — 핵심 UI가 잘리지 않게 편마다 맞춤.
 # badge="sound": 폰 화면 가운데에 소리 표시(요리 모드).
 SLIDES = [
-    dict(key="diet", band="k", ai=True, eyebrow="AI 식단 추천",
+    dict(key="diet", band="k", ai=True, eyebrow="식단 짜기",
          headline="말 한마디로\n일주일 식단 완성", sub="냉장고 재료로 먼저 채워서, 장보기는 최소한만", focus=0.0),
     dict(key="chat", band="k", ai=True, eyebrow="요리 챗봇",
          headline="검색 말고,\n그냥 물어보세요", sub="내 재료·취향까지 반영해서 골라드려요", focus=0.0),
