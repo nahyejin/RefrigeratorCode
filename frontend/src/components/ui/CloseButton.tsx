@@ -11,11 +11,6 @@ interface CloseButtonProps {
    * 카드 위에서는 이 버튼만 하얗게 튀어 보인다는 지적을 받아 추가했다.
    */
   dark?: boolean;
-  /**
-   * `down` — × 대신 ⌄. **닫는 게 아니라 내리는** 시트(대화가 남아 있는 쿡 코치 시트)에 쓴다.
-   * ×는 「닫으면 없어진다」로 읽히기 때문이다(2026-11-06).
-   */
-  kind?: 'x' | 'down';
 }
 
 /**
@@ -25,7 +20,7 @@ interface CloseButtonProps {
  * 달라지고 얇아서 잘 보이지 않았다. 위치도 팝업마다 제각각이었다.
  * → 44px 터치 영역 + 연한 회색 원형 배경 + 굵은 SVG 선으로 통일한다.
  */
-const CloseButton: React.FC<CloseButtonProps> = ({ onClick, absolute = true, style, dark = false, kind = 'x' }) => {
+const CloseButton: React.FC<CloseButtonProps> = ({ onClick, absolute = true, style, dark = false }) => {
   // 밝은 바탕에서는 **상자 없이 × 만**(2026-11-06). 제목 옆에 회색 상자가 붙어 있으면 제목 줄이 무겁고,
   // 닫기는 늘 거기 있는 것이라 눈에 띌 필요가 없다. 마우스를 올렸을 때만 옅은 판이 보인다.
   const baseBg = dark ? 'rgba(255,255,255,0.12)' : 'transparent';
@@ -35,7 +30,7 @@ const CloseButton: React.FC<CloseButtonProps> = ({ onClick, absolute = true, sty
   return (
     <button
       type="button"
-      aria-label={kind === 'down' ? '내리기' : '닫기'}
+      aria-label="닫기"
       onClick={onClick}
       style={{
         ...(absolute ? { position: 'absolute', top: 10, right: 10 } : {}),
@@ -75,9 +70,7 @@ const CloseButton: React.FC<CloseButtonProps> = ({ onClick, absolute = true, sty
       aria-hidden
       style={{ width: 20, height: 20, flexShrink: 0, display: 'block' }}
     >
-      {kind === 'down'
-        ? <path d="M6 9.5l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        : <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />}
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
     </button>
   );

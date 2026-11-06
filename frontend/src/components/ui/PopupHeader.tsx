@@ -8,8 +8,6 @@ interface PopupHeaderProps {
   leading?: React.ReactNode;
   /** 아래 구분선 표시 */
   divider?: boolean;
-  /** 우측 버튼 모양. `down` 이면 × 대신 ⌄(내리기). */
-  closeKind?: 'x' | 'down';
 }
 
 /**
@@ -21,7 +19,7 @@ interface PopupHeaderProps {
  * 팝업을 옮겨 다닐 때 제목 줄이 위아래로 튀어 보이는 원인이었다.
  * → 높이 52px, 제목 17px/700 으로 고정한다.
  */
-const PopupHeader: React.FC<PopupHeaderProps> = ({ title, onClose, leading, divider = true, closeKind = 'x' }) => (
+const PopupHeader: React.FC<PopupHeaderProps> = ({ title, onClose, leading, divider = true }) => (
   <div
     style={{
       position: 'relative',
@@ -52,7 +50,7 @@ const PopupHeader: React.FC<PopupHeaderProps> = ({ title, onClose, leading, divi
     >
       {title}
     </div>
-    {onClose && <CloseButton onClick={onClose} kind={closeKind} style={{ top: 8, right: 8 }} />}
+    {onClose && <CloseButton onClick={onClose} style={{ top: 8, right: 8 }} />}
   </div>
 );
 

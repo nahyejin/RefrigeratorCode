@@ -2744,11 +2744,8 @@ const MyFridge: React.FC = () => {
                 실제 인식 기능이 들어오기 전까진 어차피 준비 중 안내만 뜨는 자리였다.
                 버튼 하나로 모으고, 눌렀을 때 "뭘 찍을지" 먼저 고르게 한다
                 (CameraCaptureSheet). */}
-            {/* AI 인식 예정 영역임을 챗봇 FAB과 같은 시각 언어(노란 셰이머 애니메이션 +
-                "AI" 배지)로 알려준다 — 같은 앱 안에서 "AI가 관여하는 자리" 는
-                항상 같은 방식으로 표시되도록. */}
+            {/* AI 인식 자리임을 평평한 노랑 + "AI" 배지로 알려준다(2026-11-06 AI 표식을 평평한 한 색으로 바꿀 때 광택·후광은 걷어냈다). */}
             <div style={{ position: 'relative', width: 40, height: 40, flexShrink: 0, alignSelf: 'flex-start' }}>
-              <div className="ai-fab-glow" />
               <button
                 type="button"
                 className="ai-fab-button"

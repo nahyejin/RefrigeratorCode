@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CalendarMark } from './ui/AiMarks';
 
 /**
  * 「식단 짜기」 버튼 하나.
@@ -25,14 +26,23 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
           // height 가 아니라 minHeight — 글자 크기를 키운 폰에서 글자가 잘리지 않게(2026-10-09).
           width: '100%', minHeight: 52, borderRadius: 12, cursor: 'pointer', border: 'none',
           background: '#FFD600', color: '#1A1A1E',
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+          display: 'flex', alignItems: 'center', gap: 10,
           // `<button>` 은 기본이 가운데 정렬 — 두 줄이 서로 가운데로 맞춰져 들여쓴 것처럼 보이던 문제.
-          textAlign: 'left', justifyContent: 'center', gap: 2, padding: '6px 14px',
+          textAlign: 'left', padding: '8px 14px',
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>식단 짜기</span>
-        <span style={{ fontSize: 11, color: 'rgba(26,26,30,0.7)', wordBreak: 'keep-all' }}>
-          장보기가 가장 적은 일주일 · 조건을 말하면 AI가 맞춰요
+        {/* 달력 안의 반짝임(✦) — 「식단 짜기」의 AI 표식. 평평한 노랑 위의 검정 동그라미에 노랑으로(2026-11-06 시안 A). */}
+        <span style={{
+          width: 32, height: 32, borderRadius: '50%', background: '#1A1A1E', flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <CalendarMark size={20} />
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>식단 짜기</span>
+          <span style={{ fontSize: 11, color: 'rgba(26,26,30,0.7)', wordBreak: 'keep-all' }}>
+            장보기가 가장 적은 일주일 · 조건을 말하면 AI가 맞춰요
+          </span>
         </span>
       </button>
     </div>

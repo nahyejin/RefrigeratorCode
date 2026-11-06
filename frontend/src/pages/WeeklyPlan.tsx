@@ -866,7 +866,7 @@ const WeeklyPlan: React.FC = () => {
           onClick={runPlan}
           style={{
             width: '100%', minHeight: 44, marginTop: 12, borderRadius: 22, border: 'none', cursor: 'pointer',
-            background: '#1A1A1E', color: '#FFD600', fontSize: 13.5, fontWeight: 700,
+            background: '#FFD600', color: '#1A1A1E', fontSize: 13.5, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >
@@ -888,11 +888,10 @@ const WeeklyPlan: React.FC = () => {
         onClick={runPlan}
         style={{
           width: '100%', minHeight: 48, borderRadius: 24, border: 'none', cursor: 'pointer',
-          background: hasWish && !noStock ? '#1A1A1E' : '#FFD600',
-          color: hasWish && !noStock ? '#FFD600' : '#1A1A1E',
+          // 시안 A(2026-11-06): 둘 다 평평한 노랑이고, AI 인 쪽은 ✦ 와 크레딧 글자로 갈린다.
+          background: '#FFD600', color: '#1A1A1E',
           fontSize: 14.5, fontWeight: 700,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          transition: 'background .18s ease, color .18s ease',
         }}
       >
         {hasWish && !noStock ? (<><Spark size={15} />조건에 맞춰 짜기 · {planCost} 크레딧</>) : '식단 짜기'}
@@ -1116,6 +1115,32 @@ const WeeklyPlan: React.FC = () => {
 
             {/* 하루 **한 줄**(2026-11-06). */}
             {planRows()}
+
+            {/* 무료로 짠 결과를 본 **직후**가 AI 를 권하기 가장 좋은 순간이다 — 조건을 말하면 다시 맞춰 준다는 걸 여기서 알린다.
+                누르면 조건 칸으로 데려간다(크레딧은 거기서 짜기를 누를 때 나간다). */}
+            {!aiNote && (
+              <button
+                type="button"
+                onClick={() => {
+                  aiBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  window.setTimeout(() => wishInput.current?.focus(), 350);
+                }}
+                style={{
+                  width: '100%', marginTop: 10, minHeight: 46, borderRadius: 12,
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                  flexWrap: 'wrap', padding: '8px 14px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <span style={{ display: 'inline-flex', color: '#1A1A1E' }}><Spark size={15} /></span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>아이·다이어트 같은 조건이 있나요?</span>
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--ink-500)', marginLeft: 'auto' }}>
+                  AI가 다시 맞춰요 · {planCost} 크레딧 ›
+                </span>
+              </button>
+            )}
 
             {/* 「이걸 하려면 장보기 N개 · 장보기 목록으로 보기」 박스는 뺐다(2026-10-10 요청 — AI 식단 화면에서 이미 뺀 것과
                 맞춤). 장보기 목록은 아래 한 곳에만 있다. */}

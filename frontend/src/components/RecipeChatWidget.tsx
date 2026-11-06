@@ -6,7 +6,7 @@ import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import KebabMenu from './ui/KebabMenu';
 import VoiceInputButton from './ui/VoiceInputButton';
-import { PotMark } from './ui/AiMarks';
+import { SparkMark } from './ui/AiMarks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -535,7 +535,7 @@ const RecipeChatWidget: React.FC = () => {
                     className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                     style={{ width: 36, height: 36 }}
                   >
-                    <PotMark size={22} />
+                    <SparkMark size={22} />
                   </div>
                   <div className="min-w-0">
                     {/* 설명 문구는 본문 인트로와 중복되고 좁은 화면에서 말줄임되어 제거 */}
@@ -547,7 +547,7 @@ const RecipeChatWidget: React.FC = () => {
                         color: '#1A1A1E',
                       }}
                     >
-                      뭐 먹지
+                      쿡 픽
                     </p>
                     {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다.
                         헤더는 폭이 좁아 compact — 한 줄로 끝나는 것만 보여준다. */}
@@ -654,7 +654,7 @@ const RecipeChatWidget: React.FC = () => {
                       className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                       style={{ width: 26, height: 26, marginTop: 1 }}
                     >
-                      <PotMark size={17} />
+                      <SparkMark size={17} />
                     </div>
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
@@ -863,17 +863,14 @@ const RecipeChatWidget: React.FC = () => {
 
       {!open && !cookOpen && (
         <div className="ai-fab-outer" data-guide-target="chat-fab">
-          <div className="ai-fab-glow" />
           <button
             type="button"
-            aria-label="뭐 먹지 열기"
+            aria-label="쿡 픽 열기"
             className="ai-fab-button"
             onClick={openWidget}
           >
-            <PotMark size={30} />
+            <SparkMark size={30} />
           </button>
-          <span className="ai-fab-badge">AI</span>
-          
         </div>
       )}
     </>

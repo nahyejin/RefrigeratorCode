@@ -485,10 +485,7 @@ const CookModeSheet: React.FC<Props> = ({
   return (
     <>
     <Sheet open={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
-           title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh"
-           // 맨 아래에 요리 한 건 전용 도우미 「쿡 코치」 한 줄(2026-11-06). 재료·순서가 뜬 레시피에만 둔다.
-           hideFooter={!(data && recipeId != null)}
-           footer={recipeId != null ? <CookCoach recipeId={recipeId} /> : undefined}>
+           title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter>
       {/* 즐겨찾기·완료·기록·공유 — 일반 레시피 카드에 있는 것과 같은 네 버튼.
           시트 헤더(제목 + 닫기 ×)는 공용 컴포넌트라 손대지 않고, 본문 맨 위
           우측에 같은 자리를 만든다. */}
@@ -848,9 +845,14 @@ const CookModeSheet: React.FC<Props> = ({
               <><br />출처 · {data.author || platformLabel(data.platform)}</>
             )}
           </div>
+          {/* 우하단에 떠 있는 쿡 코치 버튼이 마지막 줄을 가리지 않게 비워 둔다. */}
+          <div aria-hidden style={{ height: 56 }} />
         </div>
       )}
     </Sheet>
+    {/* 요리 한 건 전용 도우미 「쿡 코치」(2026-11-06) — 우하단 떠 있는 버튼 → 대화 카드. 재료·순서가 뜬 레시피에만 두고,
+        레시피 창을 닫으면 사라져 대화도 지워진다. */}
+    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} />}
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}
     {toast && <Toast message={toast} />}
