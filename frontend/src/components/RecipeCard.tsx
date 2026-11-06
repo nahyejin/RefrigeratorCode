@@ -787,7 +787,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 /{usedIngredientList.length}
               </b>
               {!browse && ` (${match.rate}%)`}
-              {substitutedCount > 0 && ` · 대체 ${substitutedCount}`}
+              {substitutedCount > 0 && ` · 대체 가능 ${substitutedCount}`}
               {recipe.comments ? ` · 댓글 ${recipe.comments}` : ''}
             </>
           ) : (

@@ -102,7 +102,7 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
   ];
 
   const fav = !!recipeActionState?.favorite;
-  const tag = substituted > 0 ? { text: `대체 ${substituted}`, soft: true } : used.length > 0 ? { text: `재료 ${used.length}개`, soft: false } : null;
+  const tag = substituted > 0 ? { text: `대체 가능 ${substituted}`, soft: true } : used.length > 0 ? { text: `재료 ${used.length}개`, soft: false } : null;
 
   return (
     <div

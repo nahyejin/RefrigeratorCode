@@ -20,34 +20,27 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
       {/* 사용 가이드 13단계가 이 버튼을 가리킨다.
           AI 가 들어 있는 입구라 **빛줄기 애니메이션(`ai-action`)과 「AI」 배지**를 단다(2026-11-06). 누르는 순간 크레딧이 나가는 건 아니고
           (조건을 적고 짜기를 눌러야 나간다) 그 말은 아래 작은 글씨가 한다. 배지는 버튼(`overflow: hidden`) 밖 형제로 둔다. */}
-      <span style={{ position: 'relative', display: 'block' }} data-guide-target="weekly-ai-plan-button">
-      <button
-        type="button"
-        className="ai-action"
-        onClick={() => { onBeforeGo?.(); navigate('/plan'); }}
-        style={{
-          // height 가 아니라 minHeight — 글자 크기를 키운 폰에서 글자가 잘리지 않게(2026-10-09).
-          width: '100%', minHeight: 52, borderRadius: 12, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 10,
-          // `<button>` 은 기본이 가운데 정렬 — 두 줄이 서로 가운데로 맞춰져 들여쓴 것처럼 보이던 문제.
-          textAlign: 'left', padding: '8px 14px',
-        }}
-      >
-        {/* 달력 안의 반짝임(✦) — 「식단 짜기」의 AI 표식. 평평한 노랑 위의 검정 동그라미에 노랑으로(2026-11-06 시안 A). */}
-        <span style={{
-          width: 32, height: 32, borderRadius: '50%', background: '#1A1A1E', flexShrink: 0,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <CalendarCheckIcon size={18} strokeWidth={2.1} style={{ color: '#FFD600' }} />
+      <span style={{ display: 'block' }} data-guide-target="weekly-ai-plan-button">
+        {/* 쿡 코치 입구(레시피 창 위쪽)와 **같은 디자인**(2026-11-07 「그 형식대로 식단 짜기도」): 검정 가로 알약 + 숨 쉬듯 커졌다 작아지는
+            움직임 + 스쳐 가는 빛줄기(`ai-fab-pill k`) + 이름 옆 「✦AI」 + 한 줄 설명. 누른다고 크레딧이 나가는 건 아니다 — 조건을 적고
+            짜기를 눌러야 나가므로 그 말은 아래 작은 글씨가 한다. */}
+        <button
+          type="button"
+          className="ai-fab-pill k"
+          onClick={() => { onBeforeGo?.(); navigate('/plan'); }}
+          style={{ width: '100%', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 700 }}
+        >
+          <CalendarCheckIcon size={18} />
+          <span>식단 짜기</span>
+          <span className="ai-tag" style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
+            background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
+          }}>AI</span>
+          <span style={{ fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.78)' }}>장보기가 가장 적은 일주일</span>
+        </button>
+        <span style={{ display: 'block', marginTop: 6, textAlign: 'center', fontSize: 11.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
+          무료예요 · 조건을 말하면 AI가 맞춰요
         </span>
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>식단 짜기</span>
-          <span style={{ fontSize: 11, color: 'rgba(26,26,30,0.7)', wordBreak: 'keep-all' }}>
-            장보기가 가장 적은 일주일 · 무료, 조건을 말하면 AI가 맞춰요
-          </span>
-        </span>
-      </button>
-      <span className="ai-fab-badge">AI</span>
       </span>
     </div>
   );
