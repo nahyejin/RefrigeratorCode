@@ -368,6 +368,17 @@ JSON 만 답해라:
         return None
 
 
+# **순서를 세울 때만** 양념으로 취급하는 이름들. 앱의 조미료 사전(`_load_seasoning_set`)은 매칭률 가중치용이라 소금·간장·후추
+# 같은 것만 담고 있고, 된장·고추장·고춧가루 같은 장류·가루는 「식재료」로 분류돼 있다(그 요리의 주재료일 수 있어서).
+# 그런데 이런 병·통은 구매일로 짐작한 유통기한이 짧게 잡히는 일이 있어, 그대로 두면 **양념이 급한 재료 맨 앞에 선다.**
+# 매칭 가중치는 건드리지 않고 순서에서만 뒤로 보낸다.
+_ORDER_AS_SEASONING = {
+    '된장', '고추장', '쌈장', '고춧가루', '고추기름', '참기름', '들기름', '식초', '굴소스', '액젓', '멸치액젓', '까나리액젓',
+    '맛술', '미림', '물엿', '올리고당', '꿀', '케첩', '마요네즈', '머스타드', '카레가루', '카레', '후춧가루', '다진마늘',
+    '참깨', '통깨', '깨', '쯔유', '국간장', '진간장', '양조간장', '소금', '설탕', '간장', '후추', '식용유', '올리브유',
+}
+
+
 def _prioritize_ingredients(ingredients, expiry_days):
     """냉장고 재료를 **쓸 순서**로 세운다: 유통기한 짧은 식재료 → 기한 모르는 식재료 → 조미료.
 
@@ -382,7 +393,7 @@ def _prioritize_ingredients(ingredients, expiry_days):
         if name in seen:
             continue
         seen.add(name)
-        if name in seasoning_set:
+        if name in seasoning_set or name in _ORDER_AS_SEASONING:
             seasoning.append(name)
         elif expiry_days.get(name) is not None:
             core.append(name)
