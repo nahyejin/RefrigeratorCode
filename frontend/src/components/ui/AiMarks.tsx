@@ -3,7 +3,7 @@ import * as React from 'react';
 /**
  * 앱의 AI 아이콘(2026-11-06 시안 A 확정: **평평한 한 색 + 반짝임 ✦**). 광택·빛 번짐·검정 스티커는 쓰지 않는다.
  *
- *   - `SparkMark` — 「쿡 픽」(밖에 떠 있는 추천 챗봇)과 AI 조건 칸·AI 버튼. 노란 바탕 위에 검정으로 쓴다.
+ *   - `PlateMark` — 「쿡 픽」(밖에 떠 있는 추천 챗봇). **접시 위에 ✦ 가 떠 있는** 그림. 노란 바탕 위에 검정으로 쓴다.
  *   - `HatMark` — 「쿡 코치」(요리 레시피 창 안의 요리 한 건 전용 도우미). 검정 바탕 위에 노랑으로 쓴다.
  *   - `CalendarMark` — 「식단 짜기」(달력 안에 ✦). 노란 버튼 위의 검정 동그라미 안에 노랑으로 쓴다.
  *
@@ -20,10 +20,32 @@ const base = (size: number, style?: React.CSSProperties): React.CSSProperties =>
   width: size, height: size, flexShrink: 0, display: 'block', ...style,
 });
 
-export const SparkMark: React.FC<MarkProps> = ({ size = 28, color = '#1A1A1E', style }) => (
+/** 네 꼭지 별(✦) 모양 길을 만든다. 중심 (cx, cy), 반지름 r. */
+const sparkPath = (cx: number, cy: number, r: number) => {
+  const p = (a: number, b: number) => `${(cx + a * r).toFixed(2)} ${(cy + b * r).toFixed(2)}`;
+  return `M${p(0, -1)}C${p(0.078, -0.417)} ${p(0.417, -0.078)} ${p(1, 0)}C${p(0.417, 0.078)} ${p(0.078, 0.417)} ${p(0, 1)}`
+    + `C${p(-0.078, 0.417)} ${p(-0.417, 0.078)} ${p(-1, 0)}C${p(-0.417, -0.078)} ${p(-0.078, -0.417)} ${p(0, -1)}Z`;
+};
+
+/**
+ * 쿡 픽 — **접시 위에 ✦**(2026-11-06 「쿡 픽도 ✦ 만 있지 말고 접시에 ✦ 를 붙여 아이콘을 따로 만들어 달라」).
+ * 위에서 내려다본 **식사 그림**: 둥근 접시(바깥 테두리 + 안쪽 면), 왼쪽 포크, 오른쪽 숟가락, 접시 한가운데 ✦ 하나.
+ * 접시만 그렸더니 검은 고리로 읽혔다 — 포크와 숟가락이 있어야 한눈에 「밥상」으로 읽힌다. ✦ 가 AI 표시.
+ * `color` 가 접시·식기·✦, `hole` 이 접시 안쪽 면(= 바탕색과 같게) — 노란 바탕 위에서는 (검정, 노랑).
+ */
+export const PlateMark: React.FC<MarkProps & { hole?: string }> = ({ size = 28, color = '#1A1A1E', hole = '#FFD600', style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={base(size, { color, ...style })}>
-    <path d="M11 5C11.5 9.6 14.4 12.5 19 13C14.4 13.5 11.5 16.4 11 21C10.5 16.4 7.6 13.5 3 13C7.6 12.5 10.5 9.6 11 5Z" fill="currentColor" />
-    <path d="M19 1.8C19.2 3.6 20.4 4.8 22.2 5C20.4 5.2 19.2 6.4 19 8.2C18.8 6.4 17.6 5.2 15.8 5C17.6 4.8 18.8 3.6 19 1.8Z" fill="currentColor" />
+    <circle cx="12" cy="12" r="6.2" fill="currentColor" />
+    <circle cx="12" cy="12" r="4.7" fill={hole} />
+    <path d={sparkPath(12, 12, 3.4)} fill="currentColor" />
+    {/* 포크 */}
+    <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.4 4.3v3a1.2 1.2 0 0 0 2.4 0v-3M3.6 4.3v6M3.6 8.5V19.8" />
+      {/* 숟가락 자루 */}
+      <path d="M20.4 10.2V19.8" />
+    </g>
+    {/* 숟가락 머리 */}
+    <ellipse cx="20.4" cy="7.2" rx="1.75" ry="2.7" fill="currentColor" />
   </svg>
 );
 

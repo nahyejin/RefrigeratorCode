@@ -6,7 +6,7 @@ import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import KebabMenu from './ui/KebabMenu';
 import VoiceInputButton from './ui/VoiceInputButton';
-import { SparkMark } from './ui/AiMarks';
+import { PlateMark } from './ui/AiMarks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -553,7 +553,7 @@ const RecipeChatWidget: React.FC = () => {
                     className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                     style={{ width: 28, height: 28 }}
                   >
-                    <SparkMark size={20} />
+                    <PlateMark size={22} />
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>쿡 픽</span>
                   <span style={{
@@ -663,7 +663,7 @@ const RecipeChatWidget: React.FC = () => {
                       className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                       style={{ width: 26, height: 26, marginTop: 1 }}
                     >
-                      <SparkMark size={17} />
+                      <PlateMark size={19} />
                     </div>
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
@@ -878,7 +878,7 @@ const RecipeChatWidget: React.FC = () => {
             className="ai-fab-button"
             onClick={openWidget}
           >
-            <SparkMark size={38} />
+            <PlateMark size={42} />
           </button>
           {/* AI 가 붙은 자리는 어디서나 같은 「AI」 배지(2026-11-06 사용자: 배지를 왜 없앴나 — AI 가 붙은 건 다 붙이기로 했다). */}
           <span className="ai-fab-badge">AI</span>
