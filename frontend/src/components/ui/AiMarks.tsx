@@ -38,19 +38,23 @@ export const CalendarMark: React.FC<MarkProps> = ({ size = 28, color = '#FFD600'
 );
 
 /**
- * 쿡 코치 — **통통한 요리사 모자**(2026-11-06). 선으로 그린 모자가 촌스럽고 버튼 안에서 너무 작아 보인다는 지적으로 다시 그렸다:
- * 둥근 세 덩이 + 몸통 + 한 줄 띠를 **꽉 찬 면**으로 칠하고, 몸통 한가운데에 ✦ 를 구멍(`hole`)으로 뚫었다. 버튼 안에서 크게 보이도록
- * 그림이 칸의 약 80% 를 채운다. `color` 가 모자, `hole` 이 ✦ — 검정 바탕 위에서는 (노랑, 검정), 노란 바탕 위에서는 (검정, 노랑).
+ * 쿡 코치 — **통통하고 귀여운 요리사 모자**(2026-11-06). 선으로 그린 모자가 촌스럽다는 지적 → 꽉 찬 면으로 칠했고, 버튼 안에서 작아
+ * 보인다는 지적 → 그림이 칸의 약 85% 를 채운다. 몸통에 **눈 둘과 작은 미소**를 얹어 귀엽게, **AI 표시(✦)는 모자 오른쪽 위에서 반짝**.
+ * `color` 가 모자·반짝임, `hole` 이 눈·미소 — 검정 바탕 위에서는 (흰색, 검정), 흰 바탕 위에서는 (검정, 흰색).
+ * (노랑을 아무 데나 쓰지 말라는 지적으로 기본색은 흰색이다.)
  */
-export const HatMark: React.FC<MarkProps & { hole?: string }> = ({ size = 28, color = '#FFD600', hole = '#1A1A1E', style }) => (
+export const HatMark: React.FC<MarkProps & { hole?: string }> = ({ size = 28, color = '#FFFFFF', hole = '#1A1A1E', style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={base(size, { color, ...style })}>
-    <g fill="currentColor">
+    <g transform="translate(-1.4 1)" fill="currentColor">
       <circle cx="7.2" cy="10.2" r="4.4" />
       <circle cx="12" cy="7.6" r="5.2" />
       <circle cx="16.8" cy="10.2" r="4.4" />
       <rect x="6.2" y="10" width="11.6" height="7.4" rx="1.6" />
       <rect x="5.6" y="18.3" width="12.8" height="3.1" rx="1.55" />
     </g>
-    <path d="M12 8.3C12.24 10.11 13.29 11.16 15.1 11.4C13.29 11.64 12.24 12.69 12 14.5C11.76 12.69 10.71 11.64 8.9 11.4C10.71 11.16 11.76 10.11 12 8.3Z" fill={hole} />
+    <circle cx="8.9" cy="14.6" r="1" fill={hole} />
+    <circle cx="12.3" cy="14.6" r="1" fill={hole} />
+    <path d="M9.7 16.6Q10.6 17.5 11.5 16.6" stroke={hole} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+    <path d="M20.2 2.4C20.37 3.68 21.12 4.43 22.4 4.6C21.12 4.77 20.37 5.52 20.2 6.8C20.03 5.52 19.28 4.77 18 4.6C19.28 4.43 20.03 3.68 20.2 2.4Z" fill="currentColor" />
   </svg>
 );

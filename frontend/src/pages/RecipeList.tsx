@@ -3,6 +3,7 @@ import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import FloatingScanLoader from '../components/FloatingScanLoader';
 import IngredientLegend from '../components/IngredientLegend';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import { setPageContext } from '../utils/pageContext';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import nodataImg from '../assets/nodata.png';
@@ -918,6 +919,28 @@ const RecipeList: React.FC = () => {
     categoryKeywords: selectedCategoryKeywords as unknown as Record<string, string[]>,
     expiryIngredients: appliedExpiryIngredients,
   }), [includeKeyword, sortType, matchRange, maxLack, selectedChannel, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients]);
+
+  // 쿡 픽(밖의 추천 챗봇)이 이 화면에 걸어 둔 조건을 읽도록 알린다(utils/pageContext, 2026-11-06). 검색어·정렬·매칭률·
+  // 부족 재료·임박 재료·포함/제외·채널·필터 — 사용자가 따로 말하지 않아도 쿡 픽이 이 조건을 기본으로 반영한다.
+  useEffect(() => {
+    const c = currentCondition;
+    const names = (v: unknown) => (Array.isArray(v) ? v.map(x => String((x as any)?.name ?? x)).filter(Boolean) : []);
+    const lines: string[] = [];
+    if (c.keyword) lines.push(`검색어: ${c.keyword}`);
+    const sortLabel: Record<string, string> = { match: '매칭률 높은 순', expiry: '임박 재료 우선', latest: '최신순' };
+    lines.push(`정렬: ${sortLabel[c.sortType] || c.sortType}`);
+    lines.push(`매칭률 ${c.matchRange[0]}~${c.matchRange[1]}%`);
+    if (c.maxLack !== 'unlimited') lines.push(`부족한 재료 ${c.maxLack}개 이하`);
+    if (names(c.expiryIngredients).length) lines.push(`임박 재료로 지정: ${names(c.expiryIngredients).join(', ')}`);
+    if (names(c.includeIngredients).length) lines.push(`꼭 넣을 재료: ${names(c.includeIngredients).join(', ')}`);
+    if (names(c.excludeIngredients).length) lines.push(`뺄 재료: ${names(c.excludeIngredients).join(', ')}`);
+    if (names(c.selectedChannel).length) lines.push(`채널: ${names(c.selectedChannel).join(', ')}`);
+    const picked: string[] = [];
+    Object.values(c.categoryKeywords || {}).forEach(v => { if (Array.isArray(v)) v.forEach(k => k && picked.push(String(k))); });
+    if (picked.length) lines.push(`선택한 필터: ${picked.slice(0, 10).join(', ')}`);
+    setPageContext({ page: 'recipe-list', lines });
+  }, [currentCondition]);
+  useEffect(() => () => setPageContext(null), []);
 
   /**
    * 「최근 검색조건」 기록 — 사용자가 조건을 바꾸고 1.2초 가만히 있으면 그 조건 묶음을 저장한다(매번 만질 때마다

@@ -617,8 +617,8 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
    **스쳐 가는 빛줄기와 느린 숨쉬기**를 얹는다. 색이 흐르는 그라데이션과 번지는 후광은 빼고(「촌스럽다」), 움직임은 남긴다
    (「애니메이션이 있어야 AI 라는 게 보인다」). 같은 시각 언어를 네모난 AI 버튼(`.ai-action`)도 쓴다. */
 @keyframes ai-fab-sheen {
-  0%        { transform: translateX(-180%) skewX(-18deg); }
-  55%, 100% { transform: translateX(420%) skewX(-18deg); }
+  0%   { transform: translateX(-220%) skewX(-18deg); }
+  100% { transform: translateX(480%) skewX(-18deg); }
 }
 @keyframes ai-fab-breathe {
   0%, 100% { transform: scale(1); }
@@ -648,11 +648,11 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   justify-content: center;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.16);
-  animation: ai-fab-breathe 2.8s ease-in-out infinite;
+  animation: ai-fab-breathe 2s ease-in-out infinite;
   transition: box-shadow 0.15s ease;
 }
 .ai-fab-button { background: #FFD600; color: #1A1A1E; }
-.ai-fab-coach { background: #1A1A1E; color: #FFD600; box-shadow: 0 4px 12px rgba(0,0,0,0.22); }
+.ai-fab-coach { background: #1A1A1E; color: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.22); }
 /* 스쳐 가는 빛줄기 */
 .ai-fab-button::after,
 .ai-fab-coach::after,
@@ -664,12 +664,13 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   width: 38%;
   height: 160%;
   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
-  animation: ai-fab-sheen 4.2s ease-in-out infinite;
+  /* 쉬는 구간 없이 계속 훑는다(2026-11-06 「애니메이션이 안 보일 때가 더 많다」 — 예전엔 4.2초 중 절반이 쉬는 시간이었다). */
+  animation: ai-fab-sheen 1.9s linear infinite;
   pointer-events: none;
 }
-/* 검정 버튼 위에서는 흰 줄기 대신 옅은 노랑 줄기 */
+/* 검정 버튼 위에서는 노란 줄기가 어색하다 — 옅은 흰 줄기 */
 .ai-fab-coach::after {
-  background: linear-gradient(90deg, rgba(255,214,0,0) 0%, rgba(255,214,0,0.38) 50%, rgba(255,214,0,0) 100%);
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.32) 50%, rgba(255,255,255,0) 100%);
 }
 /* 아이콘은 빛줄기 위로 */
 .ai-fab-button > svg,

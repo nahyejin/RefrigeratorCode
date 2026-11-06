@@ -13,6 +13,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import CloseButton from './ui/CloseButton';
 import { useCloseOnBack } from '../utils/closeOnBack';
 import { openCookMode, subscribeCookMode } from '../utils/cookMode';
+import { getPageContext } from '../utils/pageContext';
 
 const API_BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
@@ -245,15 +246,12 @@ const RecipeChatWidget: React.FC = () => {
     };
   }, [open]);
 
-  const hideOnAuth =
-    location.pathname.startsWith('/login') ||
-    location.pathname.startsWith('/signup') ||
-    location.pathname.startsWith('/find-email') ||
-    location.pathname.startsWith('/reset-password') ||
-    location.pathname.startsWith('/auth') ||
-    // 식단 추천(/plan)은 AI 화면이면 그 자체가 채팅 화면이라 버튼까지 띄우면 입력창을 가리고, 일반 화면이면
-    // 결과 목록의 「빼기」「다른 요리로」 버튼 위에 떠서 가린다(2026-11-06). 두 화면 모두 숨긴다.
-    location.pathname.startsWith('/plan');
+  // 쿡 픽은 **내냉장고·냉장고요리·요즘인기**에서만 뜬다(2026-11-06 사용자 결정 — 마이캘린더·마이페이지·식단 짜기 등에서는 안 뜬다).
+  // 예전엔 로그인 화면 몇 곳만 빼고 모든 화면에 떴다. 빼는 목록이 아니라 **뜨는 목록**으로 둬야 새 화면이 생겨도 저절로 안 뜬다.
+  const hideOnAuth = !['/', '/my-fridge', '/recipe-list', '/popular'].includes(location.pathname);
+  /** 지금 어느 화면에서 묻는지 — 서버가 조언의 기준을 화면에 맞춘다. */
+  const pageKind: 'fridge' | 'recipe-list' | 'popular' =
+    location.pathname === '/recipe-list' ? 'recipe-list' : location.pathname === '/popular' ? 'popular' : 'fridge';
 
   // 현재 대화창(threadId)의 메시지를 히스토리 목록에 계속 반영 (빈 대화는 저장 안 함)
   useEffect(() => {
@@ -434,6 +432,8 @@ const RecipeChatWidget: React.FC = () => {
           messages: nextMessages.map(({ role, content: body }) => ({ role, content: body })),
           ingredients: getFridgeIngredientNames(),
           ingredient_expiry: getFridgeIngredientExpiry(),
+          // 보고 있는 화면과 그 화면에 걸어 둔 조건(검색어·매칭률·임박 재료·정렬 / 요즘인기의 구역)을 함께 보낸다.
+          page_context: { page: pageKind, lines: getPageContext()?.page === pageKind ? getPageContext()!.lines : [] },
         }),
       });
       const data = await response.json();

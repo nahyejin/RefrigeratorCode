@@ -230,6 +230,7 @@ const IngredientChip: React.FC<{
     onClick={onToggle}
     aria-pressed={on}
     style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
       fontSize: 12, padding: '5px 10px', borderRadius: 9999, cursor: 'pointer',
       lineHeight: 1.4,
       border: on ? `1px solid ${tone ? tone.bg : 'var(--line-200)'}` : '1px dashed var(--line-200)',
@@ -239,6 +240,21 @@ const IngredientChip: React.FC<{
       fontWeight: on ? 700 : 500,
     }}
   >
+    {/* 앞의 동그라미가 **쓰는지 뺐는지**를 말한다(2026-11-06 「취소선으로 빼는 걸 알아보기 어렵다」): 쓰는 재료는 ✓ 가 찬 동그라미,
+        뺀 재료는 빈 동그라미 + 취소선. 취소선만으로는 눌러서 뺄 수 있다는 것도, 빠진 상태라는 것도 안 읽혔다. */}
+    <span
+      aria-hidden
+      style={{
+        width: 14, height: 14, borderRadius: 9999, flexShrink: 0,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 9, fontWeight: 800, lineHeight: 1,
+        background: on ? (tone ? tone.fg : 'var(--ink-900)') : 'transparent',
+        color: on ? (tone && tone.bg.startsWith('#') ? tone.bg : '#FFFFFF') : 'transparent',
+        border: on ? 'none' : '1.5px solid var(--ink-400)',
+      }}
+    >
+      ✓
+    </span>
     {label}
   </button>
 );
@@ -1266,8 +1282,10 @@ const WeeklyPlan: React.FC = () => {
           title="쓸 재료"
           hint={
             <>
-              냉장고 {myIngredients.length}개 중 <b style={{ color: 'var(--ink-700)' }}>{planIngredients.length}개</b>
+              냉장고 {myIngredients.length}개 중 <b style={{ color: 'var(--ink-700)' }}>{planIngredients.length}개</b> 쓰는 중
               {stale.length > 0 && <> · 오래된 {stale.length}개는 뺐어요</>}
+              <br />
+              <span style={{ color: 'var(--ink-700)', fontWeight: 600 }}>재료를 누르면 빼고, 다시 누르면 넣어요</span>
             </>
           }
           right={
@@ -1280,7 +1298,7 @@ const WeeklyPlan: React.FC = () => {
                 fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
               }}
             >
-              {pickOpen ? '접기 ▴' : '고르기 ▾'}
+              {pickOpen ? '접기 ▴' : `전체 ${myIngredients.length}개 보기 ▾`}
             </button>
           }
         />

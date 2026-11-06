@@ -162,15 +162,15 @@ const VoiceInputButton: React.FC<{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         // 듣는 동안은 앱의 AI 아이콘과 같은 검정+노랑으로 켜진 걸 알린다(어두운 바탕에서는 노란 바탕+검정 아이콘).
         border: dark
-          ? (listening ? '1px solid #FFD600' : '1px solid rgba(255,255,255,0.12)')
+          ? (listening ? '1px solid #FFFFFF' : '1px solid rgba(255,255,255,0.12)')
           : (listening ? '1px solid #1A1A1E' : '1px solid var(--line-200)'),
         background: dark
-          ? (listening ? '#FFD600' : '#2B2B31')
+          ? (listening ? '#FFFFFF' : '#2B2B31')
           : (listening ? '#1A1A1E' : 'var(--surface)'),
         color: dark
           ? (listening ? '#1A1A1E' : '#FFFFFF')
           : (listening ? '#FFD600' : 'var(--ink-700)'),
-        boxShadow: listening ? '0 0 0 3px rgba(255,214,0,.45)' : 'none',
+        boxShadow: listening ? (dark ? '0 0 0 3px rgba(255,255,255,.35)' : '0 0 0 3px rgba(255,214,0,.45)') : 'none',
         cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
         transition: 'background .15s ease, color .15s ease, box-shadow .15s ease',
       }}

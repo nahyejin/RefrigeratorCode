@@ -52,10 +52,10 @@ const MUTED = 'rgba(255,255,255,0.62)';
 
 const HatCircle: React.FC<{ size: number }> = ({ size }) => (
   <span style={{
-    width: size, height: size, borderRadius: '50%', background: '#FFD600', flex: 'none',
+    width: size, height: size, borderRadius: '50%', background: '#FFFFFF', flex: 'none',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   }}>
-    <HatMark size={Math.round(size * 0.82)} color={INK} hole="#FFD600" />
+    <HatMark size={Math.round(size * 0.86)} color={INK} hole="#FFFFFF" />
   </span>
 );
 
@@ -205,7 +205,7 @@ const CookCoach: React.FC<{
               <span style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap' }}>쿡 코치</span>
               <span style={{
                 fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
-                background: '#FFD600', color: INK, flexShrink: 0,
+                background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
               }}>AI</span>
               <span style={{
                 fontSize: 11.5, color: MUTED, minWidth: 0,
@@ -263,7 +263,7 @@ const CookCoach: React.FC<{
                   borderRadius: 16,
                   borderBottomRightRadius: m.role === 'user' ? 4 : 16,
                   borderBottomLeftRadius: m.role === 'user' ? 16 : 4,
-                  background: m.role === 'user' ? '#FFD600' : SURFACE2,
+                  background: m.role === 'user' ? '#FFFFFF' : SURFACE2,
                   color: m.role === 'user' ? INK : '#F1F1F4',
                 }}>
                   {m.content}
@@ -353,13 +353,13 @@ const CookCoach: React.FC<{
             aria-label={open ? '쿡 코치 접기' : '쿡 코치 열기'}
             aria-expanded={open}
           >
-            <HatMark size={42} />
+            <HatMark size={50} />
           </button>
           <span className="ai-fab-badge">AI</span>
           {turns > 0 && (
             <span style={{
               position: 'absolute', bottom: -2, right: -2, minWidth: 20, height: 20, padding: '0 5px',
-              borderRadius: 10, background: '#FFD600', color: INK, border: '2px solid #FFFFFF',
+              borderRadius: 10, background: '#FFFFFF', color: INK, border: '2px solid #1A1A1E',
               fontSize: 11, fontWeight: 800, lineHeight: '16px', boxSizing: 'border-box', textAlign: 'center',
               zIndex: 3, pointerEvents: 'none',
             }}>{turns}</span>

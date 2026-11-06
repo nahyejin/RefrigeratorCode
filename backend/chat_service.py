@@ -379,6 +379,46 @@ _ORDER_AS_SEASONING = {
 }
 
 
+# 사용자가 **지금 보고 있는 화면**(2026-11-06). 앱이 화면 이름과, 그 화면에 걸어 둔 조건 문장들을 같이 보낸다.
+# 화면마다 조언의 기준이 다르다 — 냉장고요리 화면에서 매칭률·임박 재료·검색어를 걸어 놓고 물었는데 화면과 상관없는 추천이 나오던 것.
+_PAGE_LABEL = {'fridge': '내 냉장고', 'recipe-list': '냉장고요리(레시피 목록)', 'popular': '요즘인기'}
+_PAGE_GUIDE = {
+    'fridge': ('사용자가 가진 재료, 특히 곧 상하는 재료를 중심으로 조언해라. reply 도 냉장고 재료를 근거로 말해라.'),
+    'recipe-list': (
+        '아래 「화면 조건」은 사용자가 이 화면에 **직접 걸어 둔 조건**이다. 사용자가 따로 말하지 않아도 기본값으로 반영해라:\n'
+        '  - 검색어가 있으면 keywords 의 **첫 번째**로 쓴다(가장 우선).\n'
+        '  - 「임박 재료로 지정」·「꼭 넣을 재료」는 사용자가 명시적으로 고른 것이니 include_ingredients 에 넣는다'
+        '(위의 「명시적으로 말하지 않은 재료를 include 에 채우지 마라」 규칙의 예외다).\n'
+        '  - 「뺄 재료」는 exclude_ingredients 에 넣는다.\n'
+        '  - 정렬·매칭률·부족한 재료 수 조건은 reply 에서 존중하는 말로 반영한다.\n'
+        '사용자가 이번 말에서 다르게 말하면 이번 말이 우선이다.'
+    ),
+    'popular': (
+        '사용자가 지금 보고 있는 구역에 맞춰 조언해라 — 인기 레시피=널리 사랑받는 요리, 특별한 날=손님상·기념일·명절용, '
+        '급상승=요즘 사람들이 부쩍 찾는 요리, 네이버/유튜브=그 출처의 레시피를 보고 있는 중. '
+        'reply 에서 그 구역을 한 번 언급하고 그에 맞는 요리를 권해라(검색 자체는 전체 레시피에서 한다).'
+    ),
+}
+
+
+def _page_block(page_context):
+    """앱이 보낸 `page_context` 를 프롬프트 문장으로. 형식이 이상하면 빈 문자열."""
+    if not isinstance(page_context, dict):
+        return ''
+    page = str(page_context.get('page') or '')
+    if page not in _PAGE_LABEL:
+        return ''
+    lines = [
+        str(x).strip()[:120]
+        for x in (page_context.get('lines') or [])
+        if isinstance(x, (str, int, float)) and str(x).strip()
+    ][:12]
+    out = f"사용자가 지금 보고 있는 화면: {_PAGE_LABEL[page]}\n{_PAGE_GUIDE[page]}\n"
+    if lines:
+        out += '화면 조건:\n' + '\n'.join(f'- {x}' for x in lines) + '\n'
+    return out
+
+
 def _prioritize_ingredients(ingredients, expiry_days):
     """냉장고 재료를 **쓸 순서**로 세운다: 유통기한 짧은 식재료 → 기한 모르는 식재료 → 조미료.
 
@@ -442,7 +482,7 @@ def _fridge_detail_block(ingredients, expiry_days):
     return '\n'.join(lines)
 
 
-def _build_prompt(messages, ingredients, last_turn=None, expiry_days=None):
+def _build_prompt(messages, ingredients, last_turn=None, expiry_days=None, page_context=None):
     history = []
     for msg in messages[-MAX_HISTORY:]:
         role = '사용자' if msg.get('role') == 'user' else '도우미'
@@ -477,6 +517,7 @@ def _build_prompt(messages, ingredients, last_turn=None, expiry_days=None):
         last_turn_block = '\n직전 검색 결과: (없음 — 지금이 이 대화의 첫 검색이다)\n'
 
     topics = app_help.topic_list()
+    page_block = _page_block(page_context)
     return f"""너는 쿡매치 앱의 요리 도우미다.
 사용자는 냉장고 재료로 뭘 해먹을지 채팅으로 묻는다.
 레시피 링크를 만들지 마라. 없는 글 제목을 지어내지 마라.
@@ -556,6 +597,7 @@ reply 문장에서 냉장고 재료를 구체적인 이름으로 언급할 때�
      바로 되물을 수 있다. 실제로 영향을 주지 않았다면(사용자 요청이 우선이었거나, 애초에
      임박한 재료가 없었다면) 이 문구를 넣지 마라 — 사실이 아닌 걸 습관적으로 붙이지 마라.
 
+{page_block}
 냉장고 재료: {fridge}
 
 냉장고 재료 상세 (reply에서 재료 이름을 고를 때만 참고 — 검색 조건 판단에는 쓰지 말 것):
@@ -986,6 +1028,7 @@ def handle_chat(get_db):
         if str(name).strip()
     ][:200]
     session_id = (body.get('session_id') or '').strip()
+    page_context = body.get('page_context')
 
     # 재료별 유통기한(D-day). reply 문장에서 어떤 재료를 이름으로 부를지 정할 때만 쓴다
     # (검색 조건에는 안 씀 — _fridge_detail_block 참고). 형식이 이상한 항목은 조용히 건너뛴다.
@@ -1095,7 +1138,7 @@ def handle_chat(get_db):
             usage = None
 
         try:
-            prompt = _build_prompt(messages, ingredients, last_turn, expiry_days)
+            prompt = _build_prompt(messages, ingredients, last_turn, expiry_days, page_context)
             t_llm1 = time.time()
             if provider == 'gemini':
                 raw = _call_gemini(api_key, prompt)

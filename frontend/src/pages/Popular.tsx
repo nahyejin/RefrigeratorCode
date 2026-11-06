@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { setPageContext } from '../utils/pageContext';
 import { fetchCsvOnce } from '../utils/csvOnce';
 import { takePrefetchedPopular } from '../utils/recipePrefetch';
 import SectionIcon from '../components/ui/SectionIcon';
@@ -685,6 +686,14 @@ const Popular = () => {
   const [risingTab, setRisingTab] = useState<'dish' | 'theme'>('dish');
   /** 지금 보는 구역(칩). 인기 레시피 = 네이버·유튜브를 섞어서, 네이버/유튜브 칩은 한쪽만. */
   const [view, setView] = useState<PopularView>('popular');
+  // 쿡 픽(밖의 추천 챗봇)이 지금 보고 있는 구역을 읽도록 알린다(utils/pageContext, 2026-11-06).
+  useEffect(() => {
+    const label = VIEW_CHIPS.find(c => c.value === view)?.label ?? view;
+    const lines = [`보고 있는 구역: ${label}`];
+    if (view === 'rising') lines.push(`급상승 기준: ${risingTab === 'dish' ? '요리' : '테마'}`);
+    setPageContext({ page: 'popular', lines });
+  }, [view, risingTab]);
+  useEffect(() => () => setPageContext(null), []);
   /** 한 번에 그리는 행 수 — 100건이 넘는 목록의 행마다 재료 계산이 돌아서 끊어 그린다. */
   const [shown, setShown] = useState(PAGE_SIZE);
   const [includeKeyword, setIncludeKeyword] = useState('');
