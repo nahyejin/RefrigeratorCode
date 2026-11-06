@@ -513,9 +513,11 @@ const RecipeChatWidget: React.FC = () => {
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* 머리말 한 줄(2026-11-06 「타이틀 영역이 너무 높다·글자가 크다·크레딧을 줄바꿈할 필요가 있나」): 제목은 앱의 다른
+              제목(섹션 15px/700)과 같은 크기로 줄이고, 크레딧은 제목 옆 같은 줄에 둔다. 아바타도 36 → 28. */}
           <header
-            className="flex items-center justify-between px-4 py-3"
-            style={{ borderBottom: '1px solid var(--line-200)' }}
+            className="flex items-center justify-between pl-3 pr-1.5"
+            style={{ borderBottom: '1px solid var(--line-200)', minHeight: 48 }}
           >
             <div className="flex items-center gap-2 min-w-0">
               {view === 'history' ? (
@@ -533,30 +535,17 @@ const RecipeChatWidget: React.FC = () => {
                 <>
                   <div
                     className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
-                    style={{ width: 36, height: 36 }}
+                    style={{ width: 28, height: 28 }}
                   >
-                    <SparkMark size={22} />
+                    <SparkMark size={18} />
                   </div>
-                  <div className="min-w-0">
-                    {/* 설명 문구는 본문 인트로와 중복되고 좁은 화면에서 말줄임되어 제거 */}
-                    <p
-                      className="truncate"
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: '#1A1A1E',
-                      }}
-                    >
-                      쿡 픽
-                      <span style={{
-                        marginLeft: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '2px 6px',
-                        borderRadius: 6, background: '#1A1A1E', color: '#FFD600', verticalAlign: 'middle',
-                      }}>AI</span>
-                    </p>
-                    {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다.
-                        헤더는 폭이 좁아 compact — 한 줄로 끝나는 것만 보여준다. */}
-                    <UsageLine compact />
-                  </div>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>쿡 픽</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px',
+                    borderRadius: 6, background: '#1A1A1E', color: '#FFD600', flexShrink: 0,
+                  }}>AI</span>
+                  {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다. 제목과 같은 줄에, 한 줄로 끝나는 것만. */}
+                  <UsageLine compact style={{ marginLeft: 4, whiteSpace: 'nowrap', minWidth: 0 }} />
                 </>
               )}
             </div>

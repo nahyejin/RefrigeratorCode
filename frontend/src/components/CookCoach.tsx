@@ -213,20 +213,22 @@ const CookCoach: React.FC<{
               boxShadow: '0 16px 48px rgba(0,0,0,0.28)',
             }}
           >
+            {/* 머리말 한 줄 — 제목은 쿡 픽·다른 제목과 같은 15px/700, 설명은 같은 줄 옆에(2026-11-06 「타이틀 영역이 너무 높다」). */}
             <header style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 6px 10px 14px',
+              display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 0 12px', minHeight: 48,
               background: '#1A1A1E', flexShrink: 0,
             }}>
-              <HatCircle size={32} />
-              <span style={{ flex: 1, minWidth: 0, lineHeight: 1.3 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <b style={{ fontSize: 15, color: '#FFFFFF' }}>쿡 코치</b>
-                  <span style={{
-                    fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
-                    background: '#FFD600', color: '#1A1A1E',
-                  }}>AI</span>
-                </span>
-                <span style={{ display: 'block', fontSize: 11.5, color: 'rgba(255,255,255,0.72)' }}>이 요리를 도와드려요</span>
+              <HatCircle size={28} />
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap' }}>쿡 코치</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
+                  background: '#FFD600', color: '#1A1A1E', flexShrink: 0,
+                }}>AI</span>
+                <span style={{
+                  fontSize: 11.5, color: 'rgba(255,255,255,0.68)', minWidth: 0,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>이 요리를 도와드려요</span>
               </span>
               {/* 닫기(×)가 아니라 접기(⌄) — 접어도 대화는 그대로다. */}
               <button
