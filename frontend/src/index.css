@@ -613,9 +613,17 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   background: #9A9AA2 !important;
 }
 
-/* AI 떠 있는 버튼(쿡 픽 · 내 냉장고 카메라 버튼) — 2026-11-06 시안 A: **평평한 노랑 한 색 + 아이콘**.
-   예전엔 흐르는 그라데이션, 번지는 후광, 스쳐 가는 빛줄기, 모서리의 검정 스티커가 겹쳐 「촌스럽다」는 지적을 받았다.
-   움직임이 없으니 `prefers-reduced-motion` 때문에 따로 예외를 둘 것도 없다. */
+/* AI 떠 있는 버튼(쿡 픽 · 쿡 코치 · 내 냉장고 카메라 버튼) — 2026-11-06 시안 A: **평평한 노랑 한 색 + 아이콘**, 거기에
+   **스쳐 가는 빛줄기와 느린 숨쉬기**를 얹는다. 색이 흐르는 그라데이션과 번지는 후광은 빼고(「촌스럽다」), 움직임은 남긴다
+   (「애니메이션이 있어야 AI 라는 게 보인다」). 같은 시각 언어를 네모난 AI 버튼(`.ai-action`)도 쓴다. */
+@keyframes ai-fab-sheen {
+  0%        { transform: translateX(-180%) skewX(-18deg); }
+  55%, 100% { transform: translateX(420%) skewX(-18deg); }
+}
+@keyframes ai-fab-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
 .ai-fab-outer {
   position: fixed;
   right: 16px;
@@ -624,7 +632,8 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   width: 56px;
   height: 56px;
 }
-.ai-fab-button {
+.ai-fab-button,
+.ai-fab-coach {
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -637,15 +646,36 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #FFD600;
-  color: #1A1A1E;
+  overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.16);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: ai-fab-breathe 2.8s ease-in-out infinite;
+  transition: box-shadow 0.15s ease;
 }
-.ai-fab-button:active {
-  transform: scale(0.94);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+.ai-fab-button { background: #FFD600; color: #1A1A1E; }
+.ai-fab-coach { background: #1A1A1E; color: #FFD600; box-shadow: 0 4px 12px rgba(0,0,0,0.22); }
+/* 스쳐 가는 빛줄기 */
+.ai-fab-button::after,
+.ai-fab-coach::after,
+.ai-action::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 0;
+  width: 38%;
+  height: 160%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
+  animation: ai-fab-sheen 4.2s ease-in-out infinite;
+  pointer-events: none;
 }
+/* 검정 버튼 위에서는 흰 줄기 대신 옅은 노랑 줄기 */
+.ai-fab-coach::after {
+  background: linear-gradient(90deg, rgba(255,214,0,0) 0%, rgba(255,214,0,0.38) 50%, rgba(255,214,0,0) 100%);
+}
+/* 아이콘은 빛줄기 위로 */
+.ai-fab-button > svg,
+.ai-fab-coach > svg { position: relative; z-index: 1; }
+.ai-fab-button:active,
+.ai-fab-coach:active { box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
 /* 챗 패널 스크롤 영역 */
 .ai-chat-scroll {
   /* 끝에 닿았을 때 뒤 페이지로 스크롤이 전파되지 않게 (모바일에서 패널이
@@ -783,7 +813,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
    (실제로 이 설정을 켠 기기에서 로딩 점과 FAB 가 정지한 채로 보였음)
    → 장식적인 움직임만 줄이고, 상태를 알리는 표시는 예외로 둔다. */
 @media (prefers-reduced-motion: reduce) {
-  *:not(.loading-dots):not(.loading-dots > span):not(.skeleton-block):not(.cm-match-grid > span):not(.cm-nav-dot),
+  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-coach):not(.ai-action):not(.skeleton-block):not(.cm-match-grid > span):not(.cm-nav-dot),
   *::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -1024,13 +1054,18 @@ select:focus-visible {
 }
 
 
-/* AI 실행 버튼(동그란 ↑ 보내기 등) — 시안 A: 평평한 노랑 한 색. 흐르는 그라데이션·빛줄기는 걷어냈다(2026-11-06). */
+/* AI 가 실행되는 네모·동그란 버튼(↑ 보내기, 조건에 맞춰 짜기, 마이캘린더의 식단 짜기) — 평평한 노랑 + 스쳐 가는 빛줄기.
+   빛줄기(`::after`)는 위 떠 있는 버튼과 같은 것이다. 크레딧이 모자라 막힌 상태(`:disabled`)에서는 멈춘다. */
 .ai-action {
+  position: relative;
+  overflow: hidden;
   border: none;
   color: #1A1A1E;
   background: #FFD600;
 }
+.ai-action > * { position: relative; z-index: 1; }
 .ai-action:disabled { opacity: .55; }
+.ai-action:disabled::after { display: none; }
 
 
 /* ── 식단 반영 알림 ──────────────────────────────────────────────────

@@ -548,6 +548,10 @@ const RecipeChatWidget: React.FC = () => {
                       }}
                     >
                       쿡 픽
+                      <span style={{
+                        marginLeft: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '2px 6px',
+                        borderRadius: 6, background: '#1A1A1E', color: '#FFD600', verticalAlign: 'middle',
+                      }}>AI</span>
                     </p>
                     {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다.
                         헤더는 폭이 좁아 compact — 한 줄로 끝나는 것만 보여준다. */}
@@ -871,6 +875,8 @@ const RecipeChatWidget: React.FC = () => {
           >
             <SparkMark size={30} />
           </button>
+          {/* AI 가 붙은 자리는 어디서나 같은 「AI」 배지(2026-11-06 사용자: 배지를 왜 없앴나 — AI 가 붙은 건 다 붙이기로 했다). */}
+          <span className="ai-fab-badge">AI</span>
         </div>
       )}
     </>

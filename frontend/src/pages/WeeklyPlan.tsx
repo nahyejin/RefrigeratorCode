@@ -814,7 +814,10 @@ const WeeklyPlan: React.FC = () => {
       <SectionHead
         title={
           <>
-            <span style={{ display: 'inline-flex', color: '#1A1A1E' }}><Spark size={15} /></span>
+            <span style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '2px 6px', borderRadius: 6,
+              background: '#1A1A1E', color: '#FFD600',
+            }}>AI</span>
             조건이 있나요?
             <span style={{ fontSize: 12.5, fontWeight: 400, color: 'var(--ink-500)' }}>(선택)</span>
           </>
@@ -861,18 +864,22 @@ const WeeklyPlan: React.FC = () => {
       </div>
       {/* 결과가 이미 있을 때 조건을 바꿔 다시 짜는 길. 처음(결과 없음)에는 맨 아래 큰 버튼이 이 일을 한다. */}
       {hasResult && hasWish && !asking && (
-        <button
-          type="button"
-          onClick={runPlan}
-          style={{
-            width: '100%', minHeight: 44, marginTop: 12, borderRadius: 22, border: 'none', cursor: 'pointer',
-            background: '#FFD600', color: '#1A1A1E', fontSize: 13.5, fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          }}
-        >
-          <Spark size={14} />
-          이 조건으로 다시 짜기 · {planCost} 크레딧
-        </button>
+        <span style={{ position: 'relative', display: 'block', marginTop: 12 }}>
+          <button
+            type="button"
+            className="ai-action"
+            onClick={runPlan}
+            style={{
+              width: '100%', minHeight: 44, borderRadius: 22, cursor: 'pointer',
+              fontSize: 13.5, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <Spark size={14} />
+            이 조건으로 다시 짜기 · {planCost} 크레딧
+          </button>
+          <span className="ai-fab-badge">AI</span>
+        </span>
       )}
     </section>
   );
@@ -883,19 +890,24 @@ const WeeklyPlan: React.FC = () => {
       position: 'sticky', bottom: 0, zIndex: 'var(--z-sticky)' as any, marginTop: 12,
       padding: '10px 0 calc(10px + env(safe-area-inset-bottom, 0px))', background: 'var(--surface-sub)',
     }}>
-      <button
-        type="button"
-        onClick={runPlan}
-        style={{
-          width: '100%', minHeight: 48, borderRadius: 24, border: 'none', cursor: 'pointer',
-          // 시안 A(2026-11-06): 둘 다 평평한 노랑이고, AI 인 쪽은 ✦ 와 크레딧 글자로 갈린다.
-          background: '#FFD600', color: '#1A1A1E',
-          fontSize: 14.5, fontWeight: 700,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        }}
-      >
-        {hasWish && !noStock ? (<><Spark size={15} />조건에 맞춰 짜기 · {planCost} 크레딧</>) : '식단 짜기'}
-      </button>
+      {/* 무료(조건 없음)는 평평한 노랑, **AI(조건 있음)는 빛줄기 애니메이션 + 「AI」 배지**(2026-11-06) — 크레딧이 나가는 순간을
+          움직임과 배지로 알린다. 배지는 버튼(`overflow: hidden`) 밖 형제로 둔다. */}
+      <span style={{ position: 'relative', display: 'block' }}>
+        <button
+          type="button"
+          className={hasWish && !noStock ? 'ai-action' : undefined}
+          onClick={runPlan}
+          style={{
+            width: '100%', minHeight: 48, borderRadius: 24, border: 'none', cursor: 'pointer',
+            background: '#FFD600', color: '#1A1A1E',
+            fontSize: 14.5, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          {hasWish && !noStock ? (<><Spark size={15} />조건에 맞춰 짜기 · {planCost} 크레딧</>) : '식단 짜기'}
+        </button>
+        {hasWish && !noStock && <span className="ai-fab-badge">AI</span>}
+      </span>
       {hasWish && !noStock ? (
         <UsageLine style={{ justifyContent: 'center', marginTop: 6 }} cost={planCost} />
       ) : (
@@ -1133,7 +1145,10 @@ const WeeklyPlan: React.FC = () => {
                 }}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <span style={{ display: 'inline-flex', color: '#1A1A1E' }}><Spark size={15} /></span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '2px 6px', borderRadius: 6,
+                    background: '#1A1A1E', color: '#FFD600', flexShrink: 0,
+                  }}>AI</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>아이·다이어트 같은 조건이 있나요?</span>
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--ink-500)', marginLeft: 'auto' }}>

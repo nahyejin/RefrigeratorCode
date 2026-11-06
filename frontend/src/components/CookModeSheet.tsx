@@ -113,6 +113,8 @@ const CookModeSheet: React.FC<Props> = ({
   const [speedOpen, setSpeedOpen] = React.useState(false);
   /** 맨 위 사진이 안 열리면(주소 만료 등) 사진 자리를 접고 예전처럼 버튼 줄만 둔다 */
   const [thumbFailed, setThumbFailed] = React.useState(false);
+  /** 레시피 창의 바깥 틀 — 쿡 코치 카드가 제목줄 아래에 윗변을 맞추는 데 쓴다. */
+  const sheetRef = React.useRef<HTMLDivElement>(null);
 
   // ── 즐겨찾기·완료·기록·공유 ──────────────────────────────────
   // 일반 레시피 카드에서 누르면 나오는 것과 같은 네 버튼을 여기도 둔다.
@@ -485,7 +487,7 @@ const CookModeSheet: React.FC<Props> = ({
   return (
     <>
     <Sheet open={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
-           title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter>
+           title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter dialogRef={sheetRef}>
       {/* 즐겨찾기·완료·기록·공유 — 일반 레시피 카드에 있는 것과 같은 네 버튼.
           시트 헤더(제목 + 닫기 ×)는 공용 컴포넌트라 손대지 않고, 본문 맨 위
           우측에 같은 자리를 만든다. */}
@@ -852,7 +854,7 @@ const CookModeSheet: React.FC<Props> = ({
     </Sheet>
     {/* 요리 한 건 전용 도우미 「쿡 코치」(2026-11-06) — 우하단 떠 있는 버튼 → 대화 카드. 재료·순서가 뜬 레시피에만 두고,
         레시피 창을 닫으면 사라져 대화도 지워진다. */}
-    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} />}
+    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} />}
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}
     {toast && <Toast message={toast} />}

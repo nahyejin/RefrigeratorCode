@@ -17,6 +17,8 @@ interface SheetProps {
   dismissLabel?: string;
   /** 상단에 이미 닫기(×) 버튼이 있어 하단 나가기 버튼이 불필요할 때 끈다 */
   hideFooter?: boolean;
+  /** 바깥 틀(`role="dialog"` 요소) ref. 시트 위에 뜨는 것(쿡 코치 카드)이 제목줄 위치를 재는 데 쓴다. */
+  dialogRef?: React.Ref<HTMLDivElement>;
 }
 
 /**
@@ -37,6 +39,7 @@ const Sheet: React.FC<SheetProps> = ({
   maxHeight = '88dvh',
   dismissLabel = '닫기',
   hideFooter = false,
+  dialogRef,
 }) => {
   // 안드로이드 폰 「뒤로」로 닫기(utils/closeOnBack)
   useCloseOnBack(open, onClose);
@@ -149,6 +152,7 @@ const Sheet: React.FC<SheetProps> = ({
         }}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
