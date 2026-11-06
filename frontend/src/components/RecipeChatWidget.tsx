@@ -850,8 +850,15 @@ const RecipeChatWidget: React.FC = () => {
                 직전이 알아야 할 때다. */}
             <div style={{ padding: '6px 12px 0', background: '#F5F5F7' }}>
               {/* 쿡 픽이 무엇인지 한 줄 — 쿡 코치가 「이 요리를 도와드려요」 를 달고 있는 것처럼(2026-11-06). */}
-              <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink-500)', textAlign: 'center', marginBottom: 2 }}>
-                냉장고 재료와 지금 보는 화면을 보고, 질문에 맞는 레시피를 골라 드려요
+              {/* **한 줄**이어야 한다(넘치면 말줄임). 「이 화면 기준」이라는 것과 **화면에 보이는 것만이 아니라 전체 레시피에서**
+                  찾는다는 것을 함께 말한다 — 목록은 스크롤해야 20개 넘게 보이지만 쿡 픽은 보이는 20개만 보지 않는다. */}
+              <div style={{
+                fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink-500)', textAlign: 'center', marginBottom: 2,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {pageKind === 'recipe-list' ? '이 화면의 조건을 참고해 전체 레시피에서 골라요'
+                  : pageKind === 'popular' ? '보고 있는 구역을 참고해 전체 레시피에서 골라요'
+                  : '내 냉장고 재료를 기준으로 전체 레시피에서 골라요'}
               </div>
               <UsageLine cost={chatCost} costOnly />
             </div>

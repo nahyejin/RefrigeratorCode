@@ -442,6 +442,8 @@ def _basis(considered, picked, parsed, matched_names, page_context, reranked=Fal
         screen = [str(x).strip()[:40] for x in (page_context.get('lines') or []) if str(x).strip()][:3]
         if screen:
             lines.append(f"보고 있던 화면({_PAGE_LABEL[page_context['page']]}) 조건: " + ' · '.join(screen))
+        # 화면 조건은 **참고**일 뿐 검색 범위가 아니다 — 화면에 불러온 목록(스크롤해야 20개↑)이 아니라 전체 레시피에서 찾는다.
+        lines.append('화면에 보이는 것만이 아니라 전체 레시피에서 찾았어요')
     if reranked:  # 2차 호출이 실제로 성공했을 때만 — 실패해서 낱말 점수 순으로 나갔으면 말하지 않는다
         lines.append('고른 뒤 질문에 맞는지 한 번 더 확인했어요')
     return {'considered': int(considered), 'picked': int(picked), 'lines': lines}
