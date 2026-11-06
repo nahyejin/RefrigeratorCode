@@ -5,6 +5,7 @@ import BackButton from '../components/ui/BackButton';
 import Dialog from '../components/ui/Dialog';
 import Sheet from '../components/ui/Sheet';
 import KebabMenu from '../components/ui/KebabMenu';
+import VoiceInputButton from '../components/ui/VoiceInputButton';
 import StepLoading from '../components/StepLoading';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { loadIngredientCategoryMap, lookupShelfLifeDays, estimateExpiry, type CategoryMap, type StorageKind } from '../utils/shelfLife';
@@ -1892,6 +1893,16 @@ const WeeklyPlan: React.FC = () => {
                 fontSize: 14, boxSizing: 'border-box', background: 'var(--surface-sub)',
               }}
             />
+            {/* 말로 입력(2026-11-06). 입력창에 채우기만 하고 보내기는 ↑ 로 직접 한다. */}
+            {!guestOut && (
+              <VoiceInputButton
+                value={wish}
+                onText={setWish}
+                onError={setError}
+                disabled={!aiTappable || asking || noStock}
+                size={44}
+              />
+            )}
             <span style={{ position: 'relative', flexShrink: 0, display: 'flex' }}>
               <button
                 type="button"

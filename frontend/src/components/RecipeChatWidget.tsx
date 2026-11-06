@@ -5,6 +5,7 @@ import { applyUsage, refreshUsage, spendOptimistically, usageHeaders } from '../
 import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import KebabMenu from './ui/KebabMenu';
+import VoiceInputButton from './ui/VoiceInputButton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -845,6 +846,8 @@ const RecipeChatWidget: React.FC = () => {
                 className="ai-chat-input flex-1 min-w-0 text-[15px]"
                 disabled={loading}
               />
+              {/* 말로 입력(2026-11-06). 입력창에 채우기만 하고 보내기는 ↑ 로 직접 한다. */}
+              <VoiceInputButton value={input} onText={setInput} onError={setError} disabled={loading} />
               {/* 식단 AI 화면의 보내기와 같은 둥근 ↑ 버튼(`ai-action`). 화면마다 「보내기」 글자 / ↑ 로 달랐다. */}
               <button
                 type="submit"
