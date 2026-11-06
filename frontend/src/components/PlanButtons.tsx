@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarCheckIcon } from './ui/Icons';
-import { useUsage } from './UsageMeter';
 
 /**
  * 「식단 짜기」 버튼 하나.
@@ -15,9 +14,6 @@ import { useUsage } from './UsageMeter';
  */
 const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
   const navigate = useNavigate();
-  const usage = useUsage();
-  // AI 로 짤 때 드는 크레딧(서버 값 그대로, 모르면 3)
-  const planCost = (usage?.credits as any)?.plan ?? 3;
 
   return (
     <div data-guide-target="weekly-plan-buttons">
@@ -43,7 +39,7 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
           <span style={{ fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.78)' }}>장보기가 가장 적은 일주일</span>
         </button>
         <span style={{ display: 'block', marginTop: 6, textAlign: 'center', fontSize: 11.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
-          일반 식단은 무료 · 조건을 말하면 AI가 맞춰요({planCost}크레딧)
+          일반은 무료이고, 조건을 추가하면 AI가 식단을 짜요
         </span>
       </span>
     </div>

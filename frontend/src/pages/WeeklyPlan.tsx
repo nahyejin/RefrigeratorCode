@@ -364,6 +364,9 @@ const WeeklyPlan: React.FC = () => {
    */
   const [off, setOff] = React.useState<Set<string> | null>(null);
   const [pickOpen, setPickOpen] = React.useState(false);
+  /** 결과가 나온 뒤 접어 둔 「재료·조건」 영역을 다시 펼쳤는지(2026-11-07 화면 단순화). */
+  const [editOpen, setEditOpen] = React.useState(false);
+  React.useEffect(() => { if (asking) setEditOpen(false); }, [asking]);
   /** 「날짜 바꾸기」 시트가 어느 끼니를 옮기는 중인지 */
   const [moving, setMoving] = React.useState<{ day: number; at: number } | null>(null);
   /** 무료 식단은 예전엔 재료만 있으면 **묻지도 않고** 바로 7일치를 짜서
@@ -835,7 +838,6 @@ const WeeklyPlan: React.FC = () => {
             <span style={{ fontSize: 12.5, fontWeight: 400, color: 'var(--ink-500)' }}>(선택)</span>
           </>
         }
-        hint="적으면 AI가 맞춰 짜 드려요(크레딧). 안 적으면 무료예요."
       />
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input
@@ -854,7 +856,11 @@ const WeeklyPlan: React.FC = () => {
         {/* 말로 입력. 입력칸에 채우기만 하고 짜기는 아래 버튼으로 직접 한다. */}
         <VoiceInputButton value={wish} onText={setWish} onError={setError} disabled={asking} size={44} />
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+      {/* 칩은 **한 줄로 옆으로 민다** — 여러 줄로 펼치면 화면이 칩으로 가득 찬다(2026-11-07 「너무 복잡하다」). */}
+      <div style={{
+        display: 'flex', flexWrap: 'nowrap', gap: 6, overflowX: 'auto',
+        margin: '10px -16px 0', padding: '0 16px', scrollbarWidth: 'none',
+      }}>
         {WISH_PRESETS.map(x => {
           const on = wish.split(/\s*,\s*/).map(s => s.trim()).includes(x);
           return (
@@ -865,6 +871,7 @@ const WeeklyPlan: React.FC = () => {
               onClick={() => togglePreset(x)}
               disabled={asking}
               style={{
+                flex: 'none', whiteSpace: 'nowrap',
                 minHeight: 30, padding: '6px 11px', borderRadius: 9999, border: 'none', cursor: 'pointer',
                 background: on ? '#FFF3B0' : 'var(--surface-sub)',
                 color: on ? '#7A5C00' : 'var(--ink-700)', fontSize: 12.5, fontWeight: on ? 700 : 500,
@@ -1271,6 +1278,39 @@ const WeeklyPlan: React.FC = () => {
           것이 두 번 나온다. */}
       {/* 접었을 때 짧아야 한다. 이 영역이 길면 정작 결과인 식단이 화면 밖으로
           밀려나서, 사용자가 이 화면을 "재료 화면" 으로 읽는다. */}
+      {/* 첫 화면의 질문 한 줄(당근식: 한 화면에 한 가지 질문). 결과가 나온 뒤에는 필요 없다. */}
+      {!hasResult && (
+        <div style={{ padding: '4px 4px 16px' }}>
+          <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink-900)', lineHeight: 1.35, wordBreak: 'keep-all' }}>
+            이번 주, 뭐 해 먹을까요?
+          </div>
+          <div style={{ fontSize: 13.5, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.6, wordBreak: 'keep-all' }}>
+            일반은 무료이고, 조건을 추가하면 AI가 식단을 짜요
+          </div>
+        </div>
+      )}
+
+      {/* 결과가 나온 뒤에는 「재료·조건」 카드 두 장을 **한 줄로 접는다** — 식단이 바로 보이게. 눌러서 바꾼다. */}
+      {hasResult && !editOpen && (
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
+          style={{
+            width: '100%', textAlign: 'left', cursor: 'pointer', marginBottom: 10,
+            background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 14,
+            padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink-700)',
+                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <b style={{ color: 'var(--ink-900)' }}>재료 {planIngredients.length}개</b>
+            {hasWish ? <> · {wish.trim()}</> : <> · 일반 식단</>}
+          </span>
+          <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ink-900)' }}>바꾸기 ›</span>
+        </button>
+      )}
+
+      {(!hasResult || editOpen) && (
       <section style={{
         background: 'var(--surface)', border: '1px solid var(--line-200)',
         borderRadius: 14, padding: '14px 16px', marginBottom: 10,
@@ -1278,12 +1318,23 @@ const WeeklyPlan: React.FC = () => {
         <SectionHead
           title="쓸 재료"
           hint={
-            <>
-              냉장고 {myIngredients.length}개 중 <b style={{ color: 'var(--ink-700)' }}>{planIngredients.length}개</b> 쓰는 중
-              {stale.length > 0 && <> · 오래된 {stale.length}개는 뺐어요</>}
-              <br />
-              <span style={{ color: 'var(--ink-700)', fontWeight: 600 }}>재료를 누르면 빼고, 다시 누르면 넣어요</span>
-            </>
+            pickOpen ? (
+              <>
+                냉장고 {myIngredients.length}개 중 <b style={{ color: 'var(--ink-700)' }}>{planIngredients.length}개</b> 쓰는 중
+                {stale.length > 0 && <> · 오래된 {stale.length}개는 뺐어요</>}
+                <br />
+                <span style={{ color: 'var(--ink-700)', fontWeight: 600 }}>재료를 누르면 빼고, 다시 누르면 넣어요</span>
+              </>
+            ) : (
+              // 접힌 모습은 **한 줄 요약**만 — 칩을 늘어놓으면 이 화면이 「재료 화면」으로 읽힌다.
+              <span style={{ wordBreak: 'keep-all' }}>
+                <b style={{ color: 'var(--ink-700)' }}>{planIngredients.length}개</b>로 짜요
+                <br />
+                {expiring.length > 0
+                  ? <>곧 상하는 {expiring.slice(0, 2).map(i => i.name).join('·')}{expiring.length > 2 ? ` 외 ${expiring.length - 2}개` : ''}부터</>
+                  : <>유통기한을 넣으면 곧 상하는 것부터 골라요</>}
+              </span>
+            )
           }
           right={
             <button
@@ -1295,12 +1346,13 @@ const WeeklyPlan: React.FC = () => {
                 fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
               }}
             >
-              {pickOpen ? '접기 ▴' : `전체 ${myIngredients.length}개 보기 ▾`}
+              {pickOpen ? '접기 ▴' : '바꾸기 ▾'}
             </button>
           }
         />
 
-        {expiring.length > 0 ? (
+        {/* 펼쳤을 때만 칩이 보인다 */}
+        {pickOpen && (expiring.length > 0 ? (
           <>
             <div style={{ fontSize: 12, color: '#C4342B', fontWeight: 700, marginBottom: 6 }}>
               곧 상해요
@@ -1317,11 +1369,7 @@ const WeeklyPlan: React.FC = () => {
               ))}
             </div>
           </>
-        ) : (
-          <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
-            유통기한을 넣으면 <b>곧 상하는 것부터</b> 골라요.
-          </div>
-        )}
+        ) : null)}
 
         {/* 펼쳤을 때만 — 나머지 재료와, 오래돼서 빼 둔 재료.
             오래된 재료를 목록에서 아예 지우지 않는 이유: "지났지만 오늘 쓸 건데"
@@ -1378,8 +1426,21 @@ const WeeklyPlan: React.FC = () => {
           </div>
         )}
       </section>
+      )}
 
-      {conditionSection}
+      {(!hasResult || editOpen) && conditionSection}
+      {hasResult && editOpen && (
+        <button
+          type="button"
+          onClick={() => setEditOpen(false)}
+          style={{
+            display: 'block', margin: '0 auto 10px', minHeight: 32, padding: '6px 14px', borderRadius: 9999,
+            border: 'none', background: 'transparent', color: 'var(--ink-500)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          접기 ▴
+        </button>
+      )}
 
       {error && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 16,
