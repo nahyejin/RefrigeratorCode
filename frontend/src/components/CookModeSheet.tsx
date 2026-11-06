@@ -102,6 +102,24 @@ interface Props {
   askPlanOnClose?: boolean;
 }
 
+/**
+ * 목록 화면(냉장고요리·요즘인기)이 이미 파싱해 기기에 저장해 둔 **대체 재료 표**를 읽는다.
+ * 12MB CSV 를 레시피 창이 또 받거나 파싱하지 않는다 — 저장분이 없으면(목록을 거치지 않고 열린 경우) 대체 표시만 못 보여 줄 뿐이다.
+ */
+type SubstituteTable = { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
+let substituteTableMemo: SubstituteTable | null = null;
+function readSubstituteTable(): SubstituteTable | null {
+  if (substituteTableMemo) return substituteTableMemo;
+  try {
+    const c = JSON.parse(localStorage.getItem('substitute_table_cache') || 'null');
+    if (c && c.data && typeof c.data === 'object') {
+      substituteTableMemo = c.data as SubstituteTable;
+      return substituteTableMemo;
+    }
+  } catch { /* 저장분이 깨졌거나 막혀 있으면 대체 표시 없이 간다 */ }
+  return null;
+}
+
 const CookModeSheet: React.FC<Props> = ({
   isOpen, onClose, recipeId, fallbackTitle, fallbackLink, myIngredients = [], askPlanOnClose = false,
 }) => {
@@ -484,6 +502,30 @@ const CookModeSheet: React.FC<Props> = ({
   const have = new Set(myIngredients.map(x => x.trim()));
   const detail = data?.ingredients_detail || [];
   const names = data?.ingredients || [];
+  /**
+   * 없는 재료 → 내 냉장고의 대체 재료(예: 쪽파 → 대파). 목록의 「대체 가능 N」을 눌러 들어왔을 때 **무엇을 무엇으로** 바꿀 수 있는지
+   * 안에서 보여 주려는 것이다(2026-11-07 「대체 가능 4라고 해서 들어갔는데 안에 내용이 안 보여」). 계산은 목록 카드와 같은 표·같은 기준
+   * (유사도 높은 순으로 냉장고에 있는 첫 후보).
+   */
+  const substitutes = React.useMemo(() => {
+    const out: Record<string, string> = {};
+    if (!isOpen || names.length === 0 || myIngredients.length === 0) return out;
+    const table = readSubstituteTable();
+    if (!table) return out;
+    const norm = (x: string) => (x || '').trim().toLowerCase();
+    const mine = new Set(myIngredients.map(norm));
+    const keyOf: Record<string, string> = {};
+    for (const k of Object.keys(table)) keyOf[norm(k)] = k;
+    for (const n of names) {
+      if (have.has(n.trim())) continue;
+      const k = keyOf[norm(n)];
+      const hit = k ? table[k].find(c => mine.has(norm(c.ingredient_b))) : undefined;
+      if (hit) out[n] = hit.ingredient_b;
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, names.join('|'), myIngredients.join('|')]);
+  const substituteCount = Object.keys(substitutes).length;
 
   return (
     <>
@@ -645,7 +687,15 @@ const CookModeSheet: React.FC<Props> = ({
               {/* 재료 이름 칩 */}
               {detail.length > 0 && names.length > 0 && (
                 <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {names.map(n => (
+                  {names.map(n => substitutes[n] ? (
+                    // 없지만 냉장고의 다른 재료로 바꿀 수 있는 것 — 목록 카드의 「식용유 → 참기름」과 같은 검정 칩
+                    <span key={n} style={{
+                      fontSize: 11.5, padding: '3px 8px', borderRadius: 9999,
+                      background: '#1A1A1E', color: '#FFFFFF', fontWeight: 600,
+                    }}>
+                      {n} → {substitutes[n]}
+                    </span>
+                  ) : (
                     <span key={n} style={{
                       fontSize: 11.5, padding: '3px 8px', borderRadius: 9999,
                       background: have.has(n) ? '#FFF3B0' : 'var(--surface-sub)',
@@ -655,6 +705,11 @@ const CookModeSheet: React.FC<Props> = ({
                       {have.has(n) ? '✓ ' : ''}{n}
                     </span>
                   ))}
+                </div>
+              )}
+              {substituteCount > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                  <b style={{ color: 'var(--ink-700)' }}>대체 가능 {substituteCount}</b> · 검정 칩은 없는 재료를 냉장고에 있는 재료로 바꿔 쓸 수 있다는 뜻이에요
                 </div>
               )}
             </section>
