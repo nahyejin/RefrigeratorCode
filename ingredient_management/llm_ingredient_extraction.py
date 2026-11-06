@@ -72,6 +72,7 @@ QUOTA_EXHAUSTED_ERR = "daily quota exhausted (skipped)"
 # (웹 서버도 같은 기준을 써야 하는데, 이 파일은 배치용이라 pandas 와 다른 배치
 #  모듈을 끌고 와서 서버가 가져다 쓰기에 무겁고 배포에서 잘 깨졌다.)
 # 예전 이름을 그대로 쓰던 스크립트들이 있어 별칭으로 남겨 둔다.
+from backend import filter_terms as _filter_terms  # noqa: E402
 from backend.ingredient_dictionary import (  # noqa: E402
     PREP_PREFIXES as _PREP_PREFIXES,
     load_alias_to_canonical,
@@ -882,6 +883,13 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                                  recipe_name or None,
                                  rid),
                             )
+                            # 냉장고요리 필터용 「낱말이 몇 번 나오나」 표를 같이 채운다. 글은 이 UPDATE 로 AI 처리를 마친
+                            # 뒤에야 목록에 나오므로(RECIPE_READY) 그 순간 이미 세어져 있게 한다. 표가 아직 없으면 건너뛴다.
+                            # (backend/filter_terms.py, scripts/build_filter_terms.py 참고)
+                            try:
+                                _filter_terms.upsert(write_cursor, rid, row.get("title"), row.get("content"))
+                            except Exception as _e:  # noqa: BLE001 — 필터 표 실패가 AI 추출 결과 저장을 막으면 안 된다
+                                print(f"[filter_terms] id={rid} 표 갱신 실패: {_e}", flush=True)
                             # 사전에 없어 버린 이름을 세어 둔다 (끝에 한 번에 저장)
                             recipe_misses.update(unmapped)
                             since_commit += 1

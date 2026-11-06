@@ -24,6 +24,7 @@ from email.mime.multipart import MIMEMultipart
 
 # **레시피 카드를 내보낼 조건은 여기 하나뿐이다.** 왜 그런지는 그 파일에.
 from recipe_visibility import RECIPE_READY, WHERE_READY
+import filter_terms
 from apple_signin import (
     verify_identity_token, AppleTokenError,
     revocation_configured, exchange_authorization_code, revoke_refresh_token,
@@ -688,6 +689,27 @@ def get_filtered_recipes():
             if keywords and len(keywords) > 0:
                 fulltext_keywords.extend(keywords)
         
+        # **미리 센 표로 찾을 수 있는 낱말은 본문을 읽지 않고 그 표에서 찾는다**(서버 비용 — backend/filter_terms.py 참고).
+        # 필터 낱말(Filter_Keywords.csv)은 정해져 있어 글이 들어올 때 한 번 세어 둔다. 예전엔 필터를 쓸 때마다
+        # `content LIKE` 로 본문 194MB 전체를 읽었다. 표가 없거나 덜 채워졌으면(table_ready) 아래 예전 방식 그대로.
+        # 표에 없는 낱말(사전이 늘었는데 아직 안 센 것)도 예전 방식으로 찾는다 — 둘은 OR 로 묶는다.
+        indexed_cond = None
+        indexed_n_before = len(where_clauses)
+        if fulltext_keywords and filter_terms.table_ready(cursor):
+            vocab = filter_terms.vocab_set()
+            indexed_terms = []
+            for kw in fulltext_keywords:
+                k = kw.strip().lower()
+                if k in vocab and k not in indexed_terms:
+                    indexed_terms.append(k)
+            if indexed_terms:
+                fulltext_keywords = [kw for kw in fulltext_keywords if kw.strip().lower() not in vocab]
+                indexed_cond = (
+                    f"id IN (SELECT recipe_id FROM {filter_terms.TABLE} WHERE term IN ("
+                    + ",".join(["%s"] * len(indexed_terms)) + "))"
+                )
+                base_params.extend(indexed_terms)
+
         if fulltext_keywords:
             # FULLTEXT 인덱스 존재 여부 확인 (캐싱하여 매번 쿼리하지 않음)
             # 전역 변수로 인덱스 존재 여부 캐싱 (앱 시작 시 한 번만 확인)
@@ -770,6 +792,13 @@ def get_filtered_recipes():
                     # OR 조건으로 변경: 하나라도 매칭되면 통과
                     final_condition = f"({' OR '.join(keyword_conditions)})"
                     where_clauses.append(final_condition)
+        if indexed_cond:
+            if len(where_clauses) > indexed_n_before:
+                # 표로 못 찾는 낱말의 예전 방식 조건이 하나 더 있다 — 표 조건과 OR (하나라도 맞으면 통과).
+                rest_cond = where_clauses.pop()
+                where_clauses.append(f"({indexed_cond} OR {rest_cond})")
+            else:
+                where_clauses.append(indexed_cond)
     
     # 임박재료 필터 (OR 조건: 하나라도 포함)
     if applied_expiry_ingredients:
