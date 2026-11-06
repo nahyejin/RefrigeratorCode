@@ -27,7 +27,9 @@ const VoiceInputButton: React.FC<{
   onError?: (message: string) => void;
   disabled?: boolean;
   size?: number;
-}> = ({ value, onText, onError, disabled = false, size = 40 }) => {
+  /** 처음 그려질 때 바로 듣기 시작한다(다른 곳의 마이크를 눌러 이 입력창이 열린 경우). */
+  autoStart?: boolean;
+}> = ({ value, onText, onError, disabled = false, size = 40, autoStart = false }) => {
   const Recognition = getRecognition();
   const [listening, setListening] = React.useState(false);
   const recRef = React.useRef<any>(null);
@@ -46,6 +48,15 @@ const VoiceInputButton: React.FC<{
   React.useEffect(() => () => {
     try { recRef.current?.abort(); } catch { /* ignore */ }
   }, []);
+
+  const startRef = React.useRef<(() => void) | null>(null);
+  const autoRef = React.useRef(autoStart);
+  React.useEffect(() => {
+    if (autoRef.current && !disabled) {
+      autoRef.current = false;
+      startRef.current?.();
+    }
+  }, [disabled]);
 
   if (!Recognition) return null;
 
@@ -79,6 +90,8 @@ const VoiceInputButton: React.FC<{
       setListening(false);
     }
   };
+
+  startRef.current = start;
 
   return (
     <button

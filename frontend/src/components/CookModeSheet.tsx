@@ -2,6 +2,7 @@ import React from 'react';
 import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
 import PlanThisDay from './PlanThisDay';
+import CookCoach from './CookCoach';
 import Toast from './Toast';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -484,7 +485,10 @@ const CookModeSheet: React.FC<Props> = ({
   return (
     <>
     <Sheet open={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
-           title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter>
+           title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh"
+           // 맨 아래에 요리 한 건 전용 도우미 「쿡 코치」 한 줄(2026-11-06). 재료·순서가 뜬 레시피에만 둔다.
+           hideFooter={!(data && recipeId != null)}
+           footer={recipeId != null ? <CookCoach recipeId={recipeId} /> : undefined}>
       {/* 즐겨찾기·완료·기록·공유 — 일반 레시피 카드에 있는 것과 같은 네 버튼.
           시트 헤더(제목 + 닫기 ×)는 공용 컴포넌트라 손대지 않고, 본문 맨 위
           우측에 같은 자리를 만든다. */}

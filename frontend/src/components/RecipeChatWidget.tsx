@@ -6,12 +6,13 @@ import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import KebabMenu from './ui/KebabMenu';
 import VoiceInputButton from './ui/VoiceInputButton';
+import { PotMark } from './ui/AiMarks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import CloseButton from './ui/CloseButton';
 import { useCloseOnBack } from '../utils/closeOnBack';
-import { openCookMode } from '../utils/cookMode';
+import { openCookMode, subscribeCookMode } from '../utils/cookMode';
 
 const API_BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
@@ -79,28 +80,6 @@ type ChatThread = {
   messages: ChatMessage[];
 };
 
-/** 챗봇 아이덴티티 말풍선 아이콘 (말풍선 + 말줄임 점 3개 + 반짝임) */
-const ChatBubbleIcon: React.FC<{ size?: number }> = ({ size = 26 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
-  >
-    {/* 말풍선 본체 + 왼쪽 아래 꼬리 */}
-    <path
-      className="ai-fab-bubble"
-      d="M4.6 3.9h14.8c1 0 1.9.9 1.9 1.9v9.1c0 1-.9 1.9-1.9 1.9H9.9l-4.1 3.3c-.6.5-1.5.1-1.5-.7v-2.6h-.6c-.6-.3-1-.9-1-1.6V5.8c0-1 .9-1.9 1.9-1.9z"
-      fill="currentColor"
-    />
-    {/* 말줄임 점 3개 (말풍선 안쪽, 버튼 배경색으로 뚫음) */}
-    <circle className="ai-fab-bubble-dot" cx="8.4" cy="10.4" r="1.35" />
-    <circle className="ai-fab-bubble-dot" cx="12" cy="10.4" r="1.35" />
-    <circle className="ai-fab-bubble-dot" cx="15.6" cy="10.4" r="1.35" />
-  </svg>
-);
-
 type FridgeRawItem = { name?: string; expiry?: string; estimatedExpiry?: string };
 
 /**
@@ -158,7 +137,7 @@ function getFridgeItems(): { name: string; daysLeft: number | null }[] {
   }
 }
 
-function getFridgeIngredientNames(): string[] {
+export function getFridgeIngredientNames(): string[] {
   return getFridgeItems().map((item) => item.name);
 }
 
@@ -214,6 +193,10 @@ function threadTitle(thread: ChatThread): string {
 const RecipeChatWidget: React.FC = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  // 요리 드로어가 열려 있는 동안은 둥근 AI 버튼을 숨긴다 — 드로어 안에 요리 한 건 전용 「쿡 코치」가 따로 있어서
+  // 둘이 한 화면에 뜨면 어느 쪽에 물어야 하는지 헷갈린다(2026-11-06).
+  const [cookOpen, setCookOpen] = useState(false);
+  useEffect(() => subscribeCookMode(t => setCookOpen(!!t)), []);
   // 안드로이드 폰 「뒤로」로 대화창 닫기(utils/closeOnBack) — 대화 내용은 그대로 남는다
   useCloseOnBack(open, () => setOpen(false));
   // 앱 사용법 답에 붙는 `바로 가기` 버튼이 쓴다. 말로만 알려 주면
@@ -543,7 +526,7 @@ const RecipeChatWidget: React.FC = () => {
                     className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                     style={{ width: 36, height: 36 }}
                   >
-                    <ChatBubbleIcon size={20} />
+                    <PotMark size={22} />
                   </div>
                   <div className="min-w-0">
                     {/* 설명 문구는 본문 인트로와 중복되고 좁은 화면에서 말줄임되어 제거 */}
@@ -555,7 +538,7 @@ const RecipeChatWidget: React.FC = () => {
                         color: '#1A1A1E',
                       }}
                     >
-                      쿡매치 AI
+                      뭐 먹지
                     </p>
                     {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다.
                         헤더는 폭이 좁아 compact — 한 줄로 끝나는 것만 보여준다. */}
@@ -662,7 +645,7 @@ const RecipeChatWidget: React.FC = () => {
                       className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                       style={{ width: 26, height: 26, marginTop: 1 }}
                     >
-                      <ChatBubbleIcon size={15} />
+                      <PotMark size={17} />
                     </div>
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
@@ -869,16 +852,16 @@ const RecipeChatWidget: React.FC = () => {
         </section>
       )}
 
-      {!open && (
+      {!open && !cookOpen && (
         <div className="ai-fab-outer" data-guide-target="chat-fab">
           <div className="ai-fab-glow" />
           <button
             type="button"
-            aria-label="요리 AI 열기"
+            aria-label="뭐 먹지 열기"
             className="ai-fab-button"
             onClick={openWidget}
           >
-            <ChatBubbleIcon size={26} />
+            <PotMark size={30} />
           </button>
           <span className="ai-fab-badge">AI</span>
           

@@ -17,6 +17,8 @@ interface SheetProps {
   dismissLabel?: string;
   /** 상단에 이미 닫기(×) 버튼이 있어 하단 나가기 버튼이 불필요할 때 끈다 */
   hideFooter?: boolean;
+  /** 우상단 버튼 모양. 대화가 남아 있어 「닫기」가 아니라 「내리기」인 시트는 `down`. */
+  closeKind?: 'x' | 'down';
 }
 
 /**
@@ -37,6 +39,7 @@ const Sheet: React.FC<SheetProps> = ({
   maxHeight = '88dvh',
   dismissLabel = '닫기',
   hideFooter = false,
+  closeKind = 'x',
 }) => {
   // 안드로이드 폰 「뒤로」로 닫기(utils/closeOnBack)
   useCloseOnBack(open, onClose);
@@ -207,7 +210,7 @@ const Sheet: React.FC<SheetProps> = ({
           <span style={{ width: 40, height: 4, borderRadius: 9999, background: 'var(--line-300)' }} />
         </button>
         {/* 상단 바는 팝업 공통 규격(높이 52 / 제목 17px)을 따른다 */}
-        <PopupHeader title={title ?? ''} onClose={onClose} />
+        <PopupHeader title={title ?? ''} onClose={onClose} closeKind={closeKind} />
         </div>
 
         {/* 본문. 예전에는 paddingTop 이 0 이라 헤더 아래 구분선에 첫 항목이 바짝 붙었다 */}
