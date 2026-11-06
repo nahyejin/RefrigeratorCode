@@ -17,7 +17,10 @@ interface BackButtonProps {
  *   크기도 13px, 24px, padding 4px 등 서로 다름.
  * 닫기(X)는 둥근 사각형 버튼으로 통일해 놓고 뒤로가기만 다르면 짝이 맞지 않아
  * 같은 팝업 안에서 두 버튼이 다른 물건처럼 보인다.
- * → 36×36 둥근 사각형 + 20px SVG 로 X 와 동일하게 맞춘다.
+ * → 36×36 + 20px SVG 로 X 와 동일하게 맞춘다.
+ *
+ * 2026-11-06: 닫기(×)가 **회색 상자 없이 아이콘만**으로 바뀌었는데(`CloseButton`) 뒤로가기만 회색 상자에 테두리가
+ * 남아 짝이 다시 어긋났다 — 같은 방식으로 맞춘다(상자·테두리 없이 화살표만, 마우스를 올리면 옅은 판).
  */
 const BackButton: React.FC<BackButtonProps> = ({
   onClick,
@@ -41,22 +44,20 @@ const BackButton: React.FC<BackButtonProps> = ({
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--surface-sub)',
-      border: '1px solid var(--line-200)',
+      background: 'transparent',
+      border: '1px solid transparent',
       borderRadius: 10,
       cursor: 'pointer',
-      color: 'var(--ink-700)',
+      color: 'var(--ink-500)',
       flexShrink: 0,
       transition: 'background 0.15s ease, border-color 0.15s ease',
       ...style,
     }}
     onMouseEnter={(e) => {
-      e.currentTarget.style.background = '#ECECF0';
-      e.currentTarget.style.borderColor = 'var(--line-300)';
+      e.currentTarget.style.background = 'var(--surface-sub)';
     }}
     onMouseLeave={(e) => {
-      e.currentTarget.style.background = 'var(--surface-sub)';
-      e.currentTarget.style.borderColor = 'var(--line-200)';
+      e.currentTarget.style.background = 'transparent';
     }}
   >
     {/* flex 안에서 SVG 가 0px 로 찌그러지지 않도록 크기 고정 */}
@@ -71,7 +72,7 @@ const BackButton: React.FC<BackButtonProps> = ({
       <path
         d="M15 5l-7 7 7 7"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
