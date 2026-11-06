@@ -43,6 +43,8 @@ const DOUGH: Shot[] = [
   { kind: "video", src: "d1.mp4", from: 0, to: 4.0, step: "달걀 톡톡" },
   { kind: "video", src: "d2.mp4", from: 0, to: 7.6, step: "말랑한 버터에\n슈가파우더 섞고" },
   { kind: "video", src: "d4.mp4", from: 0, to: 9.5, step: "가루는 체에 솔솔" },
+  // 손 반죽은 짧게(사용자 2026-11-06: 반죽하는 모습은 보여 줘야 한다, 「응가」 대사 전까지만)
+  { kind: "video", src: "d5.mp4", from: 0, to: 5.8, rate: 1.2, step: "손으로 조물조물\n반죽 완성" },
 ];
 
 // 반죽을 틀로 꾹 누르고 쑥 빼기 — 오감 놀이
