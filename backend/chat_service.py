@@ -665,18 +665,19 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
             where_params.append(ing)
 
         # ── 관련도 점수
-        relevance_parts = []
-        relevance_params = []
-        for i, kw in enumerate(keywords):
-            like = f'%{kw}%'
-            relevance_parts.append(f"(CASE WHEN title LIKE %s THEN {W_TITLE} ELSE 0 END)")
-            relevance_params.append(like)
-            relevance_parts.append(f"(CASE WHEN used_ingredients LIKE %s THEN {W_INGREDIENT} ELSE 0 END)")
-            relevance_params.append(like)
-            if i == 0:
-                relevance_parts.append(f"(CASE WHEN content LIKE %s THEN {W_CONTENT} ELSE 0 END)")
-                relevance_params.append(like)
-        relevance = ' + '.join(relevance_parts) if relevance_parts else '0'
+        # 본문(content)을 읽는 항은 `use_content` 일 때만 넣는다 — 아래 두 단계 검색 참고.
+        def _relevance_sql(use_content):
+            parts, params = [], []
+            for i, kw in enumerate(keywords):
+                like = f'%{kw}%'
+                parts.append(f"(CASE WHEN title LIKE %s THEN {W_TITLE} ELSE 0 END)")
+                params.append(like)
+                parts.append(f"(CASE WHEN used_ingredients LIKE %s THEN {W_INGREDIENT} ELSE 0 END)")
+                params.append(like)
+                if i == 0 and use_content:
+                    parts.append(f"(CASE WHEN content LIKE %s THEN {W_CONTENT} ELSE 0 END)")
+                    params.append(like)
+            return (' + '.join(parts) if parts else '0'), params
 
         # ── 냉장고 재료 매칭률 (재료별 가중치 적용)
         seasoning_set = _load_seasoning_set()
@@ -756,23 +757,40 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
         else:
             order_by = 'post_time DESC'
 
-        sql = f"""
-            SELECT id, title, thumbnail, platform, likes, comments, hits,
-                   post_time, used_ingredients, link,
-                   ({relevance}) AS relevance,
-                   {match_rate} AS match_rate
-            FROM recipes
-            WHERE {' AND '.join(where)}
-            {having_sql}
-            ORDER BY {order_by}
-            LIMIT %s
-        """
         # 다양성 필터로 걸러낼 몫까지 감안해 넉넉히 가져온다.
         # (WHERE/HAVING 스캔이 비용의 대부분이라 LIMIT 을 늘려도 거의 차이 없음)
-        params = relevance_params + match_params + where_params + [want * FETCH_MULTIPLIER]
-        cursor.execute(sql, params)
+        fetch_limit = want * FETCH_MULTIPLIER
 
-        rows = cursor.fetchall() or []
+        def _query(use_content):
+            relevance, relevance_params = _relevance_sql(use_content)
+            sql = f"""
+                SELECT id, title, thumbnail, platform, likes, comments, hits,
+                       post_time, used_ingredients, link,
+                       ({relevance}) AS relevance,
+                       {match_rate} AS match_rate
+                FROM recipes
+                WHERE {' AND '.join(where)}
+                {having_sql}
+                ORDER BY {order_by}
+                LIMIT %s
+            """
+            cursor.execute(sql, relevance_params + match_params + where_params + [fetch_limit])
+            return cursor.fetchall() or []
+
+        # **두 단계 검색 — 본문은 모자랄 때만 읽는다 (서버 비용).**
+        #
+        # 본문(content)은 레시피 4만 3천 건 합쳐 194MB 라 `content LIKE` 한 번이 표 전체를
+        # 읽는다. 챗봇이 말을 받을 때마다 이걸 하면 MySQL 이 본문 페이지를 메모리에 올려
+        # 두게 되고(실측 버퍼 풀 610MB 가 차 있었다), 메모리는 Railway 에서 곧 돈이다.
+        # 제목·재료만 보는 검색은 같은 표에서 0.3초 안팎이고 본문 페이지를 건드리지 않는다.
+        #
+        # 그래서 **먼저 제목·재료로만** 찾고, 필요한 수(`fetch_limit`)가 차면 거기서 끝낸다.
+        # 모자랄 때만(드문 낱말) 예전처럼 첫 낱말을 본문까지 본다. 본문에서만 걸리는
+        # 글은 가중치가 가장 낮은 1점짜리라, 제목·재료에서 걸린 글이 충분하면 그쪽이
+        # 주제에 더 맞는다.
+        rows = _query(False)
+        if keywords and len(rows) < fetch_limit:
+            rows = _query(True)
         recipes = []
         for row in rows:
             link = (row.get('link') or '').strip()
