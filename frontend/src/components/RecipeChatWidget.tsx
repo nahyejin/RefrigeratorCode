@@ -6,6 +6,7 @@ import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import KebabMenu from './ui/KebabMenu';
 import VoiceInputButton from './ui/VoiceInputButton';
+import ChatText from './ui/ChatText';
 import { UtensilsIcon } from './ui/Icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
@@ -567,8 +568,12 @@ const RecipeChatWidget: React.FC = () => {
                     fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px',
                     borderRadius: 6, background: '#1A1A1E', color: '#FFD600', flexShrink: 0,
                   }}>AI</span>
-                  {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다. 제목과 같은 줄에, 한 줄로 끝나는 것만. */}
-                  <UsageLine compact style={{ marginLeft: 4, whiteSpace: 'nowrap', minWidth: 0 }} />
+                  {/* 쿡 코치와 같은 짜임(2026-11-06 「쿡 코치처럼 상단엔 이 AI 가 뭔지 짧게 한 줄, 크레딧은 하단」): 제목 옆에 소개 한 줄,
+                      잔여 크레딧·오늘 남은 양·이번 질문 값은 맨 아래 보내기 줄 위로 내렸다. */}
+                  <span style={{
+                    fontSize: 11.5, color: 'var(--ink-500)', minWidth: 0,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>레시피를 골라 드려요</span>
                 </>
               )}
             </div>
@@ -706,6 +711,8 @@ const RecipeChatWidget: React.FC = () => {
                           )}
                           <span dangerouslySetInnerHTML={{ __html: msg.content }} />
                         </>
+                      ) : msg.role === 'assistant' ? (
+                        <ChatText text={msg.content} />
                       ) : (
                         msg.content
                       )}
@@ -855,7 +862,7 @@ const RecipeChatWidget: React.FC = () => {
                 <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
                   이 대화는 여기까지예요
                 </div>
-                <UsageLine style={{ justifyContent: 'center', marginTop: 4 }} cost={chatCost} costOnly />
+                <UsageLine style={{ justifyContent: 'center', marginTop: 4 }} cost={chatCost} />
               </div>
             ) : (
             <>
@@ -874,7 +881,7 @@ const RecipeChatWidget: React.FC = () => {
                   : pageKind === 'popular' ? '보고 있는 구역을 참고해 전체 레시피에서 골라요'
                   : '내 냉장고 재료를 기준으로 전체 레시피에서 골라요'}
               </div>
-              <UsageLine cost={chatCost} costOnly />
+              <UsageLine style={{ justifyContent: 'center' }} cost={chatCost} />
             </div>
             <form
               onSubmit={handleSubmit}

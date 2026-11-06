@@ -1,3 +1,4 @@
+import ChatText from './ui/ChatText';
 import React from 'react';
 import Portal from './Portal';
 import VoiceInputButton from './ui/VoiceInputButton';
@@ -77,12 +78,12 @@ const CookCoach: React.FC<{
   const endRef = React.useRef<HTMLDivElement>(null);
 
   // 모바일 키보드가 뜨면 보이는 화면이 줄어든다 — 카드가 키보드 뒤로 잘리지 않게 실제 보이는 높이를 따라간다(쿡 픽과 같은 방식).
-  const [vv, setVv] = React.useState<{ keyboard: number } | null>(null);
+  const [vv, setVv] = React.useState<{ keyboard: number; height: number } | null>(null);
   React.useEffect(() => {
     if (!open) return;
     const v = window.visualViewport;
     if (!v) return;
-    const update = () => setVv({ keyboard: Math.max(0, window.innerHeight - v.height - v.offsetTop) });
+    const update = () => setVv({ keyboard: Math.max(0, window.innerHeight - v.height - v.offsetTop), height: v.height });
     update();
     v.addEventListener('resize', update);
     v.addEventListener('scroll', update);
@@ -91,6 +92,18 @@ const CookCoach: React.FC<{
   const keyboardOpen = !!vv && vv.keyboard > 60;
   // 카드가 화면 아래(하단 메뉴 자리)까지 내려온다 — 세로로 더 길게(2026-11-06 「GNB 영역을 살짝 가릴 정도로」). 열려 있는 동안은 아래 알약을 숨긴다.
   const cardBottom = keyboardOpen ? vv!.keyboard + 8 : 12;
+  // 높이를 **보이는 화면 높이**로 직접 계산한다(쿡 픽과 같은 방식, 2026-11-06 「키보드가 뜨면 쿡 픽처럼 세로 높이가 줄어야」).
+  // 윗변을 화면 위에 고정하고 아래만 키보드 위로 올렸더니, 키보드가 뜰 때 폰이 화면을 위로 밀어 올리면서 카드 윗부분이 화면 밖으로 잘렸다.
+  const cardHeight = vv
+    ? Math.min(Math.max(320, vv.height - cardBottom - 24), 760)
+    : 'min(calc(100dvh - 36px), 760px)';
+
+  // 레시피 창 위쪽의 「쿡 코치」 입구가 같은 카드를 연다(CookModeSheet 가 이벤트를 쏜다).
+  React.useEffect(() => {
+    const openFromSheet = () => setOpen(true);
+    window.addEventListener('cookmatch:open-coach', openFromSheet);
+    return () => window.removeEventListener('cookmatch:open-coach', openFromSheet);
+  }, []);
 
   // 다른 요리로 바뀌면 대화를 비운다(요리 한 건 전용이라 이어 갈 맥락이 없다).
   React.useEffect(() => {
@@ -169,11 +182,11 @@ const CookCoach: React.FC<{
           style={{
             position: 'fixed', left: 12, right: 12, margin: '0 auto', maxWidth: 420, zIndex: LAYER,
             // 거의 전체 높이(2026-11-06 「창이 너무 작다, 핸드폰으로 본다」) — 위·아래 여백만 남겨 뒤 화면이 딤으로 보이게 한다.
-            top: 'calc(env(safe-area-inset-top, 0px) + 10px)', maxHeight: 760,
+            height: cardHeight,
             bottom: keyboardOpen ? cardBottom : `calc(${cardBottom}px + env(safe-area-inset-bottom, 0px))`,
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             background: INK, color: '#FFFFFF', borderRadius: 22,
-            boxShadow: '0 18px 48px rgba(0,0,0,0.36)', transition: 'bottom 120ms ease-out',
+            boxShadow: '0 18px 48px rgba(0,0,0,0.36)', transition: 'bottom 120ms ease-out, height 120ms ease-out',
           }}
         >
           {/* 머리말 한 줄 — 제목은 쿡 픽·다른 제목과 같은 15px/700, 설명은 같은 줄 옆에 */}
@@ -247,7 +260,7 @@ const CookCoach: React.FC<{
                   background: m.role === 'user' ? '#FFFFFF' : SURFACE2,
                   color: m.role === 'user' ? INK : '#F1F1F4',
                 }}>
-                  {m.content}
+                  {m.role === 'assistant' ? <ChatText text={m.content} /> : m.content}
                 </div>
               </div>
             ))}
@@ -294,6 +307,15 @@ const CookCoach: React.FC<{
               </div>
             )}
             <UsageLine style={{ justifyContent: 'center' }} cost={cost} onDark />
+            {/* 대화는 메모리에만 있다 — 레시피 창을 닫거나 다른 요리로 넘어가면 지워진다(2026-11-06 「닫으면 지워진다는 안내를 넣어야」).
+                닫을 때 확인창을 따로 띄우지 않는 이유: 30초 넘게 보다 닫으면 이미 「레시피를 완료하셨나요?」가 뜨는데 팝업이 연달아 둘이 되고,
+                요리 한 건 즉석 질문이라 지워져도 손해가 작다. 대신 여기에 한 줄로 미리 알린다. */}
+            <div style={{
+              textAlign: 'center', fontSize: 11, lineHeight: 1.4, color: 'rgba(255,255,255,0.5)',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: -2,
+            }}>
+              레시피 창을 닫으면 이 대화는 지워져요
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
                 value={input}

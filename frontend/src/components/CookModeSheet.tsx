@@ -3,6 +3,7 @@ import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
 import PlanThisDay from './PlanThisDay';
 import CookCoach from './CookCoach';
+import { ChefHatIcon } from './ui/Icons';
 import Toast from './Toast';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -564,6 +565,24 @@ const CookModeSheet: React.FC<Props> = ({
             </svg>
           </button>
         </div>
+      )}
+      {/* 쿡 코치 입구 — 우하단 알약만으로는 「이 요리를 도와주는 AI」라는 느낌이 안 난다는 지적(2026-11-06)이라 창 위쪽에 눈에 띄게
+          하나 더 둔다. 같은 카드를 여는 두 번째 입구다(CookCoach 가 이 이벤트를 듣는다). */}
+      {!loading && data && recipeId != null && (
+        <button
+          type="button"
+          className="ai-fab-pill k"
+          onClick={() => window.dispatchEvent(new Event('cookmatch:open-coach'))}
+          style={{ width: '100%', justifyContent: 'center', gap: 8, marginBottom: 14, fontSize: 14, fontWeight: 700 }}
+        >
+          <ChefHatIcon size={18} />
+          <span>쿡 코치</span>
+          <span className="ai-tag" style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
+            background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
+          }}>AI</span>
+          <span style={{ fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.78)' }}>이 요리, 궁금한 걸 물어보세요</span>
+        </button>
       )}
       {loading && (
         <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--ink-500)', fontSize: 14 }}>

@@ -276,21 +276,22 @@ def make_feature_graphic(icon):
 # store/sources/ 는 사용자가 직접 찍어 준 실제 앱 캡처(2026-09-18).
 V = "my-video/public/"
 SOURCES = {
-    "diet": ("store/sources/diet_ai_plan.png", None, 185),
-    "chat": (V + "reel6_chatbot_demo.mp4", 29.2, 180),
+    # 2026-11-06 새 UI 로 다시 찍음 — 개발 서버의 실제 앱(비회원, 배포 서버 레시피·실제 AI 호출)을 휴대폰 크기(430x932, 3배 = 1290x2796)로 직접 캡처
+    "diet": ("store/sources/diet_ai_plan.png", None, 0),
+    "chat": ("store/sources/chat_demo.png", None, 0),
     "photo": (V + "reel1_loading_freeze.png", None, 0),
     # (INSETS crop 의 y 는 웹뷰 좌표에 상태바 132px 를 더한 화면 캡처 좌표다)
     # 2026-10-09 화면 개편 뒤 새로 찍음 — 안드로이드 에뮬레이터(1080x2400)에서 실제 앱(비회원 + 배포 서버
     # 레시피)을 그대로 캡처. 위 132px 는 안드로이드 상태바. 아래 INSETS 의 같은 이름 항목도 같은 캡처에서 자른다.
-    "match": ("store/sources/match_main.png", None, 132),
-    "substitute": ("store/sources/substitute_main.png", None, 132),
-    "expiry": ("store/sources/match_main.png", None, 132),  # 배경은 목록 그대로(임박 필터 적용 뒤 화면은 썸네일이 안 뜬 카드가 섞였다)
-    "cook": (V + "reel3_reading_freeze.png", None, 180),
+    "match": ("store/sources/match_main.png", None, 0),
+    "substitute": ("store/sources/substitute_main.png", None, 0),
+    "expiry": ("store/sources/match_main.png", None, 0),  # 배경은 목록 그대로(임박 필터 적용 뒤 화면은 썸네일이 안 뜬 카드가 섞였다)
+    "cook": ("store/sources/cook_main.png", None, 0),
     # 2026-10-12: 로그인한 가족 계정(엄마) 새 UI 녹화에서 뽑음 — 헤더의 닉네임은 기본 블러(NO_BLUR 아님)
     "family": ("store/sources/family_main.png", None, 0),
 }
 
-NO_BLUR = {"match", "expiry"}  # substitute 는 로그인 상태(`엄마`)로 찍혀 헤더 블러
+NO_BLUR = {"diet", "chat", "match", "expiry", "substitute", "cook"}  # substitute 는 로그인 상태(`엄마`)로 찍혀 헤더 블러
 
 # 폰 화면 위에 겹쳐 올리는 보조 이미지(기울인 작은 카드 / 확대 콜아웃).
 #   crop: 원본 픽셀 좌표(상태바 자르기 전)  w: 캔버스 폭 대비 너비  angle: 반시계 방향 기울기(도)
@@ -310,7 +311,7 @@ INSETS = {
     "match": dict(src="store/sources/match_filter_popup.png", crop=(94, 582, 986, 1887),
                   w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
     # "대체 가능 · 당근→양파"가 있는 레시피 카드를 잘라 크게
-    "substitute": dict(src="store/sources/substitute_main.png", crop=(15, 1270, 1065, 1560),
+    "substitute": dict(src="store/sources/substitute_main.png", crop=(30, 1520, 1260, 1930),
                        w=0.92, angle=-2, cx=0.5, cy=0.78, radius=0.03),
     # 임박 재료 설정 팝업
     "expiry": dict(src="store/sources/expiry_filter_popup.png", crop=(94, 582, 986, 1887),
@@ -326,7 +327,7 @@ INSETS = {
 SLIDES = [
     dict(key="diet", band="k", ai=True, eyebrow="식단 짜기",
          headline="말 한마디로\n일주일 식단 완성", sub="냉장고 재료로 먼저 채워서, 장보기는 최소한만", focus=0.0),
-    dict(key="chat", band="k", ai=True, eyebrow="요리 챗봇",
+    dict(key="chat", band="k", ai=True, eyebrow="쿡 픽",
          headline="검색 말고,\n그냥 물어보세요", sub="내 재료·취향까지 반영해서 골라드려요", focus=0.0),
     dict(key="photo", band="k", ai=True, eyebrow="사진 인식",
          headline="사진 한 장이면\n재료 등록 끝", sub="영수증이든 음식 사진이든, 재료와 유통기한까지", focus=0.0),
