@@ -716,6 +716,14 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   background: #F5F5F7;
   color: #9A9AA2;
 }
+/* 어두운 쿡 코치 카드 안의 입력칸 */
+.ai-chat-input.ai-chat-input-dark {
+  background: #2B2B31;
+  border-color: rgba(255,255,255,0.12);
+  color: #FFFFFF;
+}
+.ai-chat-input.ai-chat-input-dark::placeholder { color: rgba(255,255,255,0.5); }
+.ai-chat-input.ai-chat-input-dark:disabled { background: #232327; color: rgba(255,255,255,0.4); }
 
 /* 패널 헤더 / 답변 말풍선의 AI 아바타 (FAB와 동일한 평평한 노란 원 + ✦) */
 .ai-avatar-mark {

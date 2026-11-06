@@ -15,11 +15,11 @@ import { getFridgeIngredientNames } from './RecipeChatWidget';
  * 「재료가 이게 없는데 이거 써도 돼?」 「레시피 5배로 만들 건데 계량은?」 처럼 지금 열어 둔 요리에 대한 유동적인 질문에 답한다.
  * 서버(`POST /api/recipes/<id>/ask`)가 그 요리의 재료·조리 순서를 읽고 답하고, 다른 주제는 돌려보낸다.
  *
- * 구성: **우하단에 떠 있는 버튼 → 누르면 버튼에서 말풍선처럼 펼쳐지는 대화 카드.** 밖의 추천 챗봇(쿡 픽)과 같은 방식·같은 자리다.
- *  - 처음엔 아래에서 올라오는 시트였고(레시피 창 위에 같은 모양의 창이 또 쌓여 「이중으로 열린다」), 그다음엔 레시피 창 위에
- *    어중간한 높이의 카드를 띄웠는데 「이중 팝업이 어색하다 — 띄울 거면 레시피 창 제목 높이까지 가려 달라, 레시피 창과 다른
- *    영역이라는 게 보여야 한다」는 지적을 받았다(2026-11-06). 그래서 **카드의 윗변을 레시피 창 제목줄 바로 아래에 맞춰**(제목과 ×는
- *    보인다) 레시피 본문을 덮고, 어두운 머리말·옅은 노랑 바탕·**버튼을 가리키는 꼬리**로 레시피 창(흰 바탕)과 다른 영역임을 보인다.
+ * 구성: **우하단에 떠 있는 버튼 → 누르면 대화 카드.** 밖의 추천 챗봇(쿡 픽)과 같은 방식·같은 자리다.
+ *  - 시행착오(2026-11-06): 아래에서 올라오는 시트(창이 이중으로 쌓임) → 어중간한 높이의 카드 → 누런 바탕에 삼각 꼬리를 단 카드
+ *    (「촌스럽다」). 지금은 **어두운 카드**(검정 바탕·노랑 포인트, 시안 B)다. 레시피 창(흰색)과 한눈에 다른 영역으로 보이도록
+ *    ① 카드 윗변을 레시피 창 **제목줄 바로 아래**에 맞춰 본문을 덮고(제목과 ×는 보인다), ② 카드 뒤 레시피 본문을 **어둡게 눌러** 카드가
+ *    그 위에 떠 있게 한다. 말풍선 꼬리는 없다 — 아래 버튼 바로 위에 놓이는 것만으로 버튼에서 열린 걸 알 수 있다.
  *  - **대화는 레시피 창을 닫기 전까지 이어진다.** 카드를 접어도 상태는 이 컴포넌트에 남고, 버튼에 말한 횟수가 붙는다.
  *    레시피 창을 닫으면 이 컴포넌트가 사라져 대화도 지워진다.
  *  - **질문 횟수 제한은 없다.** 한도는 크레딧과 하루 한도뿐(서버가 센다).
@@ -39,20 +39,23 @@ const SUGGESTIONS = [
 
 /** 레시피 창(`Sheet`)의 가로 최대폭 460 에 맞춰, 넓은 화면에서도 버튼이 창 안쪽 오른쪽 아래에 오게 한다. */
 const FAB_RIGHT = 'max(16px, calc((100vw - 460px) / 2 + 16px))';
-/** 레시피 창(z-modal)과 같은 층. 나중에 열리는 확인창이 이 버튼 위로 올라오도록 **더 높이지 않는다**. */
+/** 레시피 창(z-modal)과 같은 층. 나중에 열리는 확인창이 이 버튼 위로 올라오도록 **더 높이지 않는다**.
+ *  같은 층끼리는 나중에 그려진 것이 위라서, 아래 JSX 에서 **어둡게 누르는 판 → 카드 → 버튼** 순서로 둔다. */
 const LAYER = 'var(--z-modal)' as unknown as number;
 /** `Sheet` 위쪽의 손잡이(26) + 제목줄(52). 카드 윗변을 이 아래에 맞춘다. */
 const SHEET_TITLE_H = 78;
-/** 카드(옅은 노랑)와 레시피 창(흰색)을 가르는 색들 */
-const CARD_BG = '#FFFBEA';
-const CARD_LINE = '#EADFA8';
+/** 어두운 카드의 색 */
+const INK = '#1A1A1E';
+const SURFACE2 = '#2B2B31';
+const LINE = 'rgba(255,255,255,0.10)';
+const MUTED = 'rgba(255,255,255,0.62)';
 
 const HatCircle: React.FC<{ size: number }> = ({ size }) => (
   <span style={{
     width: size, height: size, borderRadius: '50%', background: '#FFD600', flex: 'none',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   }}>
-    <HatMark size={Math.round(size * 0.68)} color="#1A1A1E" />
+    <HatMark size={Math.round(size * 0.82)} color={INK} hole="#FFD600" />
   </span>
 );
 
@@ -74,7 +77,7 @@ const CookCoach: React.FC<{
   const [error, setError] = React.useState('');
   const endRef = React.useRef<HTMLDivElement>(null);
 
-  // 카드 윗변 = 레시피 창 제목줄 바로 아래. 창이 올라오는 애니메이션이 끝난 뒤에도 한 번 더 잰다.
+  // 카드 윗변 = 레시피 창 제목줄 바로 아래. 창이 올라오는 애니메이션이 끝난 뒤에도 다시 잰다.
   const [top, setTop] = React.useState<number | null>(null);
   React.useEffect(() => {
     if (!open) return;
@@ -166,6 +169,176 @@ const CookCoach: React.FC<{
 
   return (
     <Portal>
+      {/* ── 레시피 본문을 어둡게 누르는 판 ───────────────────
+          카드가 그 위에 떠 있게 해서 레시피 창과 다른 영역이라는 걸 보인다. 누르면 카드가 접힌다. */}
+      {open && (
+        <div
+          aria-hidden
+          onClick={() => setOpen(false)}
+          style={{
+            position: 'fixed', left: 0, right: 0, bottom: 0, top: top ?? 0,
+            background: 'rgba(0,0,0,0.34)', zIndex: LAYER, animation: 'sheet-fade 0.18s ease-out',
+          }}
+        />
+      )}
+
+      {/* ── 대화 카드 ─────────────────────────────────────── */}
+      {open && (
+        <section
+          aria-label="쿡 코치"
+          style={{
+            position: 'fixed', left: 12, right: 12, margin: '0 auto', maxWidth: 420, zIndex: LAYER,
+            top: top ?? '22dvh',
+            bottom: keyboardOpen ? cardBottom : `calc(${cardBottom}px + env(safe-area-inset-bottom, 0px))`,
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            background: INK, color: '#FFFFFF', borderRadius: 22,
+            boxShadow: '0 18px 48px rgba(0,0,0,0.36)', transition: 'bottom 120ms ease-out',
+          }}
+        >
+          {/* 머리말 한 줄 — 제목은 쿡 픽·다른 제목과 같은 15px/700, 설명은 같은 줄 옆에 */}
+          <header style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 0 12px', minHeight: 48,
+            flexShrink: 0, borderBottom: `1px solid ${LINE}`,
+          }}>
+            <HatCircle size={30} />
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap' }}>쿡 코치</span>
+              <span style={{
+                fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
+                background: '#FFD600', color: INK, flexShrink: 0,
+              }}>AI</span>
+              <span style={{
+                fontSize: 11.5, color: MUTED, minWidth: 0,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>이 요리를 도와드려요</span>
+            </span>
+            {/* 닫기(×)가 아니라 접기(⌄) — 접어도 대화는 그대로다. */}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="접기"
+              style={{
+                width: 36, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M6 9.5l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </header>
+
+          <div className="ai-chat-scroll" style={{
+            flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px',
+            display: 'flex', flexDirection: 'column', gap: 10,
+            scrollbarColor: 'rgba(255,255,255,0.25) transparent',
+          }}>
+            {messages.length === 0 && (
+              <>
+                <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.6 }}>
+                  재료를 바꾸거나, 양을 늘리거나, 간을 맞추는 것까지 이 요리에 대한 건 뭐든 물어보세요.
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {SUGGESTIONS.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => void send(s)}
+                      style={{
+                        padding: '8px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+                        background: SURFACE2, color: '#F1F1F4', fontSize: 12.5, textAlign: 'left',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {messages.map((m, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  maxWidth: '88%', padding: '9px 13px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap',
+                  borderRadius: 16,
+                  borderBottomRightRadius: m.role === 'user' ? 4 : 16,
+                  borderBottomLeftRadius: m.role === 'user' ? 16 : 4,
+                  background: m.role === 'user' ? '#FFD600' : SURFACE2,
+                  color: m.role === 'user' ? INK : '#F1F1F4',
+                }}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{
+                  padding: '9px 13px', fontSize: 13.5, borderRadius: 16, borderBottomLeftRadius: 4,
+                  background: SURFACE2, color: MUTED,
+                }}>
+                  답을 찾는 중이에요…
+                </div>
+              </div>
+            )}
+            {error && !loading && (
+              <p style={{ margin: 0, fontSize: 12.5, color: '#FF8A80' }}>{error}</p>
+            )}
+            <div ref={endRef} />
+          </div>
+
+          <form
+            onSubmit={e => { e.preventDefault(); void send(input); }}
+            style={{
+              flexShrink: 0, padding: '8px 12px 12px', borderTop: `1px solid ${LINE}`,
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }}
+          >
+            {/* 대화가 시작된 뒤에도 **아직 안 물어본 예시 질문**을 한 줄로 보여 준다 — 요리 중에는 손이 젖어 있어 글자를
+                치는 것보다 누르는 게 쉽다. 처음(대화 없음)에는 위쪽에 크게 있으니 중복해서 보이지 않는다. */}
+            {messages.length > 0 && !loading && remaining.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '0 -12px', padding: '0 12px', scrollbarWidth: 'none' }}>
+                {remaining.map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => void send(s)}
+                    style={{
+                      flex: 'none', padding: '7px 11px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+                      background: SURFACE2, color: '#F1F1F4', fontSize: 12.5, whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            <UsageLine style={{ justifyContent: 'center' }} cost={cost} onDark />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="이 요리에 대해 물어보세요"
+                disabled={loading}
+                className="ai-chat-input ai-chat-input-dark flex-1 min-w-0 text-[15px]"
+              />
+              <VoiceInputButton value={input} onText={setInput} onError={setError} disabled={loading} dark />
+              <button
+                type="submit"
+                aria-label="보내기"
+                className="ai-action flex-shrink-0"
+                disabled={loading || !input.trim()}
+                style={{
+                  width: 40, height: 40, borderRadius: 20, padding: 0, fontSize: 17, fontWeight: 800,
+                  cursor: loading || !input.trim() ? 'default' : 'pointer',
+                }}
+              >
+                <span>↑</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
       {/* ── 우하단 떠 있는 버튼 ───────────────────────────────
           버튼이 `overflow: hidden`(스쳐 가는 빛줄기를 가두려고)이라 AI 배지·횟수 표시는 **버튼 밖** 형제로 둔다. */}
       {!(open && keyboardOpen) && (
@@ -180,187 +353,17 @@ const CookCoach: React.FC<{
             aria-label={open ? '쿡 코치 접기' : '쿡 코치 열기'}
             aria-expanded={open}
           >
-            <HatMark size={34} />
+            <HatMark size={42} />
           </button>
           <span className="ai-fab-badge">AI</span>
           {turns > 0 && (
             <span style={{
               position: 'absolute', bottom: -2, right: -2, minWidth: 20, height: 20, padding: '0 5px',
-              borderRadius: 10, background: '#FFD600', color: '#1A1A1E', border: '2px solid #FFFFFF',
+              borderRadius: 10, background: '#FFD600', color: INK, border: '2px solid #FFFFFF',
               fontSize: 11, fontWeight: 800, lineHeight: '16px', boxSizing: 'border-box', textAlign: 'center',
               zIndex: 3, pointerEvents: 'none',
             }}>{turns}</span>
           )}
-        </div>
-      )}
-
-      {/* ── 대화 카드 ─────────────────────────────────────── */}
-      {open && (
-        <div
-          style={{
-            position: 'fixed', left: 12, right: 12, margin: '0 auto', maxWidth: 420, zIndex: LAYER,
-            top: top ?? '22dvh',
-            bottom: keyboardOpen ? cardBottom : `calc(${cardBottom}px + env(safe-area-inset-bottom, 0px))`,
-            display: 'flex', flexDirection: 'column',
-            transition: 'bottom 120ms ease-out',
-          }}
-        >
-          <section
-            aria-label="쿡 코치"
-            style={{
-              flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-              background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 20,
-              boxShadow: '0 16px 48px rgba(0,0,0,0.28)',
-            }}
-          >
-            {/* 머리말 한 줄 — 제목은 쿡 픽·다른 제목과 같은 15px/700, 설명은 같은 줄 옆에(2026-11-06 「타이틀 영역이 너무 높다」). */}
-            <header style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 0 12px', minHeight: 48,
-              background: '#1A1A1E', flexShrink: 0,
-            }}>
-              <HatCircle size={28} />
-              <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap' }}>쿡 코치</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
-                  background: '#FFD600', color: '#1A1A1E', flexShrink: 0,
-                }}>AI</span>
-                <span style={{
-                  fontSize: 11.5, color: 'rgba(255,255,255,0.68)', minWidth: 0,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>이 요리를 도와드려요</span>
-              </span>
-              {/* 닫기(×)가 아니라 접기(⌄) — 접어도 대화는 그대로다. */}
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="접기"
-                style={{
-                  width: 36, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M6 9.5l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </header>
-
-            <div className="ai-chat-scroll" style={{
-              flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px',
-              display: 'flex', flexDirection: 'column', gap: 10,
-            }}>
-              {messages.length === 0 && (
-                <>
-                  <p style={{ margin: 0, fontSize: 13, color: '#6B6240', lineHeight: 1.6 }}>
-                    재료를 바꾸거나, 양을 늘리거나, 간을 맞추는 것까지 이 요리에 대한 건 뭐든 물어보세요.
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {SUGGESTIONS.map(s => (
-                      <button
-                        key={s}
-                        type="button"
-                        disabled={loading}
-                        onClick={() => void send(s)}
-                        style={{
-                          padding: '8px 12px', borderRadius: 9999, border: `1px solid ${CARD_LINE}`, cursor: 'pointer',
-                          background: '#FFFFFF', color: 'var(--ink-700)', fontSize: 12.5, textAlign: 'left',
-                        }}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {messages.map((m, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                  <div style={{
-                    maxWidth: '88%', padding: '9px 13px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap',
-                    borderRadius: 16,
-                    borderBottomRightRadius: m.role === 'user' ? 4 : 16,
-                    borderBottomLeftRadius: m.role === 'user' ? 16 : 4,
-                    background: m.role === 'user' ? '#1A1A1E' : '#FFFFFF',
-                    border: m.role === 'user' ? 'none' : `1px solid ${CARD_LINE}`,
-                    color: m.role === 'user' ? '#FFFFFF' : 'var(--ink-900)',
-                  }}>
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <div style={{
-                    padding: '9px 13px', fontSize: 13.5, borderRadius: 16, borderBottomLeftRadius: 4,
-                    background: '#FFFFFF', border: `1px solid ${CARD_LINE}`, color: 'var(--ink-500)',
-                  }}>
-                    답을 찾는 중이에요…
-                  </div>
-                </div>
-              )}
-              {error && !loading && (
-                <p style={{ margin: 0, fontSize: 12.5, color: '#D93025' }}>{error}</p>
-              )}
-              <div ref={endRef} />
-            </div>
-
-            <form
-              onSubmit={e => { e.preventDefault(); void send(input); }}
-              style={{
-                flexShrink: 0, padding: '8px 12px 12px', background: '#FFFFFF', borderTop: `1px solid ${CARD_LINE}`,
-                display: 'flex', flexDirection: 'column', gap: 8,
-              }}
-            >
-              {/* 대화가 시작된 뒤에도 **아직 안 물어본 예시 질문**을 한 줄로 보여 준다 — 요리 중에는 손이 젖어 있어 글자를
-                  치는 것보다 누르는 게 쉽다. 처음(대화 없음)에는 위쪽에 크게 있으니 중복해서 보이지 않는다. */}
-              {messages.length > 0 && !loading && remaining.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '0 -12px', padding: '0 12px', scrollbarWidth: 'none' }}>
-                  {remaining.map(s => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => void send(s)}
-                      style={{
-                        flex: 'none', padding: '7px 11px', borderRadius: 9999, border: `1px solid ${CARD_LINE}`, cursor: 'pointer',
-                        background: CARD_BG, color: 'var(--ink-700)', fontSize: 12.5, whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <UsageLine style={{ justifyContent: 'center' }} cost={cost} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  placeholder="이 요리에 대해 물어보세요"
-                  disabled={loading}
-                  className="ai-chat-input flex-1 min-w-0 text-[15px]"
-                />
-                <VoiceInputButton value={input} onText={setInput} onError={setError} disabled={loading} />
-                <button
-                  type="submit"
-                  aria-label="보내기"
-                  className="ai-action flex-shrink-0"
-                  disabled={loading || !input.trim()}
-                  style={{
-                    width: 40, height: 40, borderRadius: 20, padding: 0, fontSize: 17, fontWeight: 800,
-                    cursor: loading || !input.trim() ? 'default' : 'pointer',
-                  }}
-                >
-                  <span>↑</span>
-                </button>
-              </div>
-            </form>
-          </section>
-          {/* 버튼을 가리키는 말풍선 꼬리. 카드가 `overflow: hidden` 이라 카드 밖 형제로 둔다. */}
-          <span aria-hidden style={{
-            position: 'absolute', right: 20, bottom: -7, width: 16, height: 16, background: '#FFFFFF',
-            borderRight: `1px solid ${CARD_LINE}`, borderBottom: `1px solid ${CARD_LINE}`,
-            transform: 'rotate(45deg)', borderBottomRightRadius: 3,
-          }} />
         </div>
       )}
     </Portal>

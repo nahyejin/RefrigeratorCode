@@ -537,7 +537,7 @@ const RecipeChatWidget: React.FC = () => {
                     className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                     style={{ width: 28, height: 28 }}
                   >
-                    <SparkMark size={18} />
+                    <SparkMark size={20} />
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>쿡 픽</span>
                   <span style={{
@@ -862,7 +862,7 @@ const RecipeChatWidget: React.FC = () => {
             className="ai-fab-button"
             onClick={openWidget}
           >
-            <SparkMark size={30} />
+            <SparkMark size={38} />
           </button>
           {/* AI 가 붙은 자리는 어디서나 같은 「AI」 배지(2026-11-06 사용자: 배지를 왜 없앴나 — AI 가 붙은 건 다 붙이기로 했다). */}
           <span className="ai-fab-badge">AI</span>

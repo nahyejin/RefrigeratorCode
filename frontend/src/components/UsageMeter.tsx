@@ -173,7 +173,9 @@ export const UsageLine: React.FC<{
    * 같은 숫자를 두 번 적지 않는다. 다 쓴 상태의 안내는 그대로 나온다.
    */
   costOnly?: boolean;
-}> = ({ style, compact = false, cost, costUnit = 'ask', costOnly = false }) => {
+  /** 어두운 바탕(쿡 코치 카드) 위에 놓을 때 — 글자를 밝게. */
+  onDark?: boolean;
+}> = ({ style, compact = false, cost, costUnit = 'ask', costOnly = false, onDark = false }) => {
   const usage = useUsage();
   if (!usage) return null;
 
@@ -211,7 +213,7 @@ export const UsageLine: React.FC<{
      * 알 수 없다는 말을 들어 **세 줄**로 나눴다. 이번엔(2026-11-06) 세 줄이 입력창 아래를 너무 차지한다는
      * 지적 — 줄은 합치되 **숫자마다 이름은 그대로** 붙여서 한 줄로 만든다. 폭이 모자라면 줄이 바뀐다(`flexWrap`).
      */
-    const num = (n: number | string) => <b style={{ color: 'var(--ink-900)' }}>{n}</b>;
+    const num = (n: number | string) => <b style={{ color: onDark ? '#FFFFFF' : 'var(--ink-900)' }}>{n}</b>;
     const costPart = typeof cost === 'number' && cost > 0
       ? (costUnit === 'upload'
           ? <>사진 몇 장이든 1회 {num(cost)}</>
@@ -245,7 +247,7 @@ export const UsageLine: React.FC<{
         textOverflow: compact ? 'ellipsis' : undefined,
         minWidth: 0,
         fontSize: 12,
-        color: out ? RED : 'var(--ink-500)',
+        color: out ? (onDark ? '#FF8A80' : RED) : (onDark ? 'rgba(255,255,255,0.62)' : 'var(--ink-500)'),
         fontWeight: out ? 600 : 400,
         ...style,
       }}
