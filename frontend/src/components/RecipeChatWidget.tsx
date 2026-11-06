@@ -932,7 +932,11 @@ const RecipeChatWidget: React.FC = () => {
           >
             {/* 글자가 붙은 알약(2026-11-06 「쿡 픽 A」): 포크·나이프 선 아이콘 + 이름. 오른쪽 위 AI 배지는 아래 형제. */}
             <UtensilsIcon size={20} />
-            <span>쿡 픽</span>
+            {/* 이름 아래 작은 설명 한 줄(2026-11-07 「쿡 픽·카메라도 설명이 들어가게」) — 떠 있는 버튼이라 폭을 많이 늘리지 않게 짧게 */}
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2, textAlign: 'left' }}>
+              <span>쿡 픽</span>
+              <span style={{ fontSize: 10.5, fontWeight: 500, opacity: 0.68 }}>레시피를 골라 드려요</span>
+            </span>
           </button>
           {/* AI 가 붙은 자리는 어디서나 같은 「AI」 배지(2026-11-06 사용자: 배지를 왜 없앴나 — AI 가 붙은 건 다 붙이기로 했다). */}
           <span className="ai-fab-badge">AI</span>

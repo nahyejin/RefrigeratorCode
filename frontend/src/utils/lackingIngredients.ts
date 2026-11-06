@@ -1,3 +1,4 @@
+import { pickSubstitute } from './substituteRules';
 import { calculateMatchRate } from './recipeUtils';
 
 /**
@@ -9,7 +10,7 @@ import { calculateMatchRate } from './recipeUtils';
  * 카드 밖에서도 부족 재료를 알아야 한다.
  */
 export function getLackingIngredients(
-  recipe: { used_ingredients?: string | string[] },
+  recipe: { used_ingredients?: string | string[]; title?: string },
   myIngredients: string[],
   substituteTable?: Record<string, { ingredient_b: string }[]> | null,
   synonymDict?: Record<string, string> | null
@@ -34,8 +35,8 @@ export function getLackingIngredients(
     const originalKey = Object.keys(substituteTable).find(k => normalize(k) === normIng);
     const substituteList = originalKey ? substituteTable[originalKey] : undefined;
     if (substituteList && Array.isArray(substituteList)) {
-      // 냉장고에 대체할 재료가 있으면 "부족" 으로 보지 않는다
-      if (substituteList.some(sub => mySet.has(normalize(sub.ingredient_b)))) return false;
+      // 냉장고에 대체할 재료가 있으면 "부족" 으로 보지 않는다 — 카드와 같은 규칙(utils/substituteRules.ts)
+      if (pickSubstitute(ing, substituteList as any, mySet, recipe.title)) return false;
     }
     return true;
   });

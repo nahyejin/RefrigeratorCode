@@ -4,6 +4,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { getPlatformLogo } from '../utils/platform';
 import { calculateMatchRate, loadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import IngredientPillGroup from './IngredientPillGroup';
+import { pickSubstitute } from '../utils/substituteRules';
 import { RecipeCardSkeletonItem } from './RecipeCardSkeleton';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangAdSheet from './CoupangAdSheet';
@@ -453,9 +454,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         const substituteList = originalKey ? substituteTable[originalKey] : undefined;
         
         if (substituteList && Array.isArray(substituteList)) {
-          // 내 냉장고에 있는 대체제가 있는지 확인 (유사도 점수 높은 순으로 정렬되어 있음)
-          const hasSubstitute = substituteList.some(sub => mySet.has(normalize(sub.ingredient_b)));
-          if (hasSubstitute) {
+          // 내 냉장고에 있는 대체제가 있는지 확인 — 유사도 하한·브랜드 제외·주재료 제외 규칙은 utils/substituteRules.ts
+          if (pickSubstitute(ing, substituteList, mySet, recipe.title)) {
             return false; // 대체 가능하므로 제외
           }
         }
@@ -881,6 +881,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             needIngredients={usedIngredientList}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
+            title={recipe.title}
             // 예전에는 여기서 곧바로 쿠팡 창을 열었다. 하지만 pill 은 "없는 재료" 를
             // 알려주는 정보 표시로 보이기 때문에, 누른 사람이 광고 클릭을 의도했다고 보기 어렵다.
             // 쿠팡 파트너스 운영정책은 광고 클릭이 사용자의 의도일 때만 발생할 것을 요구한다.

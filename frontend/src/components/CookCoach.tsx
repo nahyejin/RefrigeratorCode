@@ -101,8 +101,18 @@ const CookCoach: React.FC<{
   // 레시피 창 위쪽의 「쿡 코치」 입구가 같은 카드를 연다(CookModeSheet 가 이벤트를 쏜다).
   React.useEffect(() => {
     const openFromSheet = () => setOpen(true);
+    // 재료 칩(「쪽파 → 대파 ›」)을 누르면 카드를 열고 질문만 채운다 — 보내기는 사용자가 누른다(크레딧이 나가므로).
+    const askFromChip = (e: Event) => {
+      const q = String((e as CustomEvent).detail?.question || '').trim();
+      setOpen(true);
+      if (q) setInput(q.slice(0, 300));
+    };
     window.addEventListener('cookmatch:open-coach', openFromSheet);
-    return () => window.removeEventListener('cookmatch:open-coach', openFromSheet);
+    window.addEventListener('cookmatch:ask-coach', askFromChip);
+    return () => {
+      window.removeEventListener('cookmatch:open-coach', openFromSheet);
+      window.removeEventListener('cookmatch:ask-coach', askFromChip);
+    };
   }, []);
 
   // 다른 요리로 바뀌면 대화를 비운다(요리 한 건 전용이라 이어 갈 맥락이 없다).

@@ -343,15 +343,23 @@ const WeeklyPlan: React.FC = () => {
   const [planReady, setPlanReady] = React.useState(false);
   /** AI 가 조건을 읽은 설명을 펼쳤나. */
   const [noteOpen, setNoteOpen] = React.useState(false);
+  /**
+   * 지난번에 AI 가 짠 식단(7일 안). **들어오자마자 펼치지 않는다** — 예전엔 여기서 바로 결과 화면을 띄워서, 들어올 때마다 「묻지도 않고
+   * 식단이 짜여 있다」(2026-11-07 「이 화면이 기본 화면이 되게」). 크레딧을 쓴 결과라 지우지는 않고, 첫 화면의 「지난번 식단 다시 보기」를
+   * 눌렀을 때만 불러온다.
+   */
+  const [lastPlan, setLastPlan] = React.useState<LastAiPlan | null>(null);
   React.useEffect(() => {
-    const lp = loadLastAiPlan();
-    if (lp) {
-      setSlots(prev => prev.map((s, i) => ({ ...s, meals: lp.meals[i] ?? [] })));
-      setBasket(lp.basket);
-      setAiNote(lp.note);
-    }
+    setLastPlan(loadLastAiPlan());
     setPlanReady(true);
   }, []);
+  const restoreLastPlan = () => {
+    if (!lastPlan) return;
+    setSlots(prev => prev.map((s, i) => ({ ...s, meals: lastPlan.meals[i] ?? [] })));
+    setBasket(lastPlan.basket);
+    setAiNote(lastPlan.note);
+    setLastPlan(null);
+  };
 
   /**
    * 이번 주 식단에서 **뺀** 재료 이름.
@@ -366,7 +374,10 @@ const WeeklyPlan: React.FC = () => {
   const [pickOpen, setPickOpen] = React.useState(false);
   /** 결과가 나온 뒤 접어 둔 「재료·조건」 영역을 다시 펼쳤는지(2026-11-07 화면 단순화). */
   const [editOpen, setEditOpen] = React.useState(false);
-  React.useEffect(() => { if (asking) setEditOpen(false); }, [asking]);
+  React.useEffect(() => { if (asking) { setEditOpen(false); setLastPlan(null); } }, [asking]);
+  React.useEffect(() => {
+    if (lastPlan && slots.some(s => s.meals.length > 0)) setLastPlan(null);   // 무료로 새로 짜졌으면 지난번 줄은 접는다
+  }, [lastPlan, slots]);
   /** 「날짜 바꾸기」 시트가 어느 끼니를 옮기는 중인지 */
   const [moving, setMoving] = React.useState<{ day: number; at: number } | null>(null);
   /** 무료 식단은 예전엔 재료만 있으면 **묻지도 않고** 바로 7일치를 짜서
@@ -378,9 +389,11 @@ const WeeklyPlan: React.FC = () => {
   const myIngredients = React.useMemo(() => getMyIngredients(), []);
   React.useEffect(() => {
     if (!planReady || asking) return;
+    // 지난번 식단이 아직 불려 오지 않은 첫 화면에서는 저장분을 건드리지 않는다(빈 화면이라고 지우면 크레딧 쓴 결과가 사라진다)
+    if (lastPlan) return;
     if (!aiNote || !slots.some(s => s.meals.length > 0)) { clearLastAiPlan(); return; }
     saveLastAiPlan({ at: Date.now(), note: aiNote, basket, meals: slots.map(s => s.meals) });
-  }, [planReady, asking, aiNote, basket, slots]);
+  }, [planReady, asking, aiNote, basket, slots, lastPlan]);
 
   React.useEffect(() => {
     const onVisible = () => {
@@ -1145,37 +1158,39 @@ const WeeklyPlan: React.FC = () => {
               </button>
             )}
 
+            {/* 무료로 짠 결과를 본 **직후**가 AI 를 권하기 가장 좋은 순간이다 — 조건을 추가하면 AI 가 다시 짠다는 걸 여기서 알린다.
+                예전엔 긴 목록 **맨 아래** 흰 바탕·얇은 테두리 한 줄이라 아무도 못 봤다(2026-11-07 「너무 안 보인다」). 다른 AI 입구(쿡 코치·식단 짜기)와
+                같은 검정 알약(`ai-fab-pill k`)으로 만들고 **목록 바로 위**로 올렸다. 누르면 접어 둔 조건 칸을 펼치고 입력창으로 데려간다
+                (크레딧은 거기서 짜기를 누를 때 나간다). */}
+            {!aiNote && (
+              <div style={{ marginBottom: 12 }}>
+                <button
+                  type="button"
+                  className="ai-fab-pill k"
+                  onClick={() => {
+                    setEditOpen(true);
+                    window.setTimeout(() => {
+                      aiBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      window.setTimeout(() => wishInput.current?.focus(), 350);
+                    }, 80);
+                  }}
+                  style={{ width: '100%', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 700 }}
+                >
+                  <Spark size={16} />
+                  <span>조건을 추가해 AI로 다시 짜기</span>
+                  <span className="ai-tag" style={{
+                    fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
+                    background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
+                  }}>AI</span>
+                </button>
+                <div style={{ marginTop: 6, textAlign: 'center', fontSize: 11.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
+                  아이·다이어트처럼 말하면 맞춰 짜 드려요 · {planCost}크레딧
+                </div>
+              </div>
+            )}
+
             {/* 하루 **한 줄**(2026-11-06). */}
             {planRows()}
-
-            {/* 무료로 짠 결과를 본 **직후**가 AI 를 권하기 가장 좋은 순간이다 — 조건을 말하면 다시 맞춰 준다는 걸 여기서 알린다.
-                누르면 조건 칸으로 데려간다(크레딧은 거기서 짜기를 누를 때 나간다). */}
-            {!aiNote && (
-              <button
-                type="button"
-                onClick={() => {
-                  aiBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  window.setTimeout(() => wishInput.current?.focus(), 350);
-                }}
-                style={{
-                  width: '100%', marginTop: 10, minHeight: 46, borderRadius: 12,
-                  border: '1px solid var(--line-200)', background: 'var(--surface)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-                  flexWrap: 'wrap', padding: '8px 14px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                }}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <span className="ai-tag" style={{
-                    fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '2px 6px', borderRadius: 6,
-                    background: '#1A1A1E', color: '#FFD600', flexShrink: 0,
-                  }}>AI</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>아이·다이어트 같은 조건이 있나요?</span>
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--ink-500)', marginLeft: 'auto' }}>
-                  AI가 다시 맞춰요 · {planCost} 크레딧 ›
-                </span>
-              </button>
-            )}
 
             {/* 「이걸 하려면 장보기 N개 · 장보기 목록으로 보기」 박스는 뺐다(2026-10-10 요청 — AI 식단 화면에서 이미 뺀 것과
                 맞춤). 장보기 목록은 아래 한 곳에만 있다. */}
@@ -1429,6 +1444,25 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {(!hasResult || editOpen) && conditionSection}
+      {!hasResult && lastPlan && !asking && (
+        <button
+          type="button"
+          onClick={restoreLastPlan}
+          style={{
+            width: '100%', textAlign: 'left', cursor: 'pointer', marginBottom: 10,
+            background: 'transparent', border: '1px dashed var(--line-200)', borderRadius: 14,
+            padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink-700)' }}>
+            지난번에 AI가 짠 식단이 있어요
+            <span style={{ color: 'var(--ink-500)' }}>
+              {' · '}{new Date(lastPlan.at).getMonth() + 1}월 {new Date(lastPlan.at).getDate()}일
+            </span>
+          </span>
+          <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ink-900)' }}>다시 보기 ›</span>
+        </button>
+      )}
       {hasResult && editOpen && (
         <button
           type="button"

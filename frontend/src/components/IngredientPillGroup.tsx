@@ -7,6 +7,8 @@ interface IngredientPillGroupProps {
   needIngredients: string[];
   myIngredients: string[];
   substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
+  /** 레시피 제목 — 주재료는 대체 칩으로 보이지 않게 한다 */
+  title?: string;
   style?: React.CSSProperties;
   /** 부족 재료 pill 을 눌렀을 때 (구매 연결 등). 없으면 pill 은 표시 전용 */
   onMissingClick?: (ingredient: string) => void;
@@ -19,7 +21,7 @@ let globalSynonymDict: { [key: string]: string } | null = null;
 let globalSynonymDictLoading = false;
 let globalSynonymDictPromise: Promise<{ [key: string]: string }> | null = null;
 
-const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, style, onMissingClick, compact = false }) => {
+const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, title, style, onMissingClick, compact = false }) => {
   const [synonymDict, setSynonymDict] = useState<{ [key: string]: string } | null>(globalSynonymDict);
   const [isDictLoaded, setIsDictLoaded] = useState(!!globalSynonymDict);
   
@@ -104,8 +106,9 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
   
   const pillInfo = getUniversalIngredientPillInfo({ 
     needIngredients: convertedNeedIngredients, 
-    myIngredients: convertedMyIngredients, 
-    substituteTable 
+    myIngredients: convertedMyIngredients,
+    substituteTable,
+    title,
   });
   
   // 디버깅: 대체제 정보 확인

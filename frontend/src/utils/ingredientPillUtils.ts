@@ -1,4 +1,5 @@
 import { SubstituteTable } from './recipeUtils';
+import { usableSubstitutes, isMainIngredient } from './substituteRules';
 
 // =====================
 // 타입 정의
@@ -15,6 +16,8 @@ export interface IngredientPillInfo {
 export interface UniversalIngredientPillParams {
   needIngredients: string[];
   myIngredients: string[];
+  /** 레시피 제목 — 주재료는 대체하지 않는다(utils/substituteRules.ts) */
+  title?: string;
   substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
 }
 
@@ -55,7 +58,8 @@ function findSubstituteIngredients(
   needIngredients: string[],
   mySet: Set<string>,
   mineSet: Set<string>,
-  substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] }
+  substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] },
+  title?: string
 ): { substituteTargets: string[]; substitutes: string[] } {
   const substituteTargets: string[] = [];
   const substitutes: string[] = [];
@@ -100,7 +104,9 @@ function findSubstituteIngredients(
     }
     
     // 내 냉장고에 있는 대체제 중 유사도 점수가 가장 높은 것만 선택
-    const availableSubstitutes = substituteList
+    // 규칙(utils/substituteRules.ts): 주재료는 대체하지 않고, 유사도 하한·브랜드 후보 제외
+    if (isMainIngredient(needRaw, title)) return;
+    const availableSubstitutes = usableSubstitutes(substituteList, needRaw)
       .filter(sub => {
         const hasSubstitute = mySet.has(normalize(sub.ingredient_b));
         if (hasSubstitute) {
@@ -152,6 +158,7 @@ export function getUniversalIngredientPillInfo({
   needIngredients,
   myIngredients,
   substituteTable,
+  title,
 }: UniversalIngredientPillParams): IngredientPillInfo {
   const mySet = new Set(myIngredients.map(normalize));
 
@@ -176,7 +183,8 @@ export function getUniversalIngredientPillInfo({
     needIngredients,
     mySet,
     mineSet,
-    substituteTable
+    substituteTable,
+    title
   );
   
   // 디버깅: 결과 확인

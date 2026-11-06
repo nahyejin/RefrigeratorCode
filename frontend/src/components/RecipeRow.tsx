@@ -1,3 +1,4 @@
+import { pickSubstitute } from '../utils/substituteRules';
 import React from 'react';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -71,7 +72,7 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
   const lacking = (match.need_ingredients || []).filter(ing => {
     const key = Object.keys(substituteTable).find(k => normalize(k) === normalize(ing));
     const subs = key ? substituteTable[key] : undefined;
-    return !(subs && subs.some(s => mySet.has(normalize(s.ingredient_b))));
+    return !(subs && pickSubstitute(ing, subs, mySet, recipe.title));   // 규칙: utils/substituteRules.ts
   });
   const substituted = Math.max(0, (match.need_ingredients?.length || 0) - lacking.length);
   const have = Math.max(0, used.length - lacking.length - substituted);
@@ -102,7 +103,6 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
   ];
 
   const fav = !!recipeActionState?.favorite;
-  const tag = substituted > 0 ? { text: `대체 가능 ${substituted}`, soft: true } : used.length > 0 ? { text: `재료 ${used.length}개`, soft: false } : null;
 
   return (
     <div
@@ -148,30 +148,29 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
         }}>
           {recipe.title}
         </span>
-        <span style={{ marginTop: 4, fontSize: 12.5, color: 'var(--ink-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {used.length > 0 && (
-            <b style={{ fontWeight: 700, color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-900)' }}>
-              내 재료 {have}/{used.length}
-            </b>
-          )}
-          {recipe.comments ? `${used.length > 0 ? ' · ' : ''}댓글 ${recipe.comments}` : ''}
-        </span>
-        <span style={{ marginTop: 'auto', paddingTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 30 }}>
-          {tag ? (
-            <span style={{
-              fontSize: 11.5, fontWeight: 700, borderRadius: 6, padding: '2px 7px',
-              background: tag.soft ? '#FFF1A8' : 'var(--surface-sub)', color: tag.soft ? '#6B5200' : 'var(--ink-700)',
-            }}>
-              {tag.text}
-            </span>
-          ) : <span />}
+        {/* 정보 한 줄 + 오른쪽 별. 예전엔 「대체 가능 N」 노란 알약이 별과 함께 **따로 한 줄**을 차지해 목록이 길어졌다(2026-11-07 「칩이 한 행을
+            다 차지할 필요가 있나」). 대체 재료는 레시피 창 안에서 무엇을 무엇으로 바꾸는지 보이므로, 여기서는 글자 한 마디로만 알린다. */}
+        <span style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, minHeight: 30 }}>
+          {/* 별 때문에 폭이 좁아 한 줄에 다 안 들어간다 — 잘라 내지 말고 두 줄까지 줄바꿈을 허용한다 */}
+          <span style={{
+            flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.45, color: 'var(--ink-500)', wordBreak: 'keep-all',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>
+            {used.length > 0 && (
+              <b style={{ fontWeight: 700, color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-900)' }}>
+                내 재료 {have}/{used.length}
+              </b>
+            )}
+            {substituted > 0 ? `${used.length > 0 ? ' · ' : ''}대체 가능 ${substituted}` : ''}
+            {recipe.comments ? `${used.length > 0 || substituted > 0 ? ' · ' : ''}댓글 ${recipe.comments}` : ''}
+          </span>
           <button
             type="button"
             aria-label={fav ? '즐겨찾기 해제' : '즐겨찾기'}
             aria-pressed={fav}
             onClick={e => { e.stopPropagation(); act('favorite'); }}
             style={{
-              width: 30, height: 30, margin: '-4px -4px -4px 0', padding: 0, border: 'none', background: 'transparent',
+              flex: 'none', width: 30, height: 30, margin: '-4px -4px -4px 0', padding: 0, border: 'none', background: 'transparent',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             }}
           >

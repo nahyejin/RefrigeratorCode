@@ -4,6 +4,7 @@ import Dialog from './ui/Dialog';
 import PlanThisDay from './PlanThisDay';
 import CookCoach from './CookCoach';
 import { ChefHatIcon } from './ui/Icons';
+import { pickSubstitute } from '../utils/substituteRules';
 import Toast from './Toast';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -519,12 +520,13 @@ const CookModeSheet: React.FC<Props> = ({
     for (const n of names) {
       if (have.has(n.trim())) continue;
       const k = keyOf[norm(n)];
-      const hit = k ? table[k].find(c => mine.has(norm(c.ingredient_b))) : undefined;
+      // 유사도 하한·브랜드 제외·주재료 제외 — 목록의 「대체 가능 N」과 같은 규칙(utils/substituteRules.ts)
+      const hit = k ? pickSubstitute(n, table[k], mine, data?.title || fallbackTitle || '') : undefined;
       if (hit) out[n] = hit.ingredient_b;
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, names.join('|'), myIngredients.join('|')]);
+  }, [isOpen, names.join('|'), myIngredients.join('|'), data?.title]);
   const substituteCount = Object.keys(substitutes).length;
 
   return (
@@ -689,12 +691,21 @@ const CookModeSheet: React.FC<Props> = ({
                 <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {names.map(n => substitutes[n] ? (
                     // 없지만 냉장고의 다른 재료로 바꿀 수 있는 것 — 목록 카드의 「식용유 → 참기름」과 같은 검정 칩
-                    <span key={n} style={{
-                      fontSize: 11.5, padding: '3px 8px', borderRadius: 9999,
-                      background: '#1A1A1E', color: '#FFFFFF', fontWeight: 600,
-                    }}>
-                      {n} → {substitutes[n]}
-                    </span>
+                    // 눌러서 쿡 코치에게 묻는다(2단계) — 표는 후보만 내고 「이 요리에서 정말 되나」는 이 요리를 읽는 AI 가 답한다.
+                    // 질문만 채우고 보내기는 사용자가 누른다(크레딧이 나가는 일이라 몰래 보내지 않는다).
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => window.dispatchEvent(new CustomEvent('cookmatch:ask-coach', {
+                        detail: { question: `${n} 대신 ${substitutes[n]} 써도 돼요?` },
+                      }))}
+                      style={{
+                        fontSize: 11.5, padding: '3px 8px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+                        background: '#1A1A1E', color: '#FFFFFF', fontWeight: 600, fontFamily: 'inherit',
+                      }}
+                    >
+                      {n} → {substitutes[n]} <span aria-hidden style={{ opacity: 0.6 }}>›</span>
+                    </button>
                   ) : (
                     <span key={n} style={{
                       fontSize: 11.5, padding: '3px 8px', borderRadius: 9999,
@@ -709,7 +720,7 @@ const CookModeSheet: React.FC<Props> = ({
               )}
               {substituteCount > 0 && (
                 <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.5, wordBreak: 'keep-all' }}>
-                  <b style={{ color: 'var(--ink-700)' }}>대체 가능 {substituteCount}</b> · 검정 칩은 없는 재료를 냉장고에 있는 재료로 바꿔 쓸 수 있다는 뜻이에요
+                  <b style={{ color: 'var(--ink-700)' }}>대체 가능 {substituteCount}</b> · 검정 칩은 없는 재료를 냉장고 재료로 바꿔 쓸 수 있다는 뜻이에요. 눌러서 쿡 코치에게 물어보세요
                 </div>
               )}
             </section>

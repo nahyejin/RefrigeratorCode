@@ -2745,31 +2745,36 @@ const MyFridge: React.FC = () => {
                 실제 인식 기능이 들어오기 전까진 어차피 준비 중 안내만 뜨는 자리였다.
                 버튼 하나로 모으고, 눌렀을 때 "뭘 찍을지" 먼저 고르게 한다
                 (CameraCaptureSheet). */}
-            {/* AI 인식 자리임을 평평한 노랑 + "AI" 배지로 알려준다(2026-11-06 AI 표식을 평평한 한 색으로 바꿀 때 광택·후광은 걷어냈다). */}
-            <div style={{ position: 'relative', width: 40, height: 40, flexShrink: 0, alignSelf: 'flex-start' }}>
-              <button
-                type="button"
-                className="ai-fab-button"
-                onClick={() => {
-                  // 비회원도 **체험분이 남아 있으면** 쓸 수 있다.
-                  // 무엇이 좋은지 본 적 없는 사람에게 가입하라고 하면 안 한다.
-                  if (usage && !usage.can_use_ai) {
-                    // 비회원: 같은 로그인 확인창(「AI 체험을 다 쓰셨어요 / 가입하면 30크레딧…」). 회원: 기존 안내.
-                    if (usage.is_guest) openLoginGate('ai', { credits: usage.signup_credits });
-                    else showPrepNotice('크레딧을 다 쓰셨어요.');
-                    return;
-                  }
-                  setCameraSheetOpen(true);
-                }}
-                title="사진으로 재료 담기"
-                aria-label="사진으로 재료 담기"
-              >
-                {/* 선 카메라 아이콘(Lucide). AI 표시는 오른쪽 위 「AI」 배지가 한다(2026-11-06 — 손으로 그린 ✦ 로는 AI 인지 안 보였다). */}
-                <CameraIcon size={22} style={{ color: '#1A1A1E' }} />
-              </button>
-              <span className="ai-fab-badge">AI</span>
-            </div>
           </div>
+
+          {/* 사진으로 재료 담기 — 40px 동그라미(아이콘만)로는 「AI 사진 인식」인지 알 수 없다는 지적(2026-11-07)으로, 식단 짜기·쿡 코치 입구와
+              **같은 검정 알약**(`ai-fab-pill k`: 숨 쉬듯 움직임 + 스쳐 가는 빛줄기) + 이름 옆 「✦AI」 + 한 줄 설명으로 입력창 아래에 둔다. */}
+          <button
+            type="button"
+            className="ai-fab-pill k"
+            onClick={() => {
+              // 비회원도 **체험분이 남아 있으면** 쓸 수 있다.
+              // 무엇이 좋은지 본 적 없는 사람에게 가입하라고 하면 안 한다.
+              if (usage && !usage.can_use_ai) {
+                // 비회원: 같은 로그인 확인창(「AI 체험을 다 쓰셨어요 / 가입하면 30크레딧…」). 회원: 기존 안내.
+                if (usage.is_guest) openLoginGate('ai', { credits: usage.signup_credits });
+                else showPrepNotice('크레딧을 다 쓰셨어요.');
+                return;
+              }
+              setCameraSheetOpen(true);
+            }}
+            title="사진으로 재료 담기"
+            aria-label="사진으로 재료 담기"
+            style={{ width: '100%', justifyContent: 'center', gap: 8, marginTop: 10, marginBottom: 12, fontSize: 14, fontWeight: 700 }}
+          >
+            <CameraIcon size={18} />
+            <span>사진으로 재료 담기</span>
+            <span className="ai-tag" style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
+              background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
+            }}>AI</span>
+            <span style={{ fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.78)', whiteSpace: 'nowrap' }}>영수증·음식 사진</span>
+          </button>
 
           {/* 곧 상하는 재료 알림은 **요리 캘린더**로 옮겼다.
               여기 두면 같은 말을 두 번 한다 — 아래 재고 목록이 이미 재료마다
