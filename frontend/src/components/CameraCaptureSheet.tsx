@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { UsageLine, useUsage } from './UsageMeter';
 import Sheet from './ui/Sheet';
+import SegmentedToggle from './ui/SegmentedToggle';
 
 /**
  * 네이티브 앱(안드로이드/iOS)에서는 `<input type=file>` 대신 진짜 OS 카메라·
@@ -45,29 +46,6 @@ interface CameraCaptureSheetProps {
   maxFiles?: number;
 }
 
-const ReceiptIcon: React.FC = () => (
-  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M5.5 3.4l1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3V19a1.6 1.6 0 0 1-1.6 1.6H7.1A1.6 1.6 0 0 1 5.5 19z" />
-    <path d="M8.6 8.2h6.8M8.6 11.6h6.8M8.6 15h4.2" />
-  </svg>
-);
-
-const FoodSingleIcon: React.FC = () => (
-  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
-    <circle cx="12" cy="13.6" r="3.4" />
-  </svg>
-);
-
-const FoodMultiIcon: React.FC = () => (
-  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <rect x="3" y="3" width="8" height="8" rx="1.6" />
-    <rect x="13" y="3" width="8" height="8" rx="1.6" />
-    <rect x="3" y="13" width="8" height="8" rx="1.6" />
-    <rect x="13" y="13" width="8" height="8" rx="1.6" />
-  </svg>
-);
-
 // 세 모드는 서버에서 **서로 다른 프롬프트**를 쓴다. 무엇을 시키느냐가 달라서
 // 결과도 크게 달라진다 — 영수증은 "산 목록을 읽어라", 음식 1개는 "가운데 것
 // 하나만", 음식 여러 개는 "보이는 것을 빠짐없이". 그래서 찍기 전에 먼저 묻고,
@@ -83,11 +61,10 @@ const OPTIONS: {
   key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>;
   label: string;
   hint: string;
-  icon: React.FC;
 }[] = [
-  { key: 'receipt', label: '영수증', hint: '주문내역 캡처도 OK', icon: ReceiptIcon },
-  { key: 'food-single', label: '음식 1개', hint: '하나만 크게', icon: FoodSingleIcon },
-  { key: 'food-multi', label: '음식 여러 개', hint: '펼쳐 놓고', icon: FoodMultiIcon },
+  { key: 'receipt', label: '영수증', hint: '영수증이나 쿠팡·마켓컬리 주문내역 캡처' },
+  { key: 'food-single', label: '음식 1개', hint: '재료 하나를 가운데에 크게' },
+  { key: 'food-multi', label: '음식 여러 개', hint: '여러 재료를 펼쳐 놓고 한 번에' },
 ];
 
 /**
@@ -261,19 +238,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         costUnit="upload"
       />
 
-      {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
-          크게 키운 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄 형태였던
-          이전 버전은 "눌러서 촬영"이라는 느낌이 잘 안 살았다).
-
-          ⚠️ `1fr` 이 아니라 `minmax(0, 1fr)` 이어야 한다.
-          `1fr` 의 자동 최소 크기는 **min-content** 라 칸이 내용보다 작아질 수 없다.
-          예전엔 타일에 `aspect-ratio: 1/1` 이 걸려 있어서, 타일이 세로로 길어지면
-          그 높이가 **가로 최소 폭**으로 되돌아왔다. 힌트 한 줄(`펼쳐 놓고`)을
-          더했더니 내용 높이가 102 -> 125px 이 되면서 칸도 125px 을 요구했고,
-          3칸 합이 시트보다 59px 넓어져 **시트가 좌우로 흔들렸다**(바텀시트 본문은
-          overflow-y:auto 라 가로도 자동으로 스크롤된다).
-          지금은 `minmax(0, ...)` 로 칸이 줄어들 수 있게 하고, 정사각 고정 대신
-          내용에 맞춰 높이가 정해지게 두었다(그리드가 세 칸 높이를 알아서 맞춘다). */}
       {nativeError && (
         <div role="alert" style={{
           marginBottom: 12, padding: '10px 12px', borderRadius: 10,
@@ -284,50 +248,19 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           <div style={{ marginTop: 4, color: '#7A271A', wordBreak: 'break-all' }}>({nativeError})</div>
         </div>
       )}
-      <div role="radiogroup" aria-label="사진 종류" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
-        {OPTIONS.map(({ key, label, hint, icon: Icon }) => {
-          const on = selectedMode === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => chooseMode(key)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                // 고른 타일은 테두리가 2px 로 굵어지므로 안쪽 여백을 1px 줄여 크기가 안 변하게 한다.
-                padding: on ? '15px 5px' : '16px 6px',
-                borderRadius: 16,
-                border: on ? '2px solid var(--ink-900)' : '1px solid var(--line-200)',
-                background: on ? '#FFF8CC' : 'var(--surface-sub)',
-                cursor: 'pointer',
-              }}
-            >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  background: '#FFFFFF',
-                  border: '1px solid var(--line-200)',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon />
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', textAlign: 'center' }}>{label}</span>
-              <span style={{ fontSize: 11, color: 'var(--ink-500)', textAlign: 'center', marginTop: -4 }}>{hint}</span>
-            </button>
-          );
-        })}
+      {/* 종류는 **토글**로 고른다. 예전엔 아이콘이 큰 카드 세 장이라 「누르면 다음 화면으로 넘어갈 것」
+          처럼 보였다(2026-11-06 지적). 카드는 눈에 띄게 만든 것인데, 여기서는 고르기만 하고 실제 동작은
+          아래 버튼 둘이 한다. 앱의 다른 「하나 고르기」(마이캘린더 등)와 같은 공용 토글을 쓴다. */}
+      <SegmentedToggle
+        value={selectedMode}
+        onChange={chooseMode}
+        options={OPTIONS.map(o => ({ value: o.key, label: o.label }))}
+        height={38}
+        style={{ display: 'grid', width: '100%', boxSizing: 'border-box' }}
+      />
+      {/* 고른 종류의 설명 한 줄. 줄 높이를 고정해 종류를 바꿔도 아래 버튼이 안 움직이게 한다. */}
+      <div style={{ minHeight: 20, margin: '8px 0 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--ink-500)', lineHeight: '20px' }}>
+        {OPTIONS.find(o => o.key === selectedMode)?.hint}
       </div>
 
       {/* 방법 버튼 둘 — 위에서 고른 종류로 열린다. 촬영은 한 장, 앨범은 여러 장(maxFiles).

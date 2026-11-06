@@ -21,10 +21,12 @@ interface CloseButtonProps {
  * → 44px 터치 영역 + 연한 회색 원형 배경 + 굵은 SVG 선으로 통일한다.
  */
 const CloseButton: React.FC<CloseButtonProps> = ({ onClick, absolute = true, style, dark = false }) => {
-  const baseBg = dark ? 'rgba(255,255,255,0.12)' : 'var(--surface-sub)';
-  const baseBorder = dark ? 'rgba(255,255,255,0.16)' : 'var(--line-200)';
-  const hoverBg = dark ? 'rgba(255,255,255,0.2)' : '#ECECF0';
-  const hoverBorder = dark ? 'rgba(255,255,255,0.28)' : 'var(--line-300)';
+  // 밝은 바탕에서는 **상자 없이 × 만**(2026-11-06). 제목 옆에 회색 상자가 붙어 있으면 제목 줄이 무겁고,
+  // 닫기는 늘 거기 있는 것이라 눈에 띌 필요가 없다. 마우스를 올렸을 때만 옅은 판이 보인다.
+  const baseBg = dark ? 'rgba(255,255,255,0.12)' : 'transparent';
+  const baseBorder = dark ? 'rgba(255,255,255,0.16)' : 'transparent';
+  const hoverBg = dark ? 'rgba(255,255,255,0.2)' : 'var(--surface-sub)';
+  const hoverBorder = dark ? 'rgba(255,255,255,0.28)' : 'transparent';
   return (
     <button
       type="button"
@@ -45,7 +47,7 @@ const CloseButton: React.FC<CloseButtonProps> = ({ onClick, absolute = true, sty
         border: `1px solid ${baseBorder}`,
         borderRadius: 10,
         cursor: 'pointer',
-        color: dark ? 'rgba(255,255,255,0.85)' : 'var(--ink-700)',
+        color: dark ? 'rgba(255,255,255,0.85)' : 'var(--ink-500)',
         flexShrink: 0,
         transition: 'background 0.15s ease, border-color 0.15s ease',
         ...style,
@@ -68,7 +70,7 @@ const CloseButton: React.FC<CloseButtonProps> = ({ onClick, absolute = true, sty
       aria-hidden
       style={{ width: 20, height: 20, flexShrink: 0, display: 'block' }}
     >
-      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
     </button>
   );
