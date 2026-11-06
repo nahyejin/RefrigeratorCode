@@ -28,7 +28,7 @@ const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(3.4), origin: "50
 
 const STORY: Shot[] = [
   // 마트 장면 최소화(사용자 2026-11-05) — 「버스 모양 쿠키!」만
-  { kind: "video", src: "store.mp4", from: 11.6, to: 14.6, audio: true, lines: [{ at: 0.1, len: 2.9, text: "마트에서 시작된\n도아의 쿠키 만들기" }], talk: [
+  { kind: "video", src: "store.mp4", from: 11.6, to: 14.6, audio: true, lines: [{ at: 0.1, len: 2.9, text: "마트에서 도아가 고른\n쿠키 틀 세트" }], talk: [
     { at: 1.2, len: 1.7, text: "버스 모양 쿠키!", who: "" },
   ] },
   { kind: "video", src: "dinner.mp4", from: 5.6, to: 11.1, audio: true, lines: [{ at: 0.1, len: 5.4, text: "밥 먹으면서도\n곰돌이 틀을 꼭 쥐고" }], talk: [
@@ -38,15 +38,11 @@ const STORY: Shot[] = [
 ];
 
 // 반죽 만들기(104529, 25분 원본, 사용자가 나중에 올림) — 달걀 → 버터·슈가파우더 → 김 → 가루 체 치기 → 손으로 반죽
-// 김 넣는 장면은 뺌(사용자 2026-11-06). 받아쓰기: 「응가 같다 응가」 21:22 · 「빵 만들기가 쉽지가 않네」 21:32
+// 김 넣는 장면·손 반죽(「응가 같다 응가」) 장면은 뺌(사용자 2026-11-06: 반죽이 너무 길다)
 const DOUGH: Shot[] = [
   { kind: "video", src: "d1.mp4", from: 0, to: 4.0, step: "달걀 톡톡" },
   { kind: "video", src: "d2.mp4", from: 0, to: 7.6, step: "말랑한 버터에\n슈가파우더 섞고" },
   { kind: "video", src: "d4.mp4", from: 0, to: 9.5, step: "가루는 체에 솔솔" },
-  { kind: "video", src: "d5.mp4", from: 0, to: 20.0, audio: true, lines: [{ at: 0.2, len: 19.6, text: "손으로 조물조물\n말랑말랑 반죽 만지기" }], talk: [
-    { at: 6.0, len: 3.2, text: "응가 같다 응가", who: "" },
-    { at: 16.4, len: 2.8, text: "빵 만들기가 쉽지가 않네", who: "" },
-  ] },
 ];
 
 // 반죽을 틀로 꾹 누르고 쑥 빼기 — 오감 놀이
