@@ -556,7 +556,7 @@ const RecipeChatWidget: React.FC = () => {
                     <UtensilsIcon size={16} strokeWidth={2.2} style={{ color: '#1A1A1E' }} />
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>쿡 픽</span>
-                  <span style={{
+                  <span className="ai-tag" style={{
                     fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px',
                     borderRadius: 6, background: '#1A1A1E', color: '#FFD600', flexShrink: 0,
                   }}>AI</span>

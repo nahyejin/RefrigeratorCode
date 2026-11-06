@@ -205,7 +205,7 @@ const CookCoach: React.FC<{
             <HatCircle size={30} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap' }}>쿡 코치</span>
-              <span style={{
+              <span className="ai-tag" style={{
                 fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
                 background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
               }}>AI</span>

@@ -827,7 +827,7 @@ const WeeklyPlan: React.FC = () => {
       <SectionHead
         title={
           <>
-            <span style={{
+            <span className="ai-tag" style={{
               fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '2px 6px', borderRadius: 6,
               background: '#1A1A1E', color: '#FFD600',
             }}>AI</span>
@@ -1158,7 +1158,7 @@ const WeeklyPlan: React.FC = () => {
                 }}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <span style={{
+                  <span className="ai-tag" style={{
                     fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '2px 6px', borderRadius: 6,
                     background: '#1A1A1E', color: '#FFD600', flexShrink: 0,
                   }}>AI</span>
