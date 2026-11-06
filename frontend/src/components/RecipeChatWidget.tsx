@@ -4,6 +4,7 @@ import { openLoginGate } from '../utils/loginGate';
 import { applyUsage, refreshUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
+import KebabMenu from './ui/KebabMenu';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -20,15 +21,12 @@ const STORAGE_THREADS = 'cookmatch_chat_threads';
 const HISTORY_RETENTION_DAYS = 30;
 const MAX_STORED_THREADS = 30;
 
-/** 첫 진입 시 보여주는 예시 질문 (맛 / 냉장고 / 대상 / 목적 / 상황을 고루 커버) */
+/** 첫 진입 시 보여주는 예시 질문 (맛 / 냉장고 / 대상 / 목적 / 상황을 고루 커버). 8개는 알약 더미로 보여 5개로 줄였다(2026-11-06). */
 const SUGGESTIONS = [
   '오늘 매운 거 먹고 싶어',
   '있는 재료로 뭐 해먹을 수 있어?',
-  '재료 상관없이 간단한 거 추천해줘',
   '아이가 잘 먹는 반찬 알려줘',
   '다이어트 중인데 뭐 먹지?',
-  '캠핑 가서 해먹기 좋은 요리',
-  '술안주로 괜찮은 거 추천해줘',
   '15분이면 되는 자취 요리',
 ];
 
@@ -99,36 +97,6 @@ const ChatBubbleIcon: React.FC<{ size?: number }> = ({ size = 26 }) => (
     <circle className="ai-fab-bubble-dot" cx="8.4" cy="10.4" r="1.35" />
     <circle className="ai-fab-bubble-dot" cx="12" cy="10.4" r="1.35" />
     <circle className="ai-fab-bubble-dot" cx="15.6" cy="10.4" r="1.35" />
-  </svg>
-);
-
-const HistoryIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
-  >
-    <path
-      d="M12 8v5l3 2M20 12a8 8 0 11-2.34-5.66M20 4v5h-5"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const PlusIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
-  >
-    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 
@@ -290,9 +258,9 @@ const RecipeChatWidget: React.FC = () => {
     location.pathname.startsWith('/find-email') ||
     location.pathname.startsWith('/reset-password') ||
     location.pathname.startsWith('/auth') ||
-    // AI 식단 추천은 그 자체가 채팅 화면이다. 여기에 챗봇 버튼까지 띄우면
-    // 아래 고정 입력창을 가리고, 채팅이 두 개인 것처럼 보인다.
-    (location.pathname.startsWith('/plan') && location.search.includes('ai=1'));
+    // 식단 추천(/plan)은 AI 화면이면 그 자체가 채팅 화면이라 버튼까지 띄우면 입력창을 가리고, 일반 화면이면
+    // 결과 목록의 「빼기」「다른 요리로」 버튼 위에 떠서 가린다(2026-11-06). 두 화면 모두 숨긴다.
+    location.pathname.startsWith('/plan');
 
   // 현재 대화창(threadId)의 메시지를 히스토리 목록에 계속 반영 (빈 대화는 저장 안 함)
   useEffect(() => {
@@ -592,33 +560,16 @@ const RecipeChatWidget: React.FC = () => {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {view === 'chat' && (
-                <button
-                  type="button"
-                  aria-label="지난 대화 보기"
-                  className="flex items-center justify-center flex-shrink-0"
-                  style={{
-                    width: 40, height: 40, borderRadius: 9999, border: 'none',
-                    cursor: 'pointer', background: 'var(--surface-sub)', color: 'var(--ink-700)',
-                  }}
-                  onClick={() => setView('history')}
-                >
-                  <HistoryIcon size={21} />
-                </button>
-              )}
-              <button
-                type="button"
-                aria-label="새 대화 시작"
-                className="flex items-center justify-center flex-shrink-0"
-                style={{
-                  width: 40, height: 40, borderRadius: 9999, border: 'none',
-                  cursor: 'pointer', background: 'var(--surface-sub)', color: 'var(--ink-700)',
-                }}
-                onClick={startNewThread}
-              >
-                <PlusIcon size={21} />
-              </button>
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              {/* 지난 대화·새 대화는 자주 안 누르는 보조 동작이라 `⋯` 뒤로 물렸다(2026-11-06). 전엔 회색 원 버튼
+                  셋(지난 대화·새 대화·닫기)이 머리말에 나란히 있어 무거웠다. 닫기만 밖에 남긴다. */}
+              <KebabMenu
+                ariaLabel="대화 메뉴"
+                items={[
+                  ...(view === 'chat' ? [{ label: '지난 대화', onClick: () => setView('history') }] : []),
+                  { label: '새 대화', onClick: startNewThread },
+                ]}
+              />
               <CloseButton onClick={() => setOpen(false)} absolute={false} />
             </div>
           </header>
@@ -851,7 +802,7 @@ const RecipeChatWidget: React.FC = () => {
                 머리말에도 있지만 거기는 폭이 좁아 값을 못 적는다. 누르기
                 직전이 알아야 할 때다. */}
             <div style={{ padding: '6px 12px 0', background: '#F5F5F7' }}>
-              <UsageLine cost={chatCost} />
+              <UsageLine cost={chatCost} costOnly />
             </div>
             <form
               onSubmit={handleSubmit}
@@ -869,23 +820,18 @@ const RecipeChatWidget: React.FC = () => {
                 className="ai-chat-input flex-1 min-w-0 text-[15px]"
                 disabled={loading}
               />
+              {/* 식단 AI 화면의 보내기와 같은 둥근 ↑ 버튼(`ai-action`). 화면마다 「보내기」 글자 / ↑ 로 달랐다. */}
               <button
                 type="submit"
+                aria-label="보내기"
+                className="ai-action flex-shrink-0"
                 disabled={loading || !input.trim()}
-                className="text-[15px] font-bold rounded-full flex-shrink-0"
                 style={{
-                  minHeight: 40,
-                  minWidth: 56,
-                  padding: '12px 14px',
-                  boxSizing: 'border-box',
-                  background: loading || !input.trim() ? '#E6E6EA' : '#FFD600',
-                  color: loading || !input.trim() ? '#9A9AA2' : '#1A1A1E',
-                  border: 'none',
+                  width: 40, height: 40, borderRadius: 20, padding: 0, fontSize: 17, fontWeight: 800,
                   cursor: loading || !input.trim() ? 'default' : 'pointer',
-                  transition: 'background 0.15s ease, color 0.15s ease',
                 }}
               >
-                보내기
+                <span>↑</span>
               </button>
             </form>
             </>

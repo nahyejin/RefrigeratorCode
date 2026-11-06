@@ -168,7 +168,12 @@ export const UsageLine: React.FC<{
    * 한 번치다. `1회 질문당` 이라고 적어 두면 장당 나가는 줄로 읽힌다.
    */
   costUnit?: 'ask' | 'upload';
-}> = ({ style, compact = false, cost, costUnit = 'ask' }) => {
+  /**
+   * 이번에 나가는 양만 보여 준다. 잔액·오늘 남은 양이 이미 같은 화면 위쪽(챗 패널 머리말)에 있을 때 —
+   * 같은 숫자를 두 번 적지 않는다. 다 쓴 상태의 안내는 그대로 나온다.
+   */
+  costOnly?: boolean;
+}> = ({ style, compact = false, cost, costUnit = 'ask', costOnly = false }) => {
   const usage = useUsage();
   if (!usage) return null;
 
@@ -200,30 +205,32 @@ export const UsageLine: React.FC<{
     text = <>크레딧 <b>{usage.balance}</b> · 오늘 <b>{usage.daily_remaining}</b></>;
   } else {
     /**
-     * 세 숫자가 **각각 무엇인지** 말한다.
+     * 세 숫자가 **각각 무엇인지** 말한다 — 전체 남은 것 / 오늘 더 쓸 수 있는 것 / 이번에 나갈 것.
      *
-     * `남은 크레딧 14 · 오늘 1/15 · 이번에 3 써요` 는 셋이 나란히 붙어 있어서
-     * 어느 것이 무엇인지 알 수 없다는 말을 들었다. 사실 서로 다른 것을 센다:
-     *   전체 남은 것 / 오늘 더 쓸 수 있는 것 / 이번에 나갈 것.
-     * 줄을 바꾸고 이름을 붙이면 한 번 읽고 만다.
+     * 예전엔 `남은 크레딧 14 · 오늘 1/15 · 이번에 3 써요` 처럼 이름 없이 붙어 있어 어느 것이 무엇인지
+     * 알 수 없다는 말을 들어 **세 줄**로 나눴다. 이번엔(2026-11-06) 세 줄이 입력창 아래를 너무 차지한다는
+     * 지적 — 줄은 합치되 **숫자마다 이름은 그대로** 붙여서 한 줄로 만든다. 폭이 모자라면 줄이 바뀐다(`flexWrap`).
      */
-    // 말로 풀어 쓰면 오히려 안 읽힌다. **이름 + 숫자**로 끊는다.
-    text = (
-      <span style={{ display: 'grid', gap: 2, width: '100%' }}>
-        <span>전체 잔여 크레딧 <b style={{ color: 'var(--ink-900)' }}>{usage.balance}</b></span>
-        {usage.daily_cap > 0 && (
-          <span>
-            금일 잔여 크레딧 <b style={{ color: 'var(--ink-900)' }}>{usage.daily_remaining}</b>
-            {' '}· 하루 최대 {usage.daily_cap}
-          </span>
-        )}
-        {typeof cost === 'number' && cost > 0 && (
-          costUnit === 'upload'
-            ? <span>사진 몇 장이든 1회 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 크레딧</span>
-            : <span>1회 질문당 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 크레딧</span>
-        )}
-      </span>
-    );
+    const num = (n: number | string) => <b style={{ color: 'var(--ink-900)' }}>{n}</b>;
+    const costPart = typeof cost === 'number' && cost > 0
+      ? (costUnit === 'upload'
+          ? <>사진 몇 장이든 1회 {num(cost)}</>
+          : <>1회 질문 {num(cost)}</>)
+      : null;
+    if (costOnly && costPart) {
+      text = <>{costPart} 크레딧</>;
+    } else {
+      const parts: React.ReactNode[] = [<>잔여 크레딧 {num(usage.balance)}</>];
+      if (usage.daily_cap > 0) parts.push(<>오늘 {num(usage.daily_remaining)} 남음</>);
+      if (costPart) parts.push(costPart);
+      text = (
+        <>
+          {parts.map((p, i) => (
+            <React.Fragment key={i}>{i > 0 && <span aria-hidden> · </span>}{p}</React.Fragment>
+          ))}
+        </>
+      );
+    }
   }
 
   return (

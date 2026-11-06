@@ -1062,13 +1062,9 @@ select:focus-visible {
   outline: none !important;
 }
 
-/* 키보드 탐색으로 들어온 경우엔 조금 더 또렷하게 (접근성) */
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  border-color: var(--ink-700) !important;
-  box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.10) !important;
-}
+/* (예전엔 여기 `:focus-visible` 규칙이 하나 더 있어 테두리를 `--ink-700` 으로, 링을 10% 로 올렸다. 그런데 글자 입력
+   칸은 마우스·터치로 눌러도 늘 `:focus-visible` 이라 **누르는 순간마다 굵고 진한 검정 테두리**가 됐다
+   (2026-11-06 「포커스되면 너무 굵고 진하다」). 위의 한 단계 진한 테두리 + 옅은 링 하나만 쓴다.) */
 
 /* 사진에서 재료를 읽는 동안 보여 주는 스캔 애니메이션.
    AI 가 몇 초씩 걸리는데 화면이 정지해 있으면 멈춘 줄 안다. 무엇을 하는 중인지
