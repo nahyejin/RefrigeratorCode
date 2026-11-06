@@ -6,7 +6,7 @@ import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import KebabMenu from './ui/KebabMenu';
 import VoiceInputButton from './ui/VoiceInputButton';
-import { PlateMark } from './ui/AiMarks';
+import { UtensilsIcon } from './ui/Icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -553,7 +553,7 @@ const RecipeChatWidget: React.FC = () => {
                     className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                     style={{ width: 28, height: 28 }}
                   >
-                    <PlateMark size={22} />
+                    <UtensilsIcon size={16} strokeWidth={2.2} style={{ color: '#1A1A1E' }} />
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>쿡 픽</span>
                   <span style={{
@@ -663,7 +663,7 @@ const RecipeChatWidget: React.FC = () => {
                       className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
                       style={{ width: 26, height: 26, marginTop: 1 }}
                     >
-                      <PlateMark size={19} />
+                      <UtensilsIcon size={14} strokeWidth={2.2} style={{ color: '#1A1A1E' }} />
                     </div>
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
@@ -875,10 +875,12 @@ const RecipeChatWidget: React.FC = () => {
           <button
             type="button"
             aria-label="쿡 픽 열기"
-            className="ai-fab-button"
+            className="ai-fab-pill y"
             onClick={openWidget}
           >
-            <PlateMark size={42} />
+            {/* 글자가 붙은 알약(2026-11-06 「쿡 픽 A」): 포크·나이프 선 아이콘 + 이름. 오른쪽 위 AI 배지는 아래 형제. */}
+            <UtensilsIcon size={20} />
+            <span>쿡 픽</span>
           </button>
           {/* AI 가 붙은 자리는 어디서나 같은 「AI」 배지(2026-11-06 사용자: 배지를 왜 없앴나 — AI 가 붙은 건 다 붙이기로 했다). */}
           <span className="ai-fab-badge">AI</span>

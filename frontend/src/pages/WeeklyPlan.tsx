@@ -24,6 +24,7 @@ import {
   type PlannedMeal, type PlanMode,
 } from '../utils/mealPlan';
 import PlanConflictSummary from '../components/PlanConflictSummary';
+import { SparklesIcon } from '../components/ui/Icons';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -810,11 +811,7 @@ const WeeklyPlan: React.FC = () => {
     setHasRequestedPlan(true);
   };
 
-  const Spark: React.FC<{ size?: number }> = ({ size = 14 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ flexShrink: 0 }}>
-      <path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" />
-    </svg>
-  );
+  const Spark: React.FC<{ size?: number }> = ({ size = 14 }) => <SparklesIcon size={size} strokeWidth={2} />;
 
   /** 조건 칸. **반짝임(✦)은 AI 가 하는 곳에만** 붙는다 — 크레딧이 나가는 자리를 한눈에 가르려고. */
   const conditionSection = (

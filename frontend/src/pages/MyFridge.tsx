@@ -26,6 +26,7 @@ import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import { splitExpiring } from '../utils/expiry';
 import ExpiryBand from '../components/ExpiryBand';
+import { CameraIcon } from '../components/ui/Icons';
 import FridgeHistorySheet from '../components/FridgeHistorySheet';
 import { splitIntoGroups } from '../utils/fridgeGroups';
 import { STALE_AFTER_DAYS } from '../utils/expiry';
@@ -2763,15 +2764,10 @@ const MyFridge: React.FC = () => {
                 title="사진으로 재료 담기"
                 aria-label="사진으로 재료 담기"
               >
-                {/* 카메라 **왼쪽 위**의 ✦ — 「AI 가 인식한다」는 앱 공통 표식(2026-11-06 「카메라 아이콘에 ✦ 를 붙여 달라」). 오른쪽 위에 두면 「AI」 스티커에 가려진다. 아이콘도 20 → 24 로 키움. */}
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
-                  <circle cx="12" cy="13.6" r="3.4" />
-                  <path d="M4.8 1.4C5.05 3.27 6.13 4.35 8 4.6C6.13 4.85 5.05 5.93 4.8 7.8C4.55 5.93 3.47 4.85 1.6 4.6C3.47 4.35 4.55 3.27 4.8 1.4Z" fill="#1A1A1E" stroke="none" />
-                </svg>
+                {/* 선 카메라 아이콘(Lucide). AI 표시는 오른쪽 위 「AI」 배지가 한다(2026-11-06 — 손으로 그린 ✦ 로는 AI 인지 안 보였다). */}
+                <CameraIcon size={22} style={{ color: '#1A1A1E' }} />
               </button>
               <span className="ai-fab-badge">AI</span>
-              
             </div>
           </div>
 

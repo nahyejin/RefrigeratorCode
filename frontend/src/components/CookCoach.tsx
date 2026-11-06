@@ -1,7 +1,7 @@
 import React from 'react';
 import Portal from './Portal';
 import VoiceInputButton from './ui/VoiceInputButton';
-import { HatMark } from './ui/AiMarks';
+import { ChefHatIcon } from './ui/Icons';
 import { UsageLine, useUsage } from './UsageMeter';
 import { applyUsage, refreshUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { openLoginGate } from '../utils/loginGate';
@@ -55,7 +55,7 @@ const HatCircle: React.FC<{ size: number }> = ({ size }) => (
     width: size, height: size, borderRadius: '50%', background: '#FFFFFF', flex: 'none',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   }}>
-    <HatMark size={Math.round(size * 0.86)} color={INK} hole="#FFFFFF" />
+    <ChefHatIcon size={Math.round(size * 0.62)} strokeWidth={2.1} style={{ color: INK }} />
   </span>
 );
 
@@ -346,26 +346,26 @@ const CookCoach: React.FC<{
       {!(open && keyboardOpen) && (
         <div style={{
           position: 'fixed', right: FAB_RIGHT, bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-          width: 56, height: 56, zIndex: LAYER,
+          zIndex: LAYER,
         }}>
+          {/* 검정 알약(2026-11-06 「쿡 코치 A」): 선 요리사 모자 + 이름. 말한 횟수는 알약 안 오른쪽 작은 흰 동그라미. */}
           <button
             type="button"
-            className="ai-fab-coach"
+            className="ai-fab-pill k"
             onClick={() => setOpen(v => !v)}
             aria-label={open ? '쿡 코치 접기' : '쿡 코치 열기'}
             aria-expanded={open}
           >
-            <HatMark size={50} />
+            <ChefHatIcon size={20} />
+            <span>쿡 코치</span>
+            {turns > 0 && (
+              <span style={{
+                minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#FFFFFF', color: INK,
+                fontSize: 11, fontWeight: 800, lineHeight: '18px', textAlign: 'center', boxSizing: 'border-box',
+              }}>{turns}</span>
+            )}
           </button>
           <span className="ai-fab-badge">AI</span>
-          {turns > 0 && (
-            <span style={{
-              position: 'absolute', bottom: -2, right: -2, minWidth: 20, height: 20, padding: '0 5px',
-              borderRadius: 10, background: '#FFFFFF', color: INK, border: '2px solid #1A1A1E',
-              fontSize: 11, fontWeight: 800, lineHeight: '16px', boxSizing: 'border-box', textAlign: 'center',
-              zIndex: 3, pointerEvents: 'none',
-            }}>{turns}</span>
-          )}
         </div>
       )}
     </Portal>

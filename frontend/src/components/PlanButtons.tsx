@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarMark } from './ui/AiMarks';
+import { CalendarCheckIcon } from './ui/Icons';
 
 /**
  * 「식단 짜기」 버튼 하나.
@@ -38,7 +38,7 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
           width: 32, height: 32, borderRadius: '50%', background: '#1A1A1E', flexShrink: 0,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <CalendarMark size={20} />
+          <CalendarCheckIcon size={18} strokeWidth={2.1} style={{ color: '#FFD600' }} />
         </span>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
           <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>식단 짜기</span>
