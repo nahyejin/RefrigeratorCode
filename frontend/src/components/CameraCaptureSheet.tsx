@@ -3,7 +3,6 @@ import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { UsageLine, useUsage } from './UsageMeter';
 import Sheet from './ui/Sheet';
-import SegmentedToggle from './ui/SegmentedToggle';
 
 /**
  * 네이티브 앱(안드로이드/iOS)에서는 `<input type=file>` 대신 진짜 OS 카메라·
@@ -248,19 +247,43 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           <div style={{ marginTop: 4, color: '#7A271A', wordBreak: 'break-all' }}>({nativeError})</div>
         </div>
       )}
-      {/* 종류는 **토글**로 고른다. 예전엔 아이콘이 큰 카드 세 장이라 「누르면 다음 화면으로 넘어갈 것」
-          처럼 보였다(2026-11-06 지적). 카드는 눈에 띄게 만든 것인데, 여기서는 고르기만 하고 실제 동작은
-          아래 버튼 둘이 한다. 앱의 다른 「하나 고르기」(마이캘린더 등)와 같은 공용 토글을 쓴다. */}
-      <SegmentedToggle
-        value={selectedMode}
-        onChange={chooseMode}
-        options={OPTIONS.map(o => ({ value: o.key, label: o.label }))}
-        height={38}
-        style={{ display: 'grid', width: '100%', boxSizing: 'border-box' }}
-      />
-      {/* 고른 종류의 설명 한 줄. 줄 높이를 고정해 종류를 바꿔도 아래 버튼이 안 움직이게 한다. */}
-      <div style={{ minHeight: 20, margin: '8px 0 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--ink-500)', lineHeight: '20px' }}>
-        {OPTIONS.find(o => o.key === selectedMode)?.hint}
+      {/* 종류는 **라디오 목록**으로 고른다. 처음엔 아이콘 큰 카드 세 장이라 「누르면 다음 화면으로 넘어갈 것」처럼
+          보였고(2026-11-06 지적), 알약 토글로 바꾸니 이번엔 「켜고 끄는 것」처럼 보였다. 셋 중 하나를 고르는 것은
+          라디오가 제 모양이다 — 동그라미가 채워진 줄이 고른 줄. 줄마다 설명이 있어 따로 한 줄을 둘 필요도 없다.
+          실제 동작은 아래 버튼 둘이 한다. */}
+      <div role="radiogroup" aria-label="사진 종류" style={{ marginBottom: 16 }}>
+        {OPTIONS.map(({ key, label, hint }, i) => {
+          const on = selectedMode === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => chooseMode(key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+                padding: '11px 4px', background: 'transparent', border: 'none', borderRadius: 0,
+                borderTop: i === 0 ? 'none' : '1px solid var(--line-200)', cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  flexShrink: 0, width: 20, height: 20, borderRadius: '50%', boxSizing: 'border-box',
+                  border: on ? '1.5px solid var(--ink-900)' : '1.5px solid var(--line-300)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {on && <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--ink-900)' }} />}
+              </span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>{label}</span>
+                <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>{hint}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* 방법 버튼 둘 — 위에서 고른 종류로 열린다. 촬영은 한 장, 앨범은 여러 장(maxFiles).
