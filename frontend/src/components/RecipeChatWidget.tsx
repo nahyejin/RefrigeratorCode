@@ -373,6 +373,9 @@ const RecipeChatWidget: React.FC = () => {
 
   if (hideOnAuth) return null;
 
+  /** 답을 한 번 받은 대화. 여기서부터는 이어서 못 묻고 새 대화로 간다(아래 입력 자리). */
+  const answered = messages.some(m => m.role === 'assistant');
+
   const startNewThread = () => {
     setThreadId(createThreadId());
     setMessages([]);
@@ -798,6 +801,28 @@ const RecipeChatWidget: React.FC = () => {
 
           {view === 'chat' && (
             <>
+            {/* **한 대화에 한 번만 묻는다**(2026-11-06) — AI 식단 추천과 같은 규칙. 이어서 또 물으면 위의 답이 어느 질문에
+                대한 것인지 흐려지고, 크레딧이 언제 나갔는지도 헷갈린다. 다시 물으려면 `새 대화` 이고 앞의 것은 지난 대화로 남는다. */}
+            {answered ? (
+              <div style={{ padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))', background: '#F5F5F7' }}>
+                <button
+                  type="button"
+                  onClick={startNewThread}
+                  style={{
+                    width: '100%', minHeight: 46, borderRadius: 23, border: 'none',
+                    background: '#1A1A1E', color: '#FFFFFF',
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  새 대화로 다시 물어보기
+                </button>
+                <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
+                  이 대화는 여기까지예요
+                </div>
+                <UsageLine style={{ justifyContent: 'center', marginTop: 4 }} cost={chatCost} costOnly />
+              </div>
+            ) : (
+            <>
             {/* 남은 양과 **이번에 얼마 나가는지**를 보내기 직전 자리에 둔다.
                 머리말에도 있지만 거기는 폭이 좁아 값을 못 적는다. 누르기
                 직전이 알아야 할 때다. */}
@@ -834,6 +859,8 @@ const RecipeChatWidget: React.FC = () => {
                 <span>↑</span>
               </button>
             </form>
+            </>
+            )}
             </>
           )}
         </section>
