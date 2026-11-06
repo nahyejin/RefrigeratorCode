@@ -286,9 +286,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('cookmatch_meal_plan');
       // 홈 화면 달력 위젯 요약본(식구 기록·레시피 제목)도 앞 계정 것이라 지운다(2026-09-23).
       void clearCalendarWidgetSnapshot();
-      // AI 식단 추천 대화(진행 중인 것·지난 대화)도 같은 문제였다 — 다른 계정으로 들어오면 앞사람의
-      // 질문과 식단이 그대로 보였다(2026-09-20). 로그인한 사람의 지난 대화는 서버에 있어서
-      // 다시 로그인하면 돌아온다(`utils/aiChat.ts` `syncSessions`).
+      // AI 식단 추천 결과도 같은 문제였다 — 다른 계정으로 들어오면 앞사람의 질문과 식단이 그대로 보였다(2026-09-20).
+      // 2026-11-06 부터는 대화 화면이 없고 「마지막으로 AI 가 짠 식단」(`cookmatch_last_ai_plan`) 하나만 남는다.
+      // 아래 `cookmatch_ai_chat*` 은 예전 대화 화면이 남긴 것이라 지우기만 한다.
+      localStorage.removeItem('cookmatch_last_ai_plan');
       localStorage.removeItem('cookmatch_ai_chat');
       localStorage.removeItem('cookmatch_ai_chat_past');
       localStorage.removeItem('cookmatch_ai_chat_synced_at');

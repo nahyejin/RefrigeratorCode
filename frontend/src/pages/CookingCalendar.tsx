@@ -1754,10 +1754,10 @@ const CookingCalendar: React.FC = () => {
   const [guideStep, setGuideStep] = React.useState(0);
   const guideStartedRef = React.useRef(false);
   const calendarGuideSteps = React.useMemo(() => [
-    // 13) 이번 주 **AI** 식단 추천 버튼만 — AI 가 더 강조돼야 한다는 요청으로 일반 버튼은 소개하지 않는다.
+    // 13) 「식단 짜기」 버튼(2026-11-06 부터 AI·무료 버튼이 하나로 합쳐졌다).
     {
       targetSelector: '[data-guide-target="weekly-ai-plan-button"]',
-      message: 'AI가 내 재료와 유통기한을 따져\n일주일 식단을 짜 드려요.\n장보기 목록도 함께 만들어져요.',
+      message: '내 재료와 유통기한을 따져\n일주일 식단을 짜 드려요.\n조건을 말하면 AI가 맞춰 줘요.',
       position: 'bottom' as const,
     },
     // 14) 아래 요리 기록 달력(2026-10-22 추가)
