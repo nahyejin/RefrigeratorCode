@@ -21,13 +21,13 @@ type Shot =
 
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
-// 첫 장면 = 쿠키를 먹는 도아 + 후킹(육아 고민 「집에서 뭐 하지?」 + 해결)
-const HOOK = { at: 0, len: 3.4, text: "아이랑 집에서 뭐 하지?\n쿠키 믹스 하나로\n오감 놀이 끝", sub: "반죽 꾹 · 틀 쏙 · 오븐 구경" };
+// 첫 장면 = 반죽을 틀에 꾹꾹 누르며 웃는 도아(사용자 2026-11-05: 핵심은 오감 놀이) + 후킹(육아 고민 「집에서 뭐 하지?」 + 해결)
+const HOOK = { at: 0, len: 3.4, text: "아이랑 집에서 뭐 하지?\n쿠키 반죽 하나로\n오감 놀이 끝", sub: "반죽 꾹 · 틀 쏙 · 오븐 구경" };
 const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(3.4), origin: "50% 40%" }];
 
 const STORY: Shot[] = [
   // 마트 장면 최소화(사용자 2026-11-05) — 「버스 모양 쿠키!」만
-  { kind: "video", src: "store.mp4", from: 11.6, to: 14.6, audio: true, lines: [{ at: 0.1, len: 2.9, text: "마트에서 도아가 고른\n쿠키 믹스" }], talk: [
+  { kind: "video", src: "store.mp4", from: 11.6, to: 14.6, audio: true, lines: [{ at: 0.1, len: 2.9, text: "마트에서 시작된\n도아의 쿠키 만들기" }], talk: [
     { at: 1.2, len: 1.7, text: "버스 모양 쿠키!", who: "" },
   ] },
   { kind: "video", src: "dinner.mp4", from: 5.6, to: 11.1, audio: true, lines: [{ at: 0.1, len: 5.4, text: "밥 먹으면서도\n곰돌이 틀을 꼭 쥐고" }], talk: [
@@ -53,10 +53,16 @@ const DOUGH: Shot[] = [
 // 반죽을 틀로 꾹 누르고 쑥 빼기 — 오감 놀이
 const SHAPE: Shot[] = [
   { kind: "video", src: "shape1.mp4", from: 0, to: 7.8, audio: true, lines: [{ at: 0.2, len: 7.5, text: "곰돌이 · 토끼 틀로\n쿠키 모양 찍기" }] },
-  { kind: "video", src: "shape2a.mp4", from: 2.6, to: 6.4, audio: true, talk: [{ at: 0.5, len: 1.0, text: "쑥!", who: "" }] },
-  { kind: "video", src: "shape2b.mp4", from: 4.0, to: 14.2, audio: true },
+  // 도아가 직접 반죽을 틀에 꾹꾹(사용자가 채팅으로 보낸 영상, 2026-11-05). 「사자 / 도아 만들었어 / 사자 사자 똑같다」
+  { kind: "video", src: "touchA.mp4", from: 0, to: 12.0, audio: true, talk: [{ at: 2.0, len: 1.6, text: "재밌어?", who: "" }] },
+  { kind: "video", src: "touchB1.mp4", from: 0, to: 4.4, audio: true, talk: [{ at: 1.8, len: 1.8, text: "사자!", who: "" }] },
+  { kind: "video", src: "touchB2.mp4", from: 0, to: 7.2, audio: true, talk: [
+    { at: 1.1, len: 1.4, text: "도아 만들었어", who: "" },
+    { at: 3.1, len: 1.2, text: "사자다 사자", who: "" },
+    { at: 5.4, len: 1.6, text: "사자 사자 똑같다!", who: "" },
+  ] },
 ];
-const SHAPE_CAPTION = "말랑말랑 반죽을\n꾹 누르고, 쑥 빼고\n손끝으로 느끼는 오감 놀이";
+const SHAPE_CAPTION = "말랑말랑 반죽을\n도아가 직접 꾹꾹\n손끝으로 느끼는 오감 놀이";
 
 const OVEN: Shot[] = [
   { kind: "photo", src: "in_oven.jpg", len: f(2.4), origin: "50% 55%", caption: "이제 오븐으로!" },
