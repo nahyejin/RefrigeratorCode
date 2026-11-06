@@ -32,6 +32,8 @@ KST = timezone(timedelta(hours=9))
 # 행동별 크레딧. 환산 근거는 USAGE_QUOTA_PLAN.md "3. 크레딧 환산" 참고.
 CREDITS = {
     "chat": int(os.getenv("CREDITS_CHAT", "1")),
+    # 요리 드로어 안의 요리 한 건 전용 도우미 「쿡 코치」(2026-11-06). LLM 한 번·짧은 답이라 챗봇 한 턴(1)과 같게 둔다.
+    "coach": int(os.getenv("CREDITS_COACH", "1")),
     "vision": int(os.getenv("CREDITS_VISION", "2")),
     # 식단 짜기. 셋 중 **가장 무겁다.**
     #  - 후보 300개를 DB 에서 추리고, 장보기가 가장 적어지는 조합을 그리디로 좁힌다

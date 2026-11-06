@@ -6649,6 +6649,13 @@ def get_recipe_cook_steps(recipe_id):
     })
 
 
+@app.route('/api/recipes/<int:recipe_id>/ask', methods=['POST'])
+def ask_about_recipe(recipe_id):
+    """요리 드로어 안의 도우미 「쿡 코치」 — 이 요리 한 건에 대한 질문에만 답한다."""
+    from recipe_coach import handle_recipe_ask
+    return handle_recipe_ask(get_db, recipe_id)
+
+
 def _josa(word, with_final, without_final):
     """받침에 맞는 조사. `_josa("달걀", "은", "는")` → "달걀은".
 
