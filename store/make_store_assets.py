@@ -289,9 +289,11 @@ SOURCES = {
     "cook": ("store/sources/cook_main.png", None, 0),
     # 2026-10-12: 로그인한 가족 계정(엄마) 새 UI 녹화에서 뽑음 — 헤더의 닉네임은 기본 블러(NO_BLUR 아님)
     "family": ("store/sources/family_main.png", None, 0),
+    # 2026-11-06 쿡 코치 장표용 — 레시피 창 위에 쿡 코치 카드를 열고 「5배로 만들면 계량은?」을 실제로 물은 화면
+    "coach": ("store/sources/coach_demo.png", None, 0),
 }
 
-NO_BLUR = {"diet", "chat", "match", "expiry", "substitute", "cook"}  # substitute 는 로그인 상태(`엄마`)로 찍혀 헤더 블러
+NO_BLUR = {"diet", "chat", "match", "expiry", "substitute", "cook", "coach"}  # substitute 는 로그인 상태(`엄마`)로 찍혀 헤더 블러
 
 # 폰 화면 위에 겹쳐 올리는 보조 이미지(기울인 작은 카드 / 확대 콜아웃).
 #   crop: 원본 픽셀 좌표(상태바 자르기 전)  w: 캔버스 폭 대비 너비  angle: 반시계 방향 기울기(도)
@@ -341,6 +343,9 @@ SLIDES = [
          headline="손에 물 묻어도\n귀로 들으세요", sub="조리 순서를 소리로 읽어드려요", focus=0.0, badge="sound"),
     dict(key="family", band="y", ai=False, eyebrow="우리 식구 요리",
          headline="가족이 함께,\n아낀 돈까지 한눈에", sub="가족이 함께 무슨 요리를 얼마나 했는지,\n외식 대비 아낀 돈을 계산해요.", focus=0.0),
+    # 파일 번호는 만든 순서라 기존 01~08 을 건드리지 않으려고 맨 뒤(09)에 둔다 — 올리는 순서는 STORE_LISTING.md 표를 따른다.
+    dict(key="coach", band="k", ai=True, eyebrow="쿡 코치",
+         headline="요리하다 막히면\n바로 물어보세요", sub="이 요리 한 가지만 보고 재료 대체·분량·간 조절까지", focus=0.0),
 ]
 
 SIZES = {"play": (1080, 1920), "ios": (1290, 2796)}
