@@ -26,7 +26,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 APNS_TOPIC = "com.cookmatch.app"
 APNS_HOSTS = ("https://api.push.apple.com", "https://api.sandbox.push.apple.com")
 FCM_ICON = "ic_stat_cookmatch"
-FCM_COLOR = "#FFD600"
+# 알림 강조색 — scripts/send_expiry_push_notifications.py·AndroidManifest(@color/notification_accent)와 같은 값 하나로 통일.
+# 브랜드 노랑(#FFD600)은 흰 알림 바탕·흰 아이콘 위에서 대비 1.4:1 로 안 보여서 한 톤 진한 #E0A800(2.2:1)을 쓴다.
+FCM_COLOR = "#E0A800"
 
 _lock = threading.Lock()
 _fcm = {"loaded": False, "session": None, "project": None}

@@ -15,13 +15,13 @@
     store/play_feature_graphic.png       Google Play 피처 그래픽(1024x500, 필수)
     store/screenshots/play/NN_*.png      Play 폰 스크린샷 1080x1920 (9:16 — 긴 변 ≤ 짧은 변×2 조건)
     store/screenshots/ios/NN_*.png       App Store 6.9" 스크린샷 1290x2796
-    + 앱 프로젝트 안 아이콘 교체:
-      frontend/ios/.../AppIcon-512@2x.png (지금까지 Capacitor 기본 placeholder였음)
-      frontend/android/.../mipmap-*/ic_launcher*.png + 적응형 아이콘 xml
+    store/feature_options/feature_{A,B}.png  피처 그래픽 시안 2종(A=검정 바탕이 play_feature_graphic.png)
+    + 앱 프로젝트 안 아이콘·스플래시·알림 아이콘: scripts/make_native_assets.py 를 이어서 실행
 
-아이콘 원본(frontend/assets/icon.png)은 모서리를 둥글게 깎은(투명) 그림이라 그대로
-쓰면 스토어·런처가 한 번 더 둥글게 잘라 "이중 모서리"가 된다. 그래서 원본에서 흰 로고
-글리프와 배경 그라데이션을 따로 뽑아, **모서리까지 꽉 찬 정사각형**으로 다시 그린다.
+아이콘 원본(frontend/assets/icon.png)은 새 로고(P1 확정)의 정식 1024 — 모서리를 깎지 않은 정사각형,
+알파(투명) 없음 RGB 한 장이다(애플은 알파가 있으면 거절하고 모서리는 시스템이 깎는다).
+여기서는 그 한 장으로 스토어용 아이콘 2종과 피처 그래픽을 만든다. 앱 프로젝트 안의 아이콘·스플래시·알림 아이콘은
+`scripts/make_native_assets.py` 가 같은 원본으로 만들고, `icons` 를 돌리면 그 스크립트도 이어서 실행한다.
 
 스크린샷은 목업이 아니라 **실제 앱 화면**(릴스 데모용 화면 녹화)에서 뽑는다 — 애플
 심사는 스크린샷이 실제 앱 사용 모습을 보여줄 것을 요구한다. 녹화본 상단의 상태바·
@@ -63,59 +63,14 @@ def font(size, weight=700):
 # 아이콘
 # ---------------------------------------------------------------------------
 
-def _diag_gradient_lut(src):
-    """원본 아이콘의 배경색을 대각선(좌상→우하) 위치별로 평균 내 LUT로 만든다.
-    투명 모서리 쪽 값이 비면 가까운 칸 값으로 채운다."""
-    W, H = src.size
-    px = src.load()
-    bins = 256
-    acc = [[0, 0, 0, 0] for _ in range(bins)]
-    for y in range(0, H, 2):
-        for x in range(0, W, 2):
-            r, g, b, a = px[x, y]
-            if a < 250 or b > 60:  # 투명 모서리·흰 글리프(파랑이 높음) 제외
-                continue
-            i = min(bins - 1, int((x + y) / (W + H) * bins))
-            c = acc[i]
-            c[0] += r; c[1] += g; c[2] += b; c[3] += 1
-    lut = [None] * bins
-    for i, (r, g, b, n) in enumerate(acc):
-        if n:
-            lut[i] = (r / n, g / n, b / n)
-    known = [i for i, v in enumerate(lut) if v]
-    for i in range(bins):
-        if lut[i] is None:
-            j = min(known, key=lambda k: abs(k - i))
-            lut[i] = lut[j]
-    return lut
-
-
-def _glyph_alpha(src):
-    """흰 로고 글리프의 알파(가장자리 안티앨리어싱 유지). 배경은 파랑 채널이 거의 0이라
-    파랑 값이 곧 "흰색이 섞인 정도"다."""
-    r, g, b, a = src.split()
-    white = b.point(lambda v: 0 if v < 40 else min(255, int((v - 40) * 255 / 215)))
-    # 투명 모서리 픽셀은 색값이 (255,255,255,0)으로 저장돼 있어 파랑만 보면 "흰색"으로
-    # 잡힌다 — 원본 알파를 곱해 모서리를 빼야 한다(안 그러면 아이콘 모서리가 하얗게 나옴).
-    return ImageChops.multiply(white, a)
-
-
 def build_master_icon(size=1024):
-    src = Image.open(ICON_SRC).convert("RGBA").resize((1024, 1024), Image.LANCZOS)
-    lut = _diag_gradient_lut(src)
-    bg = Image.new("RGB", (1024, 1024))
-    bp = bg.load()
-    for y in range(1024):
-        for x in range(1024):
-            r, g, b = lut[min(255, int((x + y) / 2048 * 256))]
-            bp[x, y] = (int(r), int(g), int(b))
-    bg = bg.filter(ImageFilter.GaussianBlur(3))  # LUT 계단 무늬 제거
-    glyph = _glyph_alpha(src)
-    white = Image.new("RGB", (1024, 1024), (255, 255, 255))
-    icon = Image.composite(white, bg, glyph)
+    """새 로고 정식 아이콘(frontend/assets/icon.png) — 1024 정사각 RGB. 알파가 있으면 멈춘다(애플 거절 사유)."""
+    icon = Image.open(ICON_SRC)
+    if icon.mode != "RGB" or icon.size != (1024, 1024):
+        raise SystemExit("frontend/assets/icon.png 는 1024x1024 RGB(알파 없음)여야 한다 — 지금 %s %s" % (icon.size, icon.mode))
     if size != 1024:
         icon = icon.resize((size, size), Image.LANCZOS)
-    return icon, bg, glyph
+    return icon
 
 
 def rounded_mask(size, radius_ratio):
@@ -124,62 +79,19 @@ def rounded_mask(size, radius_ratio):
     return m.resize((size, size), Image.LANCZOS)
 
 
-def circle_mask(size):
-    m = Image.new("L", (size * 4, size * 4), 0)
-    ImageDraw.Draw(m).ellipse([0, 0, size * 4 - 1, size * 4 - 1], fill=255)
-    return m.resize((size, size), Image.LANCZOS)
-
-
 def make_icons():
-    icon, bg, glyph = build_master_icon()
+    icon = build_master_icon()
     out = os.path.join(STORE, "icons")
     os.makedirs(out, exist_ok=True)
 
-    # App Store: 1024 RGB, 투명·둥근 모서리 없이(애플이 직접 마스크)
+    # App Store: 1024 RGB, 투명·둥근 모서리 없이(애플이 직접 마스크). 앱 안 AppIcon 과 같은 그림이어야 한다.
     icon.save(os.path.join(out, "appstore_icon_1024.png"))
-    icon.save(os.path.join(FRONT, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-512@2x.png"))
     # Play: 512 꽉 찬 정사각(구글이 직접 마스크). 32비트 PNG 요구라 RGBA로 저장.
     icon.resize((512, 512), Image.LANCZOS).convert("RGBA").save(os.path.join(out, "play_icon_512.png"))
 
-    res = os.path.join(FRONT, "android", "app", "src", "main", "res")
-    # 적응형 아이콘(안드로이드 8+): 108dp 캔버스, 배경=그라데이션 꽉 채움, 전경=흰 글리프만.
-    # 런처가 원·둥근사각 등으로 잘라도 글리프가 안 잘리게 지름 66dp 안전영역 안에 둔다.
-    bbox = glyph.getbbox()
-    g = glyph.crop(bbox)
-    for folder, legacy, layer in [("ldpi", 36, 81), ("mdpi", 48, 108), ("hdpi", 72, 162),
-                                  ("xhdpi", 96, 216), ("xxhdpi", 144, 324), ("xxxhdpi", 192, 432)]:
-        d = os.path.join(res, f"mipmap-{folder}")
-        os.makedirs(d, exist_ok=True)
-        bg.resize((layer, layer), Image.LANCZOS).save(os.path.join(d, "ic_launcher_background.png"))
-        target = int(layer * 50 / 108)  # 글리프 긴 변 = 50dp
-        scale = target / max(g.size)
-        gs = g.resize((max(1, int(g.width * scale)), max(1, int(g.height * scale))), Image.LANCZOS)
-        fg = Image.new("RGBA", (layer, layer), (255, 255, 255, 0))
-        layer_alpha = Image.new("L", (layer, layer), 0)
-        layer_alpha.paste(gs, ((layer - gs.width) // 2, (layer - gs.height) // 2))
-        fg.putalpha(layer_alpha)
-        fg.save(os.path.join(d, "ic_launcher_foreground.png"))
-        # 옛 런처(안드로이드 7 이하)용 완성 아이콘
-        small = icon.resize((legacy, legacy), Image.LANCZOS).convert("RGBA")
-        sq = small.copy(); sq.putalpha(rounded_mask(legacy, 0.22))
-        sq.save(os.path.join(d, "ic_launcher.png"))
-        rd = small.copy(); rd.putalpha(circle_mask(legacy))
-        rd.save(os.path.join(d, "ic_launcher_round.png"))
-
-    adaptive = (
-        '<?xml version="1.0" encoding="utf-8"?>\n'
-        '<!-- store/make_store_assets.py 가 생성. 배경(그라데이션)·전경(흰 글리프)을 108dp 캔버스에\n'
-        '     꽉 채워 그렸으므로 inset 없이 그대로 쓴다. -->\n'
-        '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-        '    <background android:drawable="@mipmap/ic_launcher_background" />\n'
-        '    <foreground android:drawable="@mipmap/ic_launcher_foreground" />\n'
-        '</adaptive-icon>\n'
-    )
-    for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
-        with open(os.path.join(res, "mipmap-anydpi-v26", name), "w", encoding="utf-8", newline="\n") as f:
-            f.write(adaptive)
-
     make_feature_graphic(icon)
+    # 앱 프로젝트 안 아이콘·스플래시·알림 아이콘(같은 마스터에서)
+    subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "make_native_assets.py")], check=True)
     print("icons ok")
 
 
@@ -212,7 +124,8 @@ def _paste_card(base, card, x, y, angle, shadow_alpha):
 
 
 def _feature_graphic(icon, variant):
-    """Google Play 피처 그래픽 1024x500. 왼쪽 브랜드·카피, 오른쪽 실제 앱 화면 두 장."""
+    """Google Play 피처 그래픽 1024x500. 왼쪽 브랜드(새 마크)·카피, 오른쪽 실제 앱 화면 두 장.
+    A(검정 바탕)는 정식 노랑 아이콘, B(노랑 바탕)는 노랑 위에서 타일이 사라지지 않게 검정 바탕판을 쓴다."""
     W, H = 1024, 500
     dark = variant == "A"
     img = Image.new("RGBA", (W, H), INK + (255,) if dark else (0, 0, 0, 255))
@@ -236,22 +149,23 @@ def _feature_graphic(icon, variant):
     key_c = BRAND if dark else INK
     sub_c = (196, 196, 204) if dark else (74, 60, 0)
 
-    # 브랜드 줄: 아이콘 + 쿡매치
-    ic = icon.resize((64, 64), Image.LANCZOS).convert("RGBA")
-    ic.putalpha(rounded_mask(64, 0.24))
-    img.alpha_composite(ic, (64, 64))
-    d.text((142, 96), "쿡매치", font=font(34, 800), fill=head_c, anchor="lm")
+    # 브랜드 줄: 새 마크(앱 아이콘) + 쿡매치
+    tile = icon if dark else Image.open(os.path.join(FRONT, "assets", "brand", "icon_reverse_1024.png")).convert("RGB")
+    ic = tile.resize((80, 80), Image.LANCZOS).convert("RGBA")
+    ic.putalpha(rounded_mask(80, 0.22))
+    img.alpha_composite(ic, (60, 56))
+    d.text((158, 97), "쿡매치", font=font(36, 800), fill=head_c, anchor="lm")
 
-    # 카피 두 줄 — 둘째 줄이 핵심(밝은 시안은 흰 형광펜 띠로 강조)
-    hf = font(54, 900)
-    d.text((62, 170), "냉장고에 있는 걸로,", font=hf, fill=head_c)
-    line2 = "오늘 저녁 해결"
+    # 카피 두 줄 — 둘째 줄이 핵심(스토어 첫 장과 같은 말: 실제 DB 레시피 4만여 개 근거는 STORE_LISTING.md)
+    hf = font(52, 900)
+    d.text((62, 170), "인기 레시피만 4만 개,", font=hf, fill=head_c)
+    line2 = "뭘 골라도 맛집"
     if not dark:
         tw = d.textlength(line2, font=hf)
         d.rounded_rectangle([54, 246, 70 + tw, 312], radius=14, fill=(255, 255, 255, 235))
     d.text((62, 240), line2, font=hf, fill=key_c)
 
-    d.text((64, 350), "식단 짜기 · 사진 한 장 재료 등록 · 쿡 픽", font=font(23, 600), fill=sub_c)
+    d.text((64, 350), "냉장고 재료로 바로 찾는 레시피 · 쿡 픽 · 식단 짜기", font=font(23, 600), fill=sub_c)
     return img.convert("RGB")
 
 
@@ -509,6 +423,6 @@ if __name__ == "__main__":
     if "icons" in what:
         make_icons()
     if "feature" in what and "icons" not in what:
-        make_feature_graphic(build_master_icon()[0])
+        make_feature_graphic(build_master_icon())
     if "shots" in what:
         make_shots()
