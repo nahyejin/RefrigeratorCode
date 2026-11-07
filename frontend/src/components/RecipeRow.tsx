@@ -87,7 +87,11 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
 
   const act = (action: 'done' | 'write' | 'share' | 'favorite') => onRecipeAction({ ...recipe, action });
 
+  const fav = !!recipeActionState?.favorite;
+
+  // 별 버튼과 같은 동작(act('favorite')) — 해제 확인창·토스트도 같은 경로로 뜬다(2026-11-07: ⋯ 안에서도 즐겨찾기).
   const menu: KebabItem[] = [
+    { label: fav ? '즐겨찾기 해제' : '즐겨찾기', onClick: () => act('favorite'), danger: fav },
     { label: recipeActionState?.done ? '완료 취소' : '완료했어요', onClick: () => act('done'), danger: !!recipeActionState?.done },
     { label: recipeActionState?.write ? '기록 취소' : '기록하기', onClick: () => act('write'), danger: !!recipeActionState?.write },
     {
@@ -101,8 +105,6 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
       },
     },
   ];
-
-  const fav = !!recipeActionState?.favorite;
 
   return (
     <div
@@ -148,50 +150,52 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
         }}>
           {recipe.title}
         </span>
-        {/* 정보 한 줄 + 오른쪽 별. 「대체 가능 N」은 목록 **바깥에 내놓지 않는다**(2026-11-07 「줄바꿈이 애매해지고, 눌러서 들어가도 내가 본 내용과
-            다르다」) — 대체 재료는 레시피 창 안에서 칩(A → B)으로만 보인다. 예전엔 노란 알약이 별과 함께 따로 한 줄을 차지했다. */}
-        <span style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, minHeight: 30 }}>
-          {/* 별 때문에 폭이 좁아 한 줄에 다 안 들어간다 — 잘라 내지 말고 두 줄까지 줄바꿈을 허용한다 */}
-          <span style={{
-            flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.45, color: 'var(--ink-500)', wordBreak: 'keep-all',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
-            {used.length > 0 && (
-              <b style={{ fontWeight: 700, color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-900)' }}>
-                내 재료 {have}/{used.length}
-              </b>
-            )}
-            {recipe.comments ? `${used.length > 0 ? ' · ' : ''}댓글 ${recipe.comments}` : ''}
-          </span>
-          <button
-            type="button"
-            aria-label={fav ? '즐겨찾기 해제' : '즐겨찾기'}
-            aria-pressed={fav}
-            onClick={e => { e.stopPropagation(); act('favorite'); }}
-            style={{
-              flex: 'none', width: 30, height: 30, margin: '-4px -4px -4px 0', padding: 0, border: 'none', background: 'transparent',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}
-          >
-            <span aria-hidden style={{
-              width: 26, height: 26, borderRadius: 9999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: fav ? '#FFD600' : 'transparent', transition: 'background .15s ease',
-            }}>
-              <svg width={17} height={17} viewBox="0 0 24 24">
-                <path
-                  d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
-                  fill={fav ? '#1A1A1E' : 'none'} stroke={fav ? '#1A1A1E' : '#9A9AA3'} strokeWidth="2" strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </button>
+        {/* 정보 한 줄. 별은 이 줄이 아니라 **오른쪽 열**(⋯ 바로 아래)에 둔다(2026-11-07 「별표 위치를 점세개랑 맞추든지」) —
+            전에는 별이 이 줄 끝에 있어 ⋯ 보다 32px 안쪽으로 어긋나 보였다. 「대체 가능 N」은 목록 **바깥에 내놓지 않는다**(2026-11-07
+            「줄바꿈이 애매해지고, 눌러서 들어가도 내가 본 내용과 다르다」) — 대체 재료는 레시피 창 안에서 칩(A → B)으로만 보인다. */}
+        <span style={{
+          marginTop: 4, fontSize: 12.5, lineHeight: 1.45, color: 'var(--ink-500)', wordBreak: 'keep-all',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
+          {used.length > 0 && (
+            <b style={{ fontWeight: 700, color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-900)' }}>
+              내 재료 {have}/{used.length}
+            </b>
+          )}
+          {recipe.comments ? `${used.length > 0 ? ' · ' : ''}댓글 ${recipe.comments}` : ''}
         </span>
       </span>
+      {/* 오른쪽 열 — 위 ⋯, 아래 ☆. 두 버튼 모두 폭 32 의 같은 열 가운데에 놓여 중심 x 가 같다(행 오른쪽 끝에서 8px 안쪽). */}
       <span
         onClick={e => e.stopPropagation()}
-        style={{ flex: 'none', alignSelf: 'flex-start', margin: '-6px -8px 0 -4px' }}
+        style={{
+          flex: 'none', width: 32, margin: '-6px -8px 0 -4px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+        }}
       >
         <KebabMenu items={menu} ariaLabel={`${recipe.title} 더보기`} />
+        <button
+          type="button"
+          aria-label={fav ? '즐겨찾기 해제' : '즐겨찾기'}
+          aria-pressed={fav}
+          onClick={() => act('favorite')}
+          style={{
+            flex: 'none', width: 32, height: 32, padding: 0, border: 'none', background: 'transparent',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}
+        >
+          <span aria-hidden style={{
+            width: 26, height: 26, borderRadius: 9999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: fav ? '#FFD600' : 'transparent', transition: 'background .15s ease',
+          }}>
+            <svg width={17} height={17} viewBox="0 0 24 24">
+              <path
+                d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
+                fill={fav ? '#1A1A1E' : 'none'} stroke={fav ? '#1A1A1E' : '#9A9AA3'} strokeWidth="2" strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </button>
       </span>
     </div>
   );

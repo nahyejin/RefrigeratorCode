@@ -18,7 +18,8 @@ import CustomCalendar from '../components/CustomCalendar';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { loadScreenState, saveScreenState } from '../utils/screenState';
 import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
 import axios from 'axios';
@@ -644,9 +645,34 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
     }));
 }
 
+/**
+ * 뒤로 왔을 때 되살릴 「보던 자리」. 방문 기록 한 칸(location.key)마다 sessionStorage 에 적어 둔다(utils/screenState.ts).
+ * 급상승 키워드·레시피를 눌러 다른 화면에 갔다가 뒤로(안드로이드 뒤로·iOS 스와이프·브라우저 뒤로) 오면 화면이 새로 만들어져
+ * 항상 「인기 레시피」 칩으로 돌아가던 것을 고친다(2026-11-07).
+ */
+interface PopularSaved {
+  view: PopularView;
+  risingTab: 'dish' | 'theme';
+  period: string;
+  dateRange: [string | null, string | null];
+  shown: number;
+  scrollY: number;
+}
+const VIEW_VALUES: PopularView[] = ['popular', 'special', 'rising', 'naver', 'youtube'];
+
 const Popular = () => {
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
   const navigate = useNavigate();
+  const entryKey = useLocation().key;
+  /** 이 방문 기록 칸에 적어 둔 상태(없으면 첫 방문 = 기본값). 처음 한 번만 읽는다. */
+  const savedRef = React.useRef<PopularSaved | null | undefined>(undefined);
+  if (savedRef.current === undefined) {
+    const raw = loadScreenState<PopularSaved>('popular', entryKey);
+    savedRef.current = raw && VIEW_VALUES.includes(raw.view) ? raw : null;
+  }
+  const saved = savedRef.current;
+  /** 뒤로 와서 되돌려야 할 스크롤 위치(데이터가 그려진 뒤에 한 번만 쓴다). */
+  const restoreScrollRef = React.useRef<number>(saved?.scrollY && saved.scrollY > 0 ? saved.scrollY : 0);
   const [loading, setLoading] = useState(true);
   const { isLoggedIn, user: authUser } = useAuth();
   // 즐겨찾기/완료/기록 취소 확인 (누르면 바로 지워지지 않고 한 번 더 확인한다 —
@@ -664,9 +690,15 @@ const Popular = () => {
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
-  const [period, setPeriod] = useState('week');
+  const [period, setPeriod] = useState(
+    saved?.period && (saved.period !== 'custom' || (saved.dateRange?.[0] && saved.dateRange?.[1])) ? saved.period : 'week',
+  );
   const [dateModalOpen, setDateModalOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<[Date|null, Date|null]>([null, null]);
+  const [dateRange, setDateRange] = useState<[Date|null, Date|null]>(() => {
+    const a = saved?.dateRange?.[0] ? new Date(saved.dateRange[0]) : null;
+    const b = saved?.dateRange?.[1] ? new Date(saved.dateRange[1]) : null;
+    return a && b && !isNaN(a.getTime()) && !isNaN(b.getTime()) ? [a, b] : [null, null];
+  });
   const [tempDateRange, setTempDateRange] = useState<[Date|null, Date|null]>([null, null]); // 모달 내 임시 상태
   const [calendarOpen, setCalendarOpen] = useState(false);
   const calendarRef = React.useRef<HTMLDivElement>(null);
@@ -685,9 +717,9 @@ const Popular = () => {
     return () => clearTimeout(t);
   }, [toast]);
   /** 인기 급상승에서 무엇을 보고 있나. 요리와 테마가 한 자리를 나눠 쓴다. */
-  const [risingTab, setRisingTab] = useState<'dish' | 'theme'>('dish');
+  const [risingTab, setRisingTab] = useState<'dish' | 'theme'>(saved?.risingTab === 'theme' ? 'theme' : 'dish');
   /** 지금 보는 구역(칩). 인기 레시피 = 네이버·유튜브를 섞어서, 네이버/유튜브 칩은 한쪽만. */
-  const [view, setView] = useState<PopularView>('popular');
+  const [view, setView] = useState<PopularView>(saved?.view || 'popular');
   // 쿡 픽(밖의 추천 챗봇)이 지금 보고 있는 구역을 읽도록 알린다(utils/pageContext, 2026-11-06).
   useEffect(() => {
     const label = VIEW_CHIPS.find(c => c.value === view)?.label ?? view;
@@ -697,7 +729,7 @@ const Popular = () => {
   }, [view, risingTab]);
   useEffect(() => () => setPageContext(null), []);
   /** 한 번에 그리는 행 수 — 100건이 넘는 목록의 행마다 재료 계산이 돌아서 끊어 그린다. */
-  const [shown, setShown] = useState(PAGE_SIZE);
+  const [shown, setShown] = useState(Math.max(PAGE_SIZE, saved?.shown || PAGE_SIZE));
   const [includeKeyword, setIncludeKeyword] = useState('');
 
   // 버튼 상태 통일: {done, write, share, favorite}
@@ -1472,7 +1504,75 @@ const Popular = () => {
   }, [view, naverRecipes, youtubeRecipes, premiumRecipes, mixedRecipes, failedThumbnailIds]);
 
   // 구역·기간이 바뀌면 다시 20건부터.
-  useEffect(() => { setShown(PAGE_SIZE); }, [view, period, dateRange]);
+  // (되살린 첫 그림에서는 지우지 않는다 — 뒤로 왔을 때 「더 보기」로 펼쳐 둔 만큼 그대로 보여야 한다. 칸이 실제로 바뀔 때만.)
+  const shownSig = `${view}|${period}|${dateRange[0]?.getTime() ?? ''}|${dateRange[1]?.getTime() ?? ''}`;
+  const shownSigRef = React.useRef(shownSig);
+  useEffect(() => {
+    if (shownSigRef.current === shownSig) return;
+    shownSigRef.current = shownSig;
+    setShown(PAGE_SIZE);
+  }, [shownSig]);
+
+  // 보던 자리(구역·기간·펼친 수·스크롤)를 이 방문 기록 칸에 적어 둔다 → 뒤로 오면 그대로 돌아온다(2026-11-07).
+  const scrollYRef = React.useRef(restoreScrollRef.current);
+  const persist = React.useCallback(() => {
+    saveScreenState('popular', entryKey, {
+      view, risingTab, period,
+      dateRange: [dateRange[0]?.toISOString() ?? null, dateRange[1]?.toISOString() ?? null],
+      shown, scrollY: Math.round(scrollYRef.current),
+    } satisfies PopularSaved);
+  }, [entryKey, view, risingTab, period, dateRange, shown]);
+  const persistRef = React.useRef(persist);
+  persistRef.current = persist;
+  useEffect(() => { persist(); }, [persist]);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      // 다른 화면으로 넘어간 뒤(주소가 이미 바뀜) 들어오는 스크롤 이벤트(ScrollToTop 의 맨 위 이동 등)는 적지 않는다.
+      if (window.location.pathname !== '/popular') return;
+      // 되살리는 중에는(아직 목표 위치에 못 갔을 때) 0 으로 덮어쓰지 않는다.
+      if (restoreScrollRef.current > 0) return;
+      scrollYRef.current = window.scrollY;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { if (window.location.pathname === '/popular') persistRef.current(); }, 120);
+    };
+    // 되살리는 도중 사용자가 직접 밀기 시작하면 되살리기는 포기한다(손에 쥔 화면을 빼앗지 않는다).
+    const cancelRestore = () => { restoreScrollRef.current = 0; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('wheel', cancelRestore, { passive: true });
+    window.addEventListener('touchmove', cancelRestore, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', cancelRestore);
+      window.removeEventListener('touchmove', cancelRestore);
+      if (timer) clearTimeout(timer);
+      persistRef.current();   // 떠나는 순간의 마지막 위치까지 적어 둔다
+    };
+  }, []);
+  // 되살릴 스크롤: 데이터·순위가 그려져 페이지가 충분히 길어진 뒤 한 번만 이동한다(그 전엔 맨 위로 클램프된다).
+  const rowsReady = view === 'rising' ? (risingTab === 'dish' ? dishRankings.length : themeRankings.length) : viewRecipes.length;
+  useEffect(() => {
+    const target = restoreScrollRef.current;
+    if (!target || loading || rowsReady === 0) return;
+    const go = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max >= target - 2) {
+        window.scrollTo(0, target);
+        restoreScrollRef.current = 0;
+        scrollYRef.current = target;
+      }
+    };
+    // ScrollToTop(경로 바뀔 때 맨 위로) 이 먼저 돈 다음에 움직이도록 한 박자 늦춘다.
+    const t1 = setTimeout(go, 60);
+    // 목록이 끝내 그만큼 길어지지 않으면(데이터가 줄었을 때) 갈 수 있는 데까지 가고 그만둔다.
+    const t2 = setTimeout(() => {
+      if (restoreScrollRef.current) {
+        window.scrollTo(0, restoreScrollRef.current);
+        restoreScrollRef.current = 0;
+      }
+    }, 2500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [loading, rowsReady, shown]);
 
   const risingRows = risingTab === 'dish' ? dishRankings : themeRankings;
   const countNote = view === 'rising'
@@ -1644,10 +1744,13 @@ const Popular = () => {
           </button>
         )}
 
-        {/* 급상승 — 요리/테마 둘이 한 자리를 나눠 쓴다. 표 대신 순위 행. */}
+        {/* 급상승 — 요리/테마 둘이 한 자리를 나눠 쓴다. 표 대신 순위 행.
+            2026-11-07 다듬음(당근 「인기 검색어」 식): 열을 세 개로 고정한다 — [순위 28px 가운데] [키워드(위) + 레시피 N개(아래)] [변화 56px 가운데].
+            전에는 「신규」 노란 알약이 줄마다 가운데 떠 있고(열 이름이 없어 무슨 말인지 모르는 「42개」는 오른쪽 끝에 따로) 눈이 세 군데로 흩어졌다.
+            개수는 키워드 밑으로 붙여 「무엇의 개수」인지 말하게 했고, 변화는 면 없는 글자(▲ 빨강 · NEW 주황)로 오른쪽 고정 칸 한가운데에 둔다. */}
         {view === 'rising' && (
           <>
-            <div style={{ display: 'flex', margin: '6px 0 4px' }}>
+            <div style={{ display: 'flex', margin: '10px 0 2px' }}>
               <SegmentedToggle
                 value={risingTab}
                 onChange={(v) => setRisingTab(v)}
@@ -1663,32 +1766,43 @@ const Popular = () => {
               </p>
             )}
             {risingRows.map((row: any, idx: number) => {
-              const badge = row.isNew ? '신규'
-                : row.multiplier && row.multiplier > 1 ? `▴${row.multiplier}배`
-                : row.rate > 0 ? `▴${row.rate}%` : '';
+              // 변화 칸: 신규 / ▲ N배 / ▲ N% / (없으면 –). 한 가지 모양으로만 그려 칸 안에서 줄이 흔들리지 않게 한다.
+              const delta: { kind: 'new' | 'up' | 'none'; text: string } = row.isNew ? { kind: 'new', text: 'NEW' }
+                : row.multiplier && row.multiplier > 1 ? { kind: 'up', text: `${row.multiplier}배` }
+                : row.rate > 0 ? { kind: 'up', text: `${row.rate}%` }
+                : { kind: 'none', text: '–' };
+              const countText = Number(row.count || 0).toLocaleString('ko-KR');
+              const goDetail = () => navigate(`/ingredient/${encodeURIComponent(row.name)}` + (risingTab === 'dish' ? '?minCount=2' : ''));
               return (
                 <div
                   key={row.id ?? row.name}
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate(`/ingredient/${encodeURIComponent(row.name)}` + (risingTab === 'dish' ? '?minCount=2' : ''))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/ingredient/${encodeURIComponent(row.name)}` + (risingTab === 'dish' ? '?minCount=2' : '')); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 14, height: 58, borderBottom: '1px solid var(--line-200)', cursor: 'pointer' }}
+                  aria-label={`${idx + 1}위 ${row.name}, 레시피 ${countText}개${delta.kind === 'new' ? ', 신규' : delta.kind === 'up' ? `, ${delta.text} 상승` : ''}`}
+                  onClick={goDetail}
+                  onKeyDown={(e) => { if (e.key === 'Enter') goDetail(); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 64, padding: '8px 0', borderBottom: '1px solid var(--line-200)', cursor: 'pointer' }}
                 >
                   <span style={{
-                    flex: 'none', width: 24, textAlign: 'center', fontSize: 17, fontWeight: 800,
+                    flex: 'none', width: 28, textAlign: 'center', fontSize: 17, fontWeight: 800,
                     fontVariantNumeric: 'tabular-nums', color: idx < 3 ? 'var(--ink-900)' : 'var(--ink-500)',
                   }}>{idx + 1}</span>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {row.name}
-                  </span>
-                  {badge && (
-                    <span style={{ fontSize: 11.5, fontWeight: 700, borderRadius: 6, padding: '2px 7px', background: '#FFF1A8', color: '#6B5200' }}>
-                      {badge}
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span style={{ fontSize: 15.5, fontWeight: 700, lineHeight: 1.35, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {row.name}
                     </span>
-                  )}
-                  <span style={{ width: 46, textAlign: 'right', fontSize: 13, color: 'var(--ink-700)', fontVariantNumeric: 'tabular-nums' }}>
-                    {row.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}개
+                    <span style={{ fontSize: 12.5, lineHeight: 1.4, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums' }}>
+                      레시피 {countText}개
+                    </span>
+                  </span>
+                  <span style={{
+                    flex: 'none', width: 56, textAlign: 'center', fontSize: 12.5, fontWeight: 700, lineHeight: 1,
+                    fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+                    color: delta.kind === 'new' ? '#F26B1D' : delta.kind === 'up' ? 'var(--danger)' : 'var(--ink-300)',
+                    letterSpacing: delta.kind === 'new' ? '0.02em' : undefined,
+                  }}>
+                    {delta.kind === 'up' && <span aria-hidden style={{ fontSize: 9, marginRight: 2, verticalAlign: 1 }}>▲</span>}
+                    {delta.text}
                   </span>
                 </div>
               );
