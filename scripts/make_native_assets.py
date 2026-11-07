@@ -19,7 +19,8 @@
     Android  mipmap-*: ic_launcher·ic_launcher_round(옛 런처), ic_launcher_foreground·ic_launcher_monochrome(적응형),
              mipmap-anydpi-v26/ic_launcher*.xml, values/ic_launcher_background.xml(노랑 단색),
              drawable-*/ic_stat_cookmatch.png(알림, 24/36/48/72/96px 흰색+투명),
-             drawable*/splash.png 26장(노랑 바탕 + 가운데 마크),
+             drawable*/splash.png 26장(노랑 바탕 + 마크, 앱 안 스플래시와 같은 자리),
+             values/styles.xml 의 Android 12+ 시스템 시작 화면 바탕을 노랑으로(앱 스플래시와 같은 색),
              drawable-nodpi/widget_quick_square_preview.png(현재 이름 「쿡 픽」·「식단 짜기」로 다시 그림)
     지우는 것  안드로이드 스튜디오 기본 템플릿 잔재(안 쓰는 초록 격자·로봇·흰 색), 더는 안 쓰는 적응형 배경 PNG 6장
 
@@ -43,8 +44,13 @@ RES = os.path.join(FRONT, "android", "app", "src", "main", "res")
 YELLOW = (255, 214, 0)  # #FFD600
 FONT_VF = "C:/Windows/Fonts/NotoSansKR-VF.ttf"
 
-IOS_SPLASH_MARK = 680 / 2732     # iOS 스플래시(2732 정사각)에서 마스터를 붙이는 한 변 비율 — 마크 폭은 이것의 0.8
-ANDROID_SPLASH_MARK = 0.46       # 안드로이드 스플래시에서 짧은 변 대비 마스터 한 변 비율
+# 앱 안 스플래시(frontend/src/components/SplashScreen.tsx)와 같은 자리·크기로 맞춘다 — 네이티브 시작 화면 → 앱 스플래시로
+# 바뀔 때 마크가 튀지 않게: 마크 폭 min(46vw, 26vh, 210px), 마크 가운데가 화면 높이의 약 37.5%.
+# (마스터 한 변 안에서 마크 폭은 약 0.8)
+IOS_SPLASH_MARK = 724 / 2732     # iOS 스플래시(2732 정사각)에서 마스터를 붙이는 한 변 비율 — 아이폰(세로로 꽉 채움)에서 마크 폭 ≈ 화면 폭의 46%
+ANDROID_SPLASH_MARK = 0.46       # 안드로이드 세로 스플래시: 짧은 변(폭) 대비 마스터 한 변 비율 → 마크 폭 ≈ 37%(CENTER_CROP 로 높이에 맞춰 확대되면 46%)
+ANDROID_SPLASH_MARK_LAND = 0.325  # 가로 스플래시: 마크 높이가 화면 높이의 26%
+SPLASH_CENTER_Y = 0.375          # 마크 가운데 높이(화면 높이 대비)
 
 # 안드로이드 해상도 폴더 → (옛 런처 px, 적응형 레이어 px(108dp), 알림 아이콘 px(24dp))
 DENSITY = {
@@ -79,11 +85,13 @@ def save(im, path):
     im.save(path, optimize=True)
 
 
-def mark_on_yellow(w, h, frac, master):
-    """노랑 캔버스 가운데에 마스터(정사각 노랑 바탕 그림)를 붙인다 — 마스터 바탕이 같은 노랑이라 이음매가 없다."""
+def mark_on_yellow(w, h, frac, master, cy=SPLASH_CENTER_Y):
+    """노랑 캔버스에 마스터(정사각 노랑 바탕 그림)를 붙인다 — 마스터 바탕이 같은 노랑이라 이음매가 없다.
+    가로는 가운데, 세로는 마크 가운데가 높이의 cy 에 오게(마스터 안 마크의 세로 가운데는 한가운데보다 9/1024 위)."""
     canvas = Image.new("RGB", (w, h), YELLOW)
     s = max(1, int(round(min(w, h) * frac)))
-    canvas.paste(master.resize((s, s), Image.LANCZOS), ((w - s) // 2, (h - s) // 2))
+    top = int(round(h * cy - s * (503 / 1024)))
+    canvas.paste(master.resize((s, s), Image.LANCZOS), ((w - s) // 2, top))
     return canvas
 
 
@@ -207,6 +215,19 @@ def make_android_launcher(master):
     print("android launcher ok")
 
 
+def make_android_launch_theme():
+    """Android 12+ 시스템 시작 화면(아이콘은 투명) 바탕 = 앱 안 스플래시와 같은 브랜드 노랑.
+    예전에는 앱 스플래시가 흰색이라 흰색으로 맞췄다(2026-09-21) — 앱 스플래시가 노랑으로 바뀌면서 같이 바꾼다."""
+    p = os.path.join(RES, "values", "styles.xml")
+    with open(p, encoding="utf-8", newline="") as f:
+        t = f.read()
+    t = t.replace('<item name="windowSplashScreenBackground">#FFFFFF</item>', '<item name="windowSplashScreenBackground">#FFD600</item>')
+    t = t.replace('<item name="android:background">#FFFFFF</item>', '<item name="android:background">#FFD600</item>')
+    t = t.replace("앱 스플래시(App.tsx 의 SplashScreen, 흰 배경)와 같은 흰색으로", "앱 스플래시(App.tsx 의 SplashScreen, 노랑 #FFD600 배경)와 같은 노랑으로")
+    with open(p, "w", encoding="utf-8", newline="") as f:
+        f.write(t)
+
+
 def make_android_notification():
     sil = Image.open(os.path.join(BRAND, "notification_silhouette_1024.png")).convert("RGBA")
     for folder, (_, _, px) in DENSITY.items():
@@ -222,7 +243,8 @@ def make_android_notification():
 
 def make_android_splash(master):
     for folder, (w, h) in SPLASH.items():
-        save(mark_on_yellow(w, h, ANDROID_SPLASH_MARK, master), os.path.join(RES, folder, "splash.png"))
+        frac = ANDROID_SPLASH_MARK_LAND if w > h else ANDROID_SPLASH_MARK
+        save(mark_on_yellow(w, h, frac, master), os.path.join(RES, folder, "splash.png"))
     print("android splash ok (%d)" % len(SPLASH))
 
 
@@ -279,6 +301,7 @@ def make_widget_preview():
 
 def make_android(master):
     make_android_launcher(master)
+    make_android_launch_theme()
     make_android_notification()
     make_android_splash(master)
     make_widget_preview()
@@ -342,6 +365,8 @@ def check():
     # 안 쓰는 템플릿이 남지 않았는지
     for rel in ("drawable/ic_launcher_background.xml", "drawable-v24/ic_launcher_foreground.xml"):
         need(not os.path.exists(os.path.join(RES, *rel.split("/"))), rel + " 아직 있음")
+    st = open(os.path.join(RES, "values", "styles.xml"), encoding="utf-8").read()
+    need("windowSplashScreenBackground\">#FFD600" in st, "Android 12+ 시작 화면 바탕이 노랑이 아님")
     sb = open(os.path.join(FRONT, "ios", "App", "App", "Base.lproj", "LaunchScreen.storyboard"), encoding="utf-8").read()
     need('systemColor="systemBackgroundColor"' not in sb, "LaunchScreen 배경이 아직 흰색")
     for e in errs:
