@@ -56,7 +56,7 @@ function App() {
         // 레시피 수가 설정된 시점 기록
         recipeCountSetTimeRef.current = Date.now();
         
-        // 레시피 수가 설정된 후 최소 2초는 더 표시
+        // 레시피 수가 설정된 후 최소 2.6초는 더 표시(숫자 카운트업 1.7초 + 완성된 숫자를 읽을 시간)
         if (splashTimerRef.current) {
           clearTimeout(splashTimerRef.current);
         }
@@ -64,7 +64,7 @@ function App() {
           console.log('스플래시 화면 종료 (레시피 수 집계 후 2초 경과)');
           setShowSplash(false);
           sessionStorage.setItem('splashShown', 'true');
-        }, 2000);
+        }, 2600);
       })
       .catch(error => {
         console.error('스플래시 화면 - API 호출 실패:', error);
@@ -78,7 +78,7 @@ function App() {
           console.log('스플래시 화면 종료 (API 실패 후 2초 경과)');
           setShowSplash(false);
           sessionStorage.setItem('splashShown', 'true');
-        }, 2000);
+        }, 2600);
       });
     
     // 최대 표시 시간 (레시피 수가 오래 걸려도 최대 5초 후에는 종료)

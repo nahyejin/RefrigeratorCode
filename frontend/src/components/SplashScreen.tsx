@@ -137,20 +137,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
       return;
     }
 
-    // 움직임 줄이기: 숫자를 굴리지 않고 바로 최종 숫자를 보인다
-    if (prefersReducedMotion()) {
-      setStage('final');
-      setDisplayDigits(recipeCount.toString().split(''));
-      return;
-    }
-
     // 0 에서 최종 숫자까지 **천천히 올라간다**(처음에 빠르고 끝에 느려지는 ease-out, 1.7초) — 2026-11-08 「숫자가 천천히 올라가던 효과가 없어졌다」
     setStage('roulette');
     rouletteStartTime.current = Date.now();
 
     const animate = () => {
       const elapsed = Date.now() - rouletteStartTime.current;
-      const t = Math.min(1, elapsed / CONSTANTS.COUNT_UP_DURATION);
+      const t = Math.min(1, elapsed / (prefersReducedMotion() ? 1100 : CONSTANTS.COUNT_UP_DURATION));
       if (t < 1) {
         const eased = 1 - Math.pow(1 - t, 3);
         setDisplayDigits(String(Math.floor(recipeCount * eased)).split(''));

@@ -881,7 +881,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
    (실제로 이 설정을 켠 기기에서 로딩 점과 FAB 가 정지한 채로 보였음)
    → 장식적인 움직임만 줄이고, 상태를 알리는 표시는 예외로 둔다. */
 @media (prefers-reduced-motion: reduce) {
-  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-pill):not(.ai-action):not(.skeleton-block):not(.cm-match-grid > span):not(.cm-nav-dot):not(.brand-mark--loop .brand-mark__ingredient),
+  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-pill):not(.ai-action):not(.skeleton-block):not(.cm-match-grid > span):not(.cm-nav-dot):not(.brand-mark--loop .brand-mark__ingredient):not(.brand-mark--intro .brand-mark__bowl):not(.brand-mark--intro .brand-mark__ingredient):not(.brand-mark--intro .brand-mark__leaves),
   *::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -1412,11 +1412,13 @@ select:focus-visible {
 @keyframes brand-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .brand-mark--seat .brand-mark__ingredient,
-  .brand-mark--intro .brand-mark__ingredient,
   .brand-mark--hop .brand-mark__ingredient { animation: brand-fade .12s linear both; }
-  .brand-mark--intro .brand-mark__bowl { animation: brand-fade .12s linear both; }
-  .brand-mark--intro .brand-mark__leaves,
   .brand-mark--hop .brand-mark__leaves { animation: none; }
+  /* 스플래시(intro): iOS 「동작 줄이기」를 켠 폰에서는 마크가 처음부터 완성된 채 정지해 「애니메이션이 없다」고 보였다(2026-11-08 폰 녹화).
+     이동(낙하·눌림·흔들림)은 빼고 **받침 → 재료 → 잎이 차례로 나타나는 페이드**만 남긴다 — 이동이 없어 동작 줄이기 취지에 맞다. */
+  .brand-mark--intro .brand-mark__bowl { animation: brand-fade .35s ease-out both !important; }
+  .brand-mark--intro .brand-mark__ingredient { animation: brand-fade .4s ease-out .3s both !important; }
+  .brand-mark--intro .brand-mark__leaves { animation: brand-fade .4s ease-out .65s both !important; }
   /* 로딩 표시(loop)는 **상태 표시**라 멈추면 고장 난 것처럼 보인다 — 이동 없이 밝기만 숨 쉬듯(아래 전역 감소-모션 규칙의 예외) */
   .brand-mark--loop .brand-mark__ingredient {
     animation: loading-fade 1.2s ease-in-out infinite !important;
