@@ -749,6 +749,14 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
 .ai-chat-input.ai-chat-input-dark::placeholder { color: rgba(255,255,255,0.5); }
 .ai-chat-input.ai-chat-input-dark:disabled { background: #232327 !important; color: rgba(255,255,255,0.4) !important; }
 
+/* 눌러서 쿡 코치에게 물어볼 수 있는 대체 재료 칩(검정 + 노란 ✦) — 아주 약하게 숨 쉰다. 설명 글 대신 움직임·✦ 로 「눌러 볼 수 있다」를 알린다. */
+@keyframes sub-chip-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+.sub-chip { animation: sub-chip-breathe 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sub-chip { animation: none; } }
+
 /* 패널 헤더 / 답변 말풍선의 AI 아바타 (FAB와 동일한 평평한 노란 원 + ✦) */
 .ai-avatar-mark {
   border-radius: 9999px;

@@ -43,16 +43,15 @@ const BASE_SUGGESTIONS: Suggestion[] = [
 ].map(t => ({ label: t, ask: t }));
 
 /**
- * 요리 중 가장 자주 묻는 「재료 준비 끝났는데 그다음은?」(2026-11-07 제안). **이 레시피의 첫 단계를 말에 넣어** 보낸다 — 쿡 코치가 어디까지
- * 했다는 말인지 정확히 알고 그다음 순서를 이어서 알려 주게. 칩 글자는 짧게, 보내는 질문에만 첫 단계를 싣는다. 조리 순서가 없는 레시피엔 안 만든다.
+ * 요리 중 가장 자주 묻는 「재료 준비 끝났는데 그다음은?」. 처음엔 질문에 이 레시피의 **첫 단계를 실었는데**(2026-11-07), 사용자가 첫 단계를 이미
+ * 했는지는 알 수 없으니 「첫 단계인 …부터 시작할게요」가 앞서가는 말이 된다 → **재료 준비만 끝났다고 말하고 순서대로 알려 달라**고만 보낸다.
+ * 조리 순서가 없는 레시피(알려 줄 순서가 없다)엔 만들지 않는다.
  */
 function nextStepSuggestion(firstStep?: string): Suggestion | null {
-  const step = (firstStep || '').replace(/\s+/g, ' ').trim();
-  if (!step) return null;
-  const short = step.length > 60 ? step.slice(0, 58) + '…' : step;
+  if (!(firstStep || '').trim()) return null;
   return {
     label: '재료 준비 끝났어요, 그다음은?',
-    ask: `재료 준비는 끝났어요. 첫 단계인 「${short}」부터 시작할게요. 그다음 순서는 어떻게 돼요?`,
+    ask: '재료 준비는 끝났어요. 순서대로 알려주세요.',
   };
 }
 

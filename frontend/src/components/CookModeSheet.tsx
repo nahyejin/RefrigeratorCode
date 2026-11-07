@@ -5,7 +5,7 @@ import Dialog from './ui/Dialog';
 import PlanThisDay from './PlanThisDay';
 import CookCoach from './CookCoach';
 import { ChefHatIcon } from './ui/Icons';
-import { pickSubstitute } from '../utils/substituteRules';
+import IngredientPillGroup from './IngredientPillGroup';
 import Toast from './Toast';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -507,31 +507,6 @@ const CookModeSheet: React.FC<Props> = ({
   const have = new Set(myIngredients.map(x => x.trim()));
   const detail = data?.ingredients_detail || [];
   const names = data?.ingredients || [];
-  /**
-   * 없는 재료 → 내 냉장고의 대체 재료(예: 쪽파 → 대파). 목록의 「대체 가능 N」을 눌러 들어왔을 때 **무엇을 무엇으로** 바꿀 수 있는지
-   * 안에서 보여 주려는 것이다(2026-11-07 「대체 가능 4라고 해서 들어갔는데 안에 내용이 안 보여」). 계산은 목록 카드와 같은 표·같은 기준
-   * (유사도 높은 순으로 냉장고에 있는 첫 후보).
-   */
-  const substitutes = React.useMemo(() => {
-    const out: Record<string, string> = {};
-    if (!isOpen || names.length === 0 || myIngredients.length === 0) return out;
-    const table = readSubstituteTable();
-    if (!table) return out;
-    const norm = (x: string) => (x || '').trim().toLowerCase();
-    const mine = new Set(myIngredients.map(norm));
-    const keyOf: Record<string, string> = {};
-    for (const k of Object.keys(table)) keyOf[norm(k)] = k;
-    for (const n of names) {
-      if (have.has(n.trim())) continue;
-      const k = keyOf[norm(n)];
-      // 유사도 하한·브랜드 제외·주재료 제외 — 목록의 「대체 가능 N」과 같은 규칙(utils/substituteRules.ts)
-      const hit = k ? pickSubstitute(n, table[k], mine, data?.title || fallbackTitle || '') : undefined;
-      if (hit) out[n] = hit.ingredient_b;
-    }
-    return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, names.join('|'), myIngredients.join('|'), data?.title]);
-  const substituteCount = Object.keys(substitutes).length;
 
   return (
     <>
@@ -690,42 +665,19 @@ const CookModeSheet: React.FC<Props> = ({
                 </div>
               ) : null}
               </div>
-              {/* 재료 이름 칩 */}
+              {/* 재료 칩 — **바깥 레시피 카드와 같은 부품**(IngredientPillGroup): 없는 재료 → 대체 가능 → 있는 재료 순서·모양이 똑같다.
+                  대체 칩(검정 + ✦)을 누르면 쿡 코치가 「A 대신 B 써도 돼요?」를 채운 채로 열린다(보내기는 사용자가). */}
               {detail.length > 0 && names.length > 0 && (
-                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {names.map(n => substitutes[n] ? (
-                    // 없지만 냉장고의 다른 재료로 바꿀 수 있는 것 — 목록 카드의 「식용유 → 참기름」과 같은 검정 칩
-                    // 눌러서 쿡 코치에게 묻는다(2단계) — 표는 후보만 내고 「이 요리에서 정말 되나」는 이 요리를 읽는 AI 가 답한다.
-                    // 질문만 채우고 보내기는 사용자가 누른다(크레딧이 나가는 일이라 몰래 보내지 않는다).
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => window.dispatchEvent(new CustomEvent('cookmatch:ask-coach', {
-                        detail: { question: `${n} 대신 ${substitutes[n]} 써도 돼요?` },
-                      }))}
-                      style={{
-                        fontSize: 11.5, padding: '3px 8px', borderRadius: 9999, border: 'none', cursor: 'pointer',
-                        background: '#1A1A1E', color: '#FFFFFF', fontWeight: 600, fontFamily: 'inherit',
-                      }}
-                    >
-                      {n} → {substitutes[n]} <span aria-hidden style={{ opacity: 0.6 }}>›</span>
-                    </button>
-                  ) : (
-                    <span key={n} style={{
-                      fontSize: 11.5, padding: '3px 8px', borderRadius: 9999,
-                      background: have.has(n) ? '#FFF3B0' : 'var(--surface-sub)',
-                      color: have.has(n) ? '#7A5C00' : 'var(--ink-500)',
-                      fontWeight: have.has(n) ? 700 : 400,
-                    }}>
-                      {have.has(n) ? '✓ ' : ''}{n}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {substituteCount > 0 && (
-                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.5, wordBreak: 'keep-all' }}>
-                  <b style={{ color: 'var(--ink-700)' }}>대체 가능 {substituteCount}</b> · 검정 칩은 없는 재료를 냉장고 재료로 바꿔 쓸 수 있다는 뜻이에요. 눌러서 쿡 코치에게 물어보세요
-                </div>
+                <IngredientPillGroup
+                  style={{ marginTop: 10 }}
+                  needIngredients={names}
+                  myIngredients={myIngredients}
+                  substituteTable={readSubstituteTable() || {}}
+                  title={data?.title || fallbackTitle || ''}
+                  onSubstituteClick={(from, to) => window.dispatchEvent(new CustomEvent('cookmatch:ask-coach', {
+                    detail: { question: `${from} 대신 ${to} 써도 돼요?` },
+                  }))}
+                />
               )}
             </section>
           )}

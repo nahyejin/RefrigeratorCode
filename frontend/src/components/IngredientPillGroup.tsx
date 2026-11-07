@@ -201,11 +201,13 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
                   type="button"
                   title={`${displayName} 대신 ${target} 써도 되는지 쿡 코치에게 물어보기`}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSubstituteClick(displayName, target); }}
+                  className="sub-chip"
                   style={{ ...pillStyle(state), cursor: 'pointer', fontFamily: 'inherit' }}
                 >
+                  {/* 노란 ✦ + 숨 쉬는 움직임 — 「눌러 볼 수 있는 AI 칩」이라는 표시(설명 글 없이) */}
+                  <span aria-hidden className="ai-tag" style={{ color: '#FFD600', marginRight: 4 }} />
                   {displayName}
                   <span aria-hidden style={{ margin: '0 5px', opacity: 0.7 }}>→</span>{target}
-                  <span aria-hidden style={{ marginLeft: 5, opacity: 0.55, fontWeight: 700 }}>›</span>
                 </button>
               );
             }
