@@ -91,7 +91,9 @@ const CookCoach: React.FC<{
   anchor?: React.RefObject<HTMLElement | null>;
   /** 이 레시피의 조리 단계 — 「N단계 끝났어요, 그다음은?」 진행 칩이 쓴다. 비어 있으면(조리 순서가 없는 글) 그 칩은 없다. */
   steps?: string[];
-}> = ({ recipeId, anchor, steps = [] }) => {
+  /** 대화가 생기면 true, 비면 false — 레시피 창이 **닫기 전에 「대화가 지워져요」 확인**을 띄울지 정하는 데 쓴다. */
+  onHasChat?: (has: boolean) => void;
+}> = ({ recipeId, anchor, steps = [], onHasChat }) => {
   const usage = useUsage();
   const cost = (usage?.credits as any)?.coach ?? 1;
   const guestOut = !!usage && usage.is_guest && !usage.can_use_ai;
@@ -103,6 +105,9 @@ const CookCoach: React.FC<{
   // 서버가 답과 함께 준 「다음 질문」 2개(가장 최근 답 기준) · 진행 칩으로 끝났다고 말한 단계 수
   const [followups, setFollowups] = React.useState<string[]>([]);
   const [stepsDone, setStepsDone] = React.useState(0);
+  const hasChat = messages.length > 0;
+  React.useEffect(() => { onHasChat?.(hasChat); }, [hasChat]);  // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => () => { onHasChat?.(false); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');

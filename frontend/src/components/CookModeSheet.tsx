@@ -173,6 +173,14 @@ const CookModeSheet: React.FC<Props> = ({
   type NudgeTarget = { id: number; title: string; link: string; thumbnail: string };
   /** 완료를 물어볼 레시피. 값이 있으면 확인창이 떠 있다. */
   const [doneNudge, setDoneNudge] = React.useState<NudgeTarget | null>(null);
+  // 쿡 코치와 나눈 대화가 있는지 — 있으면 레시피 창을 닫기 전에 「대화가 지워져요」를 먼저 묻는다(2026-11-07)
+  const coachHasChatRef = React.useRef(false);
+  const [leaveAsk, setLeaveAsk] = React.useState(false);
+  const closeNow = () => { stopSpeaking(); onClose(); };
+  const requestClose = () => {
+    if (coachHasChatRef.current) { setLeaveAsk(true); return; }
+    closeNow();
+  };
   /**
    * 열려 있는 레시피를 **닫히기 전에** 붙잡아 둔다.
    *
@@ -510,7 +518,7 @@ const CookModeSheet: React.FC<Props> = ({
 
   return (
     <>
-    <Sheet open={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
+    <Sheet open={isOpen} onClose={requestClose}
            title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter dialogRef={sheetRef}>
       {/* 즐겨찾기·완료·기록·공유 — 일반 레시피 카드에 있는 것과 같은 네 버튼.
           시트 헤더(제목 + 닫기 ×)는 공용 컴포넌트라 손대지 않고, 본문 맨 위
@@ -895,7 +903,28 @@ const CookModeSheet: React.FC<Props> = ({
     </Sheet>
     {/* 요리 한 건 전용 도우미 「쿡 코치」(2026-11-06) — 우하단 떠 있는 버튼 → 대화 카드. 재료·순서가 뜬 레시피에만 두고,
         레시피 창을 닫으면 사라져 대화도 지워진다. */}
-    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} steps={steps} />}
+    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} steps={steps} onHasChat={has => { coachHasChatRef.current = has; }} />}
+    {/* 쿡 코치 대화가 있는데 레시피 창을 닫으려 할 때 — 대화는 메모리에만 있어 닫으면 사라진다. 돌아갈 길(주 버튼)을 먼저 둔다.
+        「레시피를 완료하셨나요?」는 이 확인에서 「그래도 닫기」를 누른 **뒤에** 이어서 뜬다(팝업이 겹치지 않는다). */}
+    {leaveAsk && (
+      <Dialog
+        open
+        nested
+        onClose={() => setLeaveAsk(false)}
+        title="쿡 코치 대화가 지워져요"
+        width={320}
+        showClose={false}
+        actions={[
+          { label: '그래도 닫기', variant: 'outline', onClick: () => { setLeaveAsk(false); coachHasChatRef.current = false; closeNow(); } },
+          { label: '레시피로 돌아가기', onClick: () => setLeaveAsk(false) },
+        ]}
+      >
+        <span style={{ wordBreak: 'keep-all' }}>
+          지금까지 나눈 대화는 저장되지 않아<br />
+          레시피 창을 닫으면 사라져요.
+        </span>
+      </Dialog>
+    )}
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}
     {toast && <Toast message={toast} />}
