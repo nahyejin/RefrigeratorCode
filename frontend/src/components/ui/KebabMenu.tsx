@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Portal from '../Portal';
 
 /**
  * `⋯` 버튼 하나 + 눌렀을 때 뜨는 작은 메뉴.
@@ -8,6 +9,8 @@ import * as React from 'react';
  * ("버튼 색이 매력적이지 않다"는 지적). 거의 안 누르는 기능은 `⋯` 뒤로 물리고, 카드에서는 제목·시간이 먼저 읽히게 한다.
  *
  * 메뉴는 `position: fixed` 로 띄운다 — 카드·달력 상자가 `overflow: hidden` 이라 안에서 `absolute` 로 펼치면 잘린다.
+ * **그리고 `<Portal>` 로 `document.body` 바로 아래에 그린다**(2026-11-07 「마이캘린더 계획 요리의 ⋯ 를 누르면 계획 취소가 완전히 다른 위치에서 뜬다」):
+ * 조상 중에 `transform`·`animation`·`filter` 가 걸린 상자가 있으면 `position: fixed` 가 화면이 아니라 **그 상자 기준**이 되어, 버튼 좌표로 계산한 자리와 어긋난다.
  * 바깥을 누르거나 스크롤하거나 Esc 를 누르면 닫힌다.
  */
 export interface KebabItem {
@@ -72,6 +75,7 @@ const KebabMenu: React.FC<{ items: KebabItem[]; ariaLabel: string }> = ({ items,
         </svg>
       </button>
       {open && pos && (
+        <Portal>
         <div
           data-kebab-menu
           role="menu"
@@ -97,6 +101,7 @@ const KebabMenu: React.FC<{ items: KebabItem[]; ariaLabel: string }> = ({ items,
             </button>
           ))}
         </div>
+        </Portal>
       )}
     </>
   );
