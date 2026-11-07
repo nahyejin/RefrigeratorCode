@@ -41,7 +41,7 @@ const STYLES = {
   },
   wordmarkBox: {
     marginTop: 14,
-    animation: 'brand-wordmark-in .35s ease-out 1.25s both',
+    animation: 'brand-wordmark-in .35s ease-out 1.6s both',
   },
   statGroup: {
     position: 'absolute' as const,
