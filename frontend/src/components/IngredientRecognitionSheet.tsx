@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Sheet from './ui/Sheet';
 import StepLoading from './StepLoading';
 import IngredientDateModal from './IngredientDateModal';
+import SnugMark from './brand/SnugMark';
 
 /** MyFridge 의 보관함 구분. 저기서 import 하면 순환 참조가 되어 여기 다시 적는다. */
 export type StorageBox = 'frozen' | 'fridge' | 'room';
@@ -327,6 +328,13 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
     useState<{ kind: 'purchase' | 'expiry'; idx: number | 'all' } | null>(null);
 
   const hasRows = !loading && !errorText && rows.length > 0;
+  // 결과가 새로 뜰 때마다 1씩 올라가는 번호 — 「딱」 앉는 마크를 결과마다 한 번만 재생하는 열쇠(렌더 중 갱신: 같은 결과의 다시 그리기에는 그대로)
+  const resultTokenRef = useRef(0);
+  const prevHasRowsRef = useRef(false);
+  if (hasRows && !prevHasRowsRef.current) resultTokenRef.current += 1;
+  prevHasRowsRef.current = hasRows;
+  const resultToken = resultTokenRef.current;
+  const sheetIdRef = useRef(Math.random().toString(36).slice(2, 8));
   const keyboardInset = useKeyboardInset(isOpen && hasRows);
 
   // 새로 인식할 때마다 초기화한다. 사전에 잡힌 것은 켜진 상태, 못 잡은 것은 꺼진 상태로
@@ -437,7 +445,9 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
     return (
       <>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1E' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1E', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* 결과가 뜨는 순간 한 번 「딱」 앉는다(기다리는 동안의 StepLoading 은 그대로 — AI 대기에는 마크를 쓰지 않는다) */}
+            <SnugMark key={resultToken} playKey={`recog-${sheetIdRef.current}-${resultToken}`} size={28} />
             {readCount}개를 찾았어요
           </div>
           <button type="button" onClick={toggleAll} style={{ ...smallLink, flexShrink: 0 }}>

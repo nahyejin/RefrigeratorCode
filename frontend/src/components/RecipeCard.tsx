@@ -18,6 +18,7 @@ import { openCookMode } from '../utils/cookMode';
 import { requestShare } from '../utils/recipeShare';
 import { track } from '../utils/track';
 import { scheduleSavePrompt } from '../utils/loginGate';
+import SnugMark from './brand/SnugMark';
 
 // 버튼/아이콘/스타일 상수화
 // 액션 4개 중 '완료·기록·공유'는 요리한 *뒤*에 쓰는 동작인데도 목록을 훑는 내내
@@ -784,6 +785,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             <>
               {/* 70% 이상일 때만 색을 입힌다. 초록(#3A6B2E)이 앱 색(검정·노랑·회색)과 따로 논다는 지적(2026-10-10)으로 파랑으로. */}
               <b style={{ color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-700)' }}>
+                {/* 가진 재료가 N=M 이 되는 순간 「딱 맞는다」 — 마크가 한 번 앉는다(처음 보일 때 1회·동시 2개까지, SnugMark) */}
+                {lackingIngredients.length + substitutedCount === 0 && (
+                  <SnugMark playKey={`match-${recipe.id}`} size={14} style={{ marginRight: 4, marginTop: -2 }} />
+                )}
                 내 재료 {Math.max(0, usedIngredientList.length - lackingIngredients.length - substitutedCount)}
                 /{usedIngredientList.length}
               </b>

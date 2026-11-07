@@ -9,6 +9,7 @@ import { requestShare } from '../utils/recipeShare';
 import { track } from '../utils/track';
 import { scheduleSavePrompt } from '../utils/loginGate';
 import KebabMenu, { KebabItem } from './ui/KebabMenu';
+import SnugMark from './brand/SnugMark';
 
 /**
  * 레시피 **한 줄짜리 세로 행** — 요즘인기 목록용(2026-11-06 당근식 개편).
@@ -159,6 +160,10 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
         }}>
           {used.length > 0 && (
             <b style={{ fontWeight: 700, color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-900)' }}>
+              {/* N=M 이 되는 순간 「딱 맞는다」 — 마크가 한 번 앉는다(처음 보일 때 1회·동시 2개까지, SnugMark) */}
+              {have === used.length && (
+                <SnugMark playKey={`match-${recipe.id}`} size={13} style={{ marginRight: 4, marginTop: -2 }} />
+              )}
               내 재료 {have}/{used.length}
             </b>
           )}

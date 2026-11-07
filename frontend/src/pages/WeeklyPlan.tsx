@@ -25,6 +25,7 @@ import {
   type PlannedMeal, type PlanMode,
 } from '../utils/mealPlan';
 import PlanConflictSummary from '../components/PlanConflictSummary';
+import SnugMark from '../components/brand/SnugMark';
 import { SparklesIcon } from '../components/ui/Icons';
 
 /**
@@ -806,6 +807,14 @@ const WeeklyPlan: React.FC = () => {
   /** 조건을 한 글자라도 적었나. 적었으면 AI(크레딧), 아니면 무료. */
   const hasWish = wish.trim().length > 0;
   const hasResult = slots.some(s => s.meals.length > 0);
+  // 식단 결과가 새로 나올 때마다 1씩 올라가는 번호 — 결과 머리의 「딱」 앉는 마크를 결과마다 한 번만 재생하는 열쇠
+  // (렌더 중 갱신: 같은 결과를 다시 그릴 때는 그대로라 반복되지 않는다. 「다시 추천」 같은 교체에서는 올리지 않는다)
+  const planTokenRef = React.useRef(0);
+  const planShownRef = React.useRef(false);
+  const planIdRef = React.useRef(Math.random().toString(36).slice(2, 8));
+  const planShown = usablePool !== null && !asking && hasResult;
+  if (planShown && !planShownRef.current) planTokenRef.current += 1;
+  planShownRef.current = planShown;
 
   /** 예시 조건 칩 — 누르면 입력칸에 더하고, 다시 누르면 뺀다. */
   const togglePreset = (preset: string) => {
@@ -1125,7 +1134,7 @@ const WeeklyPlan: React.FC = () => {
                 크레딧 안내를 따로 상자에 담았더니 카드가 한 칸 더 밀려 내려갔다 —
                 제목 밑줄로 붙인다. */}
             <SectionHead
-              title="이번 주 식단"
+              title={<><SnugMark key={planTokenRef.current} playKey={`plan-${planIdRef.current}-${planTokenRef.current}`} size={28} />이번 주 식단</>}
               hint={<>냉장고 재료로 · 곧 상하는 것부터 · 바꾸기는 공짜</>}
               right={
                 <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

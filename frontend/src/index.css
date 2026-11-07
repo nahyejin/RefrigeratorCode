@@ -881,7 +881,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
    (실제로 이 설정을 켠 기기에서 로딩 점과 FAB 가 정지한 채로 보였음)
    → 장식적인 움직임만 줄이고, 상태를 알리는 표시는 예외로 둔다. */
 @media (prefers-reduced-motion: reduce) {
-  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-pill):not(.ai-action):not(.skeleton-block):not(.cm-match-grid > span):not(.cm-nav-dot),
+  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-pill):not(.ai-action):not(.skeleton-block):not(.cm-match-grid > span):not(.cm-nav-dot):not(.brand-mark--loop .brand-mark__ingredient),
   *::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -1381,6 +1381,18 @@ select:focus-visible {
   100% { transform: rotate(0deg); }
 }
 
+/* 4) loop — 매칭 계산 로딩(FloatingScanLoader): 앉고 → 머물고 → 사라지고 다시(1.2초). 재료는 한 바퀴마다 바뀐다 */
+.brand-mark--loop .brand-mark__ingredient { animation: brand-loop 1.2s linear infinite both; }
+@keyframes brand-loop {
+  0%   { transform: translateY(-96px); opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .85, .55); }
+  26%  { transform: translateY(0); opacity: 1; animation-timing-function: ease-out; }
+  34%  { transform: translateY(0) scale(1.04, .94); animation-timing-function: ease-out; }
+  44%  { transform: translateY(0) scale(1, 1); opacity: 1; }
+  82%  { transform: translateY(0) scale(1, 1); opacity: 1; }
+  94%  { transform: translateY(0) scale(1, 1); opacity: 0; }
+  100% { transform: translateY(-96px); opacity: 0; }
+}
+
 /* 재료가 위에서 내려오는 동안 받침과 겹치지 않는 로고 규칙 때문에 별도 처리는 없다(재료 자리 r190 안으로만 내려온다). */
 @keyframes brand-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
@@ -1390,6 +1402,13 @@ select:focus-visible {
   .brand-mark--intro .brand-mark__bowl { animation: brand-fade .12s linear both; }
   .brand-mark--intro .brand-mark__leaves,
   .brand-mark--hop .brand-mark__leaves { animation: none; }
+  /* 로딩 표시(loop)는 **상태 표시**라 멈추면 고장 난 것처럼 보인다 — 이동 없이 밝기만 숨 쉬듯(아래 전역 감소-모션 규칙의 예외) */
+  .brand-mark--loop .brand-mark__ingredient {
+    animation: loading-fade 1.2s ease-in-out infinite !important;
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
+    transform: none !important;
+  }
 }
 
 /* 스플래시 워드마크 — 마크가 앉은 뒤에 떠오른다 */

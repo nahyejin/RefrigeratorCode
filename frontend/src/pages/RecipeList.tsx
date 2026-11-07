@@ -8,7 +8,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffe
 import { setPageContext } from '../utils/pageContext';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
-import nodataImg from '../assets/nodata.png';
+import BrandMark from '../components/brand/BrandMark';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
@@ -2733,15 +2733,8 @@ const RecipeList: React.FC = () => {
                       gap: '20px',
                       minHeight: '50vh'
                     }}>
-                      <img 
-                        src={nodataImg} 
-                        alt="데이터 없음" 
-                        style={{
-                          width: '120px',
-                          height: '120px',
-                          objectFit: 'contain'
-                        }}
-                      />
+                      {/* 빈 화면 — 마크 일러스트(로고 가이드: 재료 1개). 재료가 하나도 없으면 비어 있는 받침 + 점선 재료 자리 */}
+                      <BrandMark ingredient="slot" size={104} title="비어 있는 냉장고" />
                       <div>
                         등록된 재료가 없습니다.<br />
                         내냉장고 페이지에서 재료를 등록해 주세요.
@@ -2763,15 +2756,8 @@ const RecipeList: React.FC = () => {
                       gap: '20px',
                       minHeight: '50vh'
                     }}>
-                      <img 
-                        src={nodataImg} 
-                        alt="데이터 없음" 
-                        style={{
-                          width: '120px',
-                          height: '120px',
-                          objectFit: 'contain'
-                        }}
-                      />
+                      {/* 맞는 게 없는 화면 — 「딱 맞지 않음」은 예외로 재료가 받침 옆으로 굴러 나간 모양(로고 가이드) */}
+                      <BrandMark ingredient="tomato" rolledOut size={92} title="맞는 레시피 없음" />
                       <div>
                         조건에 맞는 레시피가 없어요.<br />
                         재료를 추가하거나 조건을 넓혀 보세요.

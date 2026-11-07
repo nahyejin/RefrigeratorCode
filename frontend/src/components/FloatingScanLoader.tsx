@@ -1,4 +1,5 @@
 import * as React from 'react';
+import BrandMark, { BrandIngredient } from './brand/BrandMark';
 
 /**
  * 냉장고요리를 기다리는 동안 화면 가운데에 **떠 있는** 표시.
@@ -10,8 +11,8 @@ import * as React from 'react';
  * 아니라 서버가 매칭률을 세는 일이라, 같은 그림을 쓰면 **안 쓴 크레딧이
  * 나간다고 오해**하게 된다.
  *
- * 그래서 하는 일을 그대로 그린다 — **재료 칸이 하나씩 맞춰지는** 모양.
- * 칸이 순서대로 노랗게 차오르면 "지금 맞춰 보는 중" 이 그대로 읽힌다.
+ * 그래서 하는 일을 그대로 그린다 — **재료가 받침에 하나씩 맞춰 앉는** 모양(로고의 「딱 앉기」).
+ * 재료가 차례로 앉았다 사라지면 "지금 맞춰 보는 중" 이 그대로 읽힌다.
  *
  * ── 왜 가짜 진행바가 없나 ───────────────────────────────────────────
  *
@@ -29,17 +30,27 @@ export interface FloatingScanLoaderProps {
 }
 
 /**
- * 재료 칸 9개가 **순서대로** 차오른다.
+ * 재료가 받침에 **하나씩 앉아 본다** — 로고의 「딱 앉기」와 같은 그림(2026-11-07 새 로고).
  *
- * 칸마다 늦추는 시간은 CSS(`:nth-child`)에 뒀다. 인라인으로 주면 감소-모션
- * 블록의 `animation:` 한 줄 표기(!important)가 지연을 0 으로 되돌려
- * **아홉 칸이 한꺼번에 깜빡인다.**
+ * 예전엔 3x3 칸이 순서대로 차오르는 그림이었다. 하는 일(레시피 4만여 개와 하나씩 맞춰 보기)을 그대로 그린다는
+ * 뜻은 같고, 이제 칸 대신 마크: 재료가 내려와 앉고(눌림) 잠깐 머문 뒤 사라지며, 한 바퀴마다 다른 재료가 앉는다.
+ * 여전히 AI 대기(`scan-frame` + 별 표시)와는 다른 그림이다 — 크레딧이 나간다는 오해를 막는다.
+ * 움직임 줄이기 설정에서는 이동 없이 밝기만 숨 쉰다(index.css `.brand-mark--loop`).
  */
-const MatchGrid = () => (
-  <div className="cm-match-grid" aria-hidden>
-    {Array.from({ length: 9 }, (_, i) => <span key={i} />)}
-  </div>
-);
+const SEAT_ORDER: BrandIngredient[] = ['tomato', 'zucchini', 'strawberry', 'eggplant', 'mandarin', 'ball'];
+
+const MatchSeat = () => {
+  const [i, setI] = React.useState(0);
+  return (
+    <BrandMark
+      ingredient={SEAT_ORDER[i]}
+      tone="color"
+      size={72}
+      motion="loop"
+      onIteration={() => setI(v => (v + 1) % SEAT_ORDER.length)}
+    />
+  );
+};
 
 const FloatingScanLoader: React.FC<FloatingScanLoaderProps> = ({
   steps,
@@ -86,7 +97,7 @@ const FloatingScanLoader: React.FC<FloatingScanLoaderProps> = ({
         pointerEvents: 'none',
       }}
     >
-      <MatchGrid />
+      <MatchSeat />
 
       <div style={{ minWidth: 0, width: '100%' }}>
         {/* `wordBreak: keep-all` — 낱말 중간에서 끊기지 않게 한다.

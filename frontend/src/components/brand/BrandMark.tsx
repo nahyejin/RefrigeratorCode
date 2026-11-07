@@ -17,7 +17,8 @@
  *   motion="seat"  재료가 위에서 내려와 0.4초에 앉고 한 번 눌렸다 올라온다(마운트 때 1회).
  *   motion="intro" 스플래시용 — 받침이 먼저 나타나고 → 재료가 내려와 앉고 → 눌림 → 잎이 펴짐/흔들림(약 1.1초).
  *   motion="hop"   스플래시용 — 완성된 마크에서 시작(네이티브 정지 스플래시와 이어짐)해 한 번 떴다 다시 「딱」 앉는다.
- *   prefers-reduced-motion 에서는 이동·눌림 없이 0.12초 페이드만 한다.
+ *   motion="loop" 매칭 계산 로딩용 — 재료가 내려와 앉고 → 잠깐 머물고 → 사라진다를 1.2초 주기로 되풀이(onIteration 으로 재료를 바꿔 끼울 수 있다).
+ *   prefers-reduced-motion 에서는 이동·눌림 없이 0.12초 페이드만 한다(loop 는 밝기만 숨 쉬듯 — 로딩 표시가 멈춰 보이지 않게).
  * 쓰지 말 곳: AI 대기 화면(StepLoading)·쿡 픽/쿡 코치 아바타(크레딧·AI 기능 표시 체계), 모든 버튼·카드에 깔기.
  */
 import * as React from 'react';
@@ -33,7 +34,7 @@ export type BrandIngredient =
  * mono = 한 색 실루엣(currentColor)
  */
 export type BrandTone = 'onYellow' | 'color' | 'reverse' | 'mono';
-export type BrandMotion = 'none' | 'seat' | 'intro' | 'hop';
+export type BrandMotion = 'none' | 'seat' | 'intro' | 'hop' | 'loop';
 
 export interface BrandMarkProps {
   ingredient?: BrandIngredient;
@@ -49,6 +50,8 @@ export interface BrandMarkProps {
    * 다른 곳에서는 쓰지 않는다(둥둥 뜬 재료·받침에 안 닿는 재료는 로고 규칙 위반).
    */
   rolledOut?: boolean;
+  /** motion="loop" 에서 한 바퀴가 끝날 때마다(재료가 안 보이는 순간) 불린다 */
+  onIteration?: () => void;
   /** 접근성 이름. 장식이면 생략(aria-hidden) */
   title?: string;
   className?: string;
@@ -59,7 +62,7 @@ const GAP = 18;
 /** 마크가 차지하는 영역(받침 x 202~822, 잎 끝 y 94 ~ 받침 바닥 y 733)에 여백을 준 보기 상자 */
 const BOX = { x: 182, y: 74, w: 660, h: 679 };
 /** 굴러 나간 재료까지 담는 넓은 보기 상자 */
-const BOX_ROLLED = { x: 182, y: 74, w: 900, h: 679 };
+const BOX_ROLLED = { x: 182, y: 74, w: 1130, h: 679 };
 
 interface Shape {
   /** 재료 도형을 그리는 함수 — extra>0 이면 받침에서 파낼 자리(스트로크로 부풀림)로 쓴다 */
@@ -109,7 +112,7 @@ export const LEAF_SMALL_PATH =
 let uid = 0;
 
 export const BrandMark: React.FC<BrandMarkProps> = ({
-  ingredient = 'ball', size = 48, tone = 'color', motion = 'none', leaves = 2, rolledOut = false, title, className, style,
+  ingredient = 'ball', size = 48, tone = 'color', motion = 'none', leaves = 2, rolledOut = false, onIteration, title, className, style,
 }) => {
   const id = React.useMemo(() => `bm${++uid}`, []);
   const mono = tone === 'mono';
@@ -123,8 +126,8 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
   const shape = ingredient === 'slot' ? null : SHAPES[ingredient];
   const ingFill = !shape ? 'none' : mono ? 'currentColor' : shape.color[tone];
   const useMask = !!shape && !shape.round;
-  // 굴러 나간 재료: 받침 오른쪽 바닥에 놓이고 살짝 기울어진다 — 「맞지 않음」
-  const rolled = rolledOut ? 'translate(372 92) rotate(18 512 470)' : undefined;
+  // 굴러 나간 재료: 받침에서 한 뼘 떨어진 오른쪽 바닥에 놓이고 살짝 기울어진다 — 「맞지 않음」
+  const rolled = rolledOut ? 'translate(504 92) rotate(18 512 470)' : undefined;
 
   return (
     <svg
@@ -133,6 +136,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
       height={unit * box.h}
       className={cls}
       style={style}
+      onAnimationIteration={onIteration ? () => onIteration() : undefined}
       {...a11y}
     >
       {useMask && (
