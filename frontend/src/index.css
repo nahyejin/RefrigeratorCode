@@ -1344,8 +1344,8 @@ select:focus-visible {
 
 /* 2) intro — 스플래시(웹·안드로이드): 받침 → 재료가 내려와 앉음 → 눌림 → 잎이 펴짐(약 1.2초) */
 .brand-mark--intro .brand-mark__bowl { animation: brand-bowl-in .3s cubic-bezier(.2,.8,.3,1) both; }
-.brand-mark--intro .brand-mark__ingredient { animation: brand-drop .55s linear .3s both; }
-.brand-mark--intro .brand-mark__leaves { animation: brand-leaf-open .5s cubic-bezier(.2,.9,.3,1) .78s both; }
+.brand-mark--intro .brand-mark__ingredient { animation: brand-drop .55s linear .3s both, brand-idle-hop 2.2s ease-in-out 1.5s infinite; }
+.brand-mark--intro .brand-mark__leaves { animation: brand-leaf-open .5s cubic-bezier(.2,.9,.3,1) .78s both, brand-leaf-idle 2.2s ease-in-out 1.5s infinite; }
 @keyframes brand-bowl-in {
   0%   { transform: translateY(36px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
@@ -1365,8 +1365,8 @@ select:focus-visible {
 }
 
 /* 3) hop — 스플래시(iOS 등 네이티브 정지 스플래시에서 이어질 때): 완성된 마크에서 시작해 한 번 떴다 「딱」 앉는다 */
-.brand-mark--hop .brand-mark__ingredient { animation: brand-hop .62s cubic-bezier(.3,.1,.4,1) .14s both; }
-.brand-mark--hop .brand-mark__leaves { animation: brand-leaf-wiggle .5s ease-in-out .62s both; }
+.brand-mark--hop .brand-mark__ingredient { animation: brand-hop .62s cubic-bezier(.3,.1,.4,1) .14s both, brand-idle-hop 2.2s ease-in-out 1.5s infinite; }
+.brand-mark--hop .brand-mark__leaves { animation: brand-leaf-wiggle .5s ease-in-out .62s both, brand-leaf-idle 2.2s ease-in-out 1.5s infinite; }
 @keyframes brand-hop {
   0%   { transform: translateY(0); }
   34%  { transform: translateY(-72px); animation-timing-function: cubic-bezier(.5,0,.9,.5); }
@@ -1379,6 +1379,21 @@ select:focus-visible {
   30%  { transform: rotate(6deg); }
   60%  { transform: rotate(-4deg); }
   100% { transform: rotate(0deg); }
+}
+
+/* 2-b) idle — 스플래시가 레시피 수를 기다리는 동안(앉은 뒤 최대 몇 초) 멈춰 있지 않게: 재료가 2.2초마다 살짝 떴다가 「딱」 다시 앉고, 잎이 숨 쉬듯 흔들린다.
+   움직임 줄이기에서는 아래 감소-모션 블록이 animation 전체를 덮어써 멈춘다. */
+@keyframes brand-idle-hop {
+  0%, 62%, 100% { transform: translateY(0) scale(1, 1); }
+  18%  { transform: translateY(-26px) scale(1, 1); animation-timing-function: cubic-bezier(.5, 0, .9, .5); }
+  34%  { transform: translateY(0) scale(1, 1); animation-timing-function: ease-out; }
+  42%  { transform: translateY(0) scale(1.04, .94); }
+  52%  { transform: translateY(0) scale(1, 1); }
+}
+@keyframes brand-leaf-idle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(3.5deg); }
+  75% { transform: rotate(-3.5deg); }
 }
 
 /* 4) loop — 매칭 계산 로딩(FloatingScanLoader): 앉고 → 머물고 → 사라지고 다시(1.2초). 재료는 한 바퀴마다 바뀐다 */
