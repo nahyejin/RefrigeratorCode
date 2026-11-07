@@ -325,10 +325,9 @@ def home():
 FINAL_KEY = "P_FINAL"
 
 
-def full(pal_main, pal_rev, pal_light, shape=BASE, tag="최종"):
-    d = HERE
-    os.makedirs(os.path.join(d, "fullset"), exist_ok=True)
-    fd = os.path.join(d, "fullset")
+def full(pal_main, pal_rev, pal_light, shape=BASE, tag="최종", outdir=None, labels=("기본", "검정", "옅은 바탕")):
+    fd = outdir or os.path.join(HERE, "fullset")
+    os.makedirs(fd, exist_ok=True)
     main = render(shape, pal_main, 1024)
     rev = render(shape, pal_rev, 1024)
     lig = render(shape, pal_light, 1024)
@@ -411,7 +410,7 @@ def full(pal_main, pal_rev, pal_light, shape=BASE, tag="최종"):
     both.paste(t2.convert("RGB"), (tw + 40, 20))
     both.save(os.path.join(fd, "store_first_slide_top.png"))
     # 홈 화면
-    items = [("기본", main), ("검정", rev), ("옅은 바탕", lig)]
+    items = list(zip(labels, (main, rev, lig)))
     hs = [L.home_screen(ic, dark=False) for _, ic in items]
     pw, ph = hs[0].size
     sh2 = Image.new("RGB", (len(items) * pw + (len(items) + 1) * 50, ph + 200), (238, 238, 236))

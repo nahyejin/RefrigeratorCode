@@ -14772,3 +14772,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 스토어 v2 첫 장용 레시피 사진 원본 삭제 (2026-11-07)
 
 - v3 는 남의 레시피 사진을 첫 장에 쓰지 않으므로, v2 첫 장 콜라주용 원본 10장(`store/sources/v2/*.jpg`)을 저장소에서 지웠다(사용자 요청). `store/make_store_assets_v2.py` 의 첫 장(`BRAND_PHOTOS`)은 이 파일이 없어 다시 만들 수 없다 — v3 가 v2 의 다른 헬퍼만 가져다 쓰므로 영향 없음.
+
+### 로고 최종 후보 3안 (P1·P12·P14, 2026-11-07, 제안만)
+사용자가 P15 의 회색을 싫어하고 P1·P12·P14 를 골라 → `store/logo_proposals/e9_final/finalists/` 에 세 안을 약점별로 다듬고(P1·a 앰버 띠, P12·a 앰버 받침, P14·c 순백 + 앰버 띠) 같은 조건으로 비교했다(`e9_final/logo_E9_최종후보3_비교.png`). 순위 **P12 > P1 > P14**(P12 만 재료↔바탕 17.3:1 로 주인공 위계 ○, 카카오와 가장 잘 구분), 풀세트 `fullset/`(P12 정식·P1 노랑 반전·P14 옅은 판). 추가 요청 반영: 컨셉 「딱 맞는다」(간격·앉는 깊이·모션, `why_snug.png`), 월별+계절 제철 재료·아이콘 변형 스펙표(`seasonal_list.png/csv`, 대체 앱 아이콘 4개만, 확신 없는 월은 「확인 필요」), 앱 전반 컴포넌트 활용 가이드(`COMPONENT_GUIDE.md`·`component_map.png`, 실제 frontend/src 경로 기준)와 `component_draft/BrandMark.tsx`(앱 미연결, 임시 tsconfig 로 strict 타입 검사 통과). 앱 코드·운영 자산 변경 없음, RELEASE_NOTES 안 건드림.
