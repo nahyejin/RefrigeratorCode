@@ -8,9 +8,12 @@ v2 에서 가져온 것: 8장의 구성·헤드라인·이야기 흐름, 아이�
 v1 에서 가져온 것: 노랑(#FFD600)/검정(#1A1A1E) 꽉 찬 배경을 번갈아, 큰 굵은 왼쪽 정렬 헤드라인, ✦AI 칩, 폰 화면 크게(아래가 잘림).
 v3 에서 새로 한 것:
   · 첫 장: 남의 사진 콜라주를 버리고 **타이포 + 직접 그린 재료·조리도구 아이콘 타일**로 구성(저작권·심사 대응).
-  · 앱 화면 속 레시피 썸네일은 전부 **흐리게**(캡처 시 `cap` 단계에서 처리), 네이버·유튜브 출처 로고도 가렸다.
-  · 4번 사진 장: 영수증 사진만 쓴다(주문내역 캡처에는 쿠팡 로고·상품 사진이 있어 뺐다).
-  · 5번 AI 통합 장: 쿡 픽·식단 짜기·쿡 코치를 검정 카드 세 줄로.
+  · 순서(2026-11-07 수정): 1 브랜드 → 2 요약된 단계+귀로 듣기 → 3 내 냉장고 매칭 → 4 대체 재료 → 5 사진 등록(영수증+음식 사진)
+    → 6 AI 통합(쿡 픽·식단 짜기·쿡 코치) → 7 곧 상할 재료 → 8 가족.
+  · 앱 화면 속 레시피 썸네일·N/YT 배지는 가리지 않고 **그대로**(사용자: 기존 앱스토어 이미지도 같은 네이버·유튜브 이미지를 써서 괜찮다고 판단). 로고 이미지를 새로 넣지는 않는다.
+  · 5번 사진 장: 영수증 사진 + 음식 사진 두 장(카메라 화면에서 사진 부분만 잘라 낸 것, 쿠팡 주문내역은 로고·상품 사진 때문에 뺐다).
+  · 6번 AI 통합 장: 쿡 픽·식단 짜기·쿡 코치만. 폰 위쪽 흐린 배경에 남던 조각(알약·노란 조각)은 지웠다.
+  · 「노란 테두리」 제거: 노란 배경 장에서 폰 둘레의 호박색 그림자 띠를 옅고 중립적으로, 흐린 배경에 남던 노란 토글·알약 조각을 지움.
 """
 
 import os
@@ -34,17 +37,17 @@ SUB_Y = (82, 66, 0)  # 노랑 배경 위 보조 글자색
 # 번호 = 올리는 순서. band: y 노랑, k 검정(번갈아). cut: 캡처 위에서 잘라 낼 css px.
 SLIDES = [
     dict(key="brand", kind="brand", band="y"),
-    dict(key="match", src="list_top_v3.png", cut=56, icon="fridge", ai=False, band="k",
+    dict(key="cook", src="cook_v3.png", cut=236, icon="speaker", ai=False, band="k", kind="cook",
+         headline="단계별로 요약해서\n손 안 대고 귀로 듣기"),
+    dict(key="match", src="list_top_v3.png", cut=56, icon="fridge", ai=False, band="y",
          headline="내 냉장고 재료로\n만들 수 있는 요리 찾기"),
-    dict(key="substitute", src="substitute_card_v3.png", cut=120, icon="swap", ai=False, band="y",
+    dict(key="substitute", src="substitute_card_v3.png", cut=120, icon="swap", ai=False, band="k",
          headline="재료가 없으면\n대체 재료까지 알려줘요"),
-    dict(key="photo", src="photo_receipt_v2.png", cut=140, icon="camera", ai=True, kind="photo", band="k",
+    dict(key="photo", src="photo_receipt_v2.png", cut=140, icon="camera", ai=True, kind="photo", band="y", fix="photo",
          headline="사진 한 장으로\n재료 등록 끝"),
-    dict(key="ai", src="chat_v3.png", cut=140, icon="chat", ai=True, kind="ai", band="y",
+    dict(key="ai", src="chat_v3.png", cut=150, icon="chat", ai=True, kind="ai", band="k", fix="chat",
          headline="물어보면 레시피부터\n식단까지 척척"),
-    dict(key="cook", src="cook_v3.png", cut=222, icon="speaker", ai=False, band="k",
-         headline="손 안 대고\n귀로 듣는 요리"),
-    dict(key="expiry", src="expiry_v3.png", cut=150, cut_short=270, icon="timer", ai=False, band="y",
+    dict(key="expiry", src="expiry_v3.png", cut=150, cut_short=270, icon="timer", ai=False, band="y", fix="expiry",
          headline="곧 상할 재료부터\n먼저 알려드려요"),
     dict(key="family", src="family_v3.png", cut=56, icon="users", ai=False, band="k",
          headline="가족과 함께 쓰고\n아낀 돈도 한눈에"),
@@ -57,6 +60,65 @@ AI_ROWS = [  # 쿡 픽 → 식단 짜기 → 쿡 코치 (고르고 → 짜고 �
 ]
 
 PAD = 0.075  # 왼쪽 여백(W 비율)
+
+
+# ---------------------------------------------------------------------------
+# 캡처 정리: 흐린 배경(시트 뒤)에 남던 조각을 지운다. 앱 화면 자체는 건드리지 않는다.
+# ---------------------------------------------------------------------------
+def fix_chat(im):
+    """쿡 픽 시트 위쪽 흐린 배경에 남은 알약·노란 조각(매칭도·필터 버튼 줄)을 배경색으로 덮는다. 시트(흰색)는 그대로."""
+    im = im.copy()
+    px = im.load()
+    for y in range(446, 541):
+        base = px[2, y]
+        # 시트 위 가장자리(y<480) 위쪽은 가로 전체, 그 아래는 시트 모서리 바깥(양 끝)만 — 시트 머리줄(아이콘·AI 칩)은 건드리지 않는다
+        xs = range(im.width) if y < 480 else list(range(0, 40)) + list(range(im.width - 40, im.width))
+        for x in xs:
+            p = px[x, y]
+            if min(p) >= 245:  # 시트(흰색)
+                continue
+            if sum(abs(p[i] - base[i]) for i in range(3)) > 10:
+                px[x, y] = base
+    return im
+
+
+def fix_photo(im):
+    """사진 시트 위쪽 흐린 배경의 「내 냉장고 재료 관리」 글자·노란 토글을 배경색으로 덮는다."""
+    im = im.copy()
+    d = ImageDraw.Draw(im)
+    d.rectangle([0, 520, im.width, 1088], fill=im.getpixel((900, 700)))
+    return im
+
+
+def fix_expiry(im):
+    """임박 재료 시트 위쪽 흐린 배경(세로로 긴 캔버스에서만 보임)의 「종류별로 묶기」 노란 토글·임박 배지 줄을 배경색으로 덮는다."""
+    im = im.copy()
+    ImageDraw.Draw(im).rectangle([0, 520, im.width, 770], fill=im.getpixel((1280, 650)))
+    return im
+
+
+FIXES = {"chat": fix_chat, "photo": fix_photo, "expiry": fix_expiry}
+
+
+def build_screen(slide, pw):
+    """v2.build_screen 과 같되, 캡처에 `fix` 가 지정돼 있으면 먼저 정리한다."""
+    im = Image.open(os.path.join(SRC, slide["src"])).convert("RGB")
+    if slide.get("fix"):
+        im = FIXES[slide["fix"]](im)
+    sc = pw / im.width
+    css = pw / 430.0
+    cut_css = slide["cut"]
+    if "cut_short" in slide and slide.get("_short"):
+        cut_css = slide["cut_short"]
+    cut = int(cut_css * 3)
+    body = im.crop((0, cut, im.width, im.height)).resize((pw, int((im.height - cut) * sc)), Image.LANCZOS)
+    bg = body.getpixel((6, 4))
+    fg = INK if v2.lum(bg) > 110 else (255, 255, 255)
+    st = v2.status_bar(pw, int(48 * css), bg, fg, css)
+    out = Image.new("RGB", (pw, st.height + body.height), bg)
+    out.paste(st, (0, 0))
+    out.paste(body, (0, st.height))
+    return out, st.height
 
 
 def sparkle(draw, cx, cy, r, fill):
@@ -171,8 +233,8 @@ def paste_phone(img, screen, px0, y, pw, radius, band):
     mask = Image.new("L", shot.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, shot.width - 1, mh], radius=radius, fill=255)
     sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    ImageDraw.Draw(sh).rounded_rectangle([px0, y + int(pw * 0.012), px0 + pw, bottom], radius=radius, fill=(0, 0, 0, 150 if band == "k" else 105))
-    sh = sh.filter(ImageFilter.GaussianBlur(int(pw * 0.028)))
+    ImageDraw.Draw(sh).rounded_rectangle([px0, y + int(pw * 0.012), px0 + pw, bottom], radius=radius, fill=(0, 0, 0, 150 if band == "k" else 46))
+    sh = sh.filter(ImageFilter.GaussianBlur(int(pw * (0.028 if band == "k" else 0.045))))
     img.paste(sh, (0, 0), sh)
     img.paste(shot, (px0, y), mask)
     if band == "k":
@@ -180,11 +242,67 @@ def paste_phone(img, screen, px0, y, pw, radius, band):
     return bottom
 
 
-def receipt_card(img, W, phone_y, pw):
-    """영수증 사진(직접 찍은 것) 한 장을 폰 화면 위쪽 흐린 영역에 기울여 얹는다. 쿠팡 주문내역 캡처는 상표·상품 사진 때문에 뺐다."""
+def flow_chips(img, W, y, band):
+    """조리 순서 장의 흐름 칩: 원문 → 5단계 요약 → 읽어 주기. 반환: 다음 요소의 y."""
+    d = ImageDraw.Draw(img)
+    pad = int(W * PAD)
+    h = int(W * 0.088)
+    f = font(int(W * 0.0385), 800)
+    fb = font(int(W * 0.0385), 900)
+    gap = int(W * 0.045)
+    items = [("원문", "dim"), ("5단계 요약", "hi"), ("읽어 주기", "dim")]
+    x = pad
+    for i, (t, kind) in enumerate(items):
+        ff = fb if kind == "hi" else f
+        tw = d.textlength(t, font=ff)
+        w = int(tw + h * 0.9)
+        if kind == "hi":
+            d.rounded_rectangle([x, y, x + w, y + h], radius=h // 2, fill=BRAND)
+            col = INK
+        else:
+            d.rounded_rectangle([x, y, x + w, y + h], radius=h // 2, fill=(46, 46, 52), outline=(84, 84, 92), width=2)
+            col = (226, 226, 232)
+        d.text((x + w / 2, y + h / 2 + 1), t, font=ff, fill=col, anchor="mm")
+        x += w
+        if i < len(items) - 1:
+            ax0, ax1, ay = x + gap * 0.22, x + gap * 0.78, y + h / 2
+            lw = max(3, int(W * 0.004))
+            d.line([(ax0, ay), (ax1, ay)], fill=(176, 176, 184), width=lw)
+            d.line([(ax1 - gap * 0.18, ay - gap * 0.18), (ax1, ay), (ax1 - gap * 0.18, ay + gap * 0.18)], fill=(176, 176, 184), width=lw, joint="curve")
+            x += gap
+    return y + h + int(W * 0.04)
+
+
+def photo_cards(img, W, phone_y, pw):
+    """영수증 사진 + 음식 사진을 폰 화면 위쪽 흐린 영역에 서로 겹쳐 기울여 얹고, 「영수증 · 음식 사진」 칩을 단다.
+    카메라 화면에서 사진이 보이는 부분만 잘라 쓴다(노란 초점 괄호·셔터 UI 제외). 쿠팡 주문내역은 로고·상품 사진 때문에 뺐다."""
     css = pw / 430.0
-    dim_mid = phone_y + int((48 + 108) * css)
-    v2.paste_card(img, os.path.join(SRC, "camera_receipt.png"), (0, 706, 1206, 1400), int(W * 0.60), W // 2, dim_mid, -4)
+    dim_top = phone_y + int(48 * css)
+    dim_bot = phone_y + int((48 + 223) * css)
+    mid = (dim_top + dim_bot) // 2
+    cw = int(W * 0.50)
+    box = (0, 706, 1206, 1400)
+    v2.paste_card(img, os.path.join(SRC, "camera_receipt.png"), box, cw, int(W * 0.5 - W * 0.16), mid - int(W * 0.035), -5)
+    v2.paste_card(img, os.path.join(SRC, "camera_pizza_cheese.png"), box, cw, int(W * 0.5 + W * 0.16), mid + int(W * 0.025), 5)
+    # 칩: 카드 아래쪽 가운데에 걸친다
+    d = ImageDraw.Draw(img)
+    f = font(int(W * 0.036), 900)
+    txt = "영수증 · 음식 사진"
+    h = int(W * 0.082)
+    ic = v2.draw_icon("camera", int(h * 0.56), color=BRAND)
+    tw = d.textlength(txt, font=f)
+    w = int(tw + h * 0.55 + ic.width + h * 0.28 + h * 0.45)
+    x = (W - w) // 2
+    y = dim_bot - int(h * 1.05)
+    sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([x, y + int(h * 0.12), x + w, y + h + int(h * 0.12)], radius=h // 2, fill=(0, 0, 0, 90))
+    base = img.convert("RGBA")
+    base.alpha_composite(sh.filter(ImageFilter.GaussianBlur(int(h * 0.16))))
+    img.paste(base.convert("RGB"))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([x, y, x + w, y + h], radius=h // 2, fill=INK)
+    img.paste(ic, (int(x + h * 0.45), int(y + (h - ic.height) / 2)), ic)
+    d.text((x + h * 0.45 + ic.width + h * 0.28, y + h / 2 + 1), txt, font=f, fill=WHITE, anchor="lm")
 
 
 def render_phone_slide(slide, W, H, hsize):
@@ -196,12 +314,14 @@ def render_phone_slide(slide, W, H, hsize):
     for ratio in (0.86, 0.88, 0.90, 0.92):
         pw = int(W * ratio)
         px0 = (W - pw) // 2
-        screen, _ = v2.build_screen(slide2, pw)
+        screen, _ = build_screen(slide2, pw)
         radius = int(pw * 0.075)
         probe0 = Image.new("RGB", (W, H))
         y_e = header(probe0, slide, W, hsize)
         if kind == "ai":
             y_e = ai_cards(probe0, W, y_e, band)
+        elif kind == "cook":
+            y_e = flow_chips(probe0, W, y_e, band)
         if (H + int(radius * 0.6) - screen.height) - y_e <= int(W * 0.09):
             break
 
@@ -209,6 +329,8 @@ def render_phone_slide(slide, W, H, hsize):
         y = header(target, slide, W, hsize)
         if kind == "ai":
             y = ai_cards(target, W, y, band)
+        elif kind == "cook":
+            y = flow_chips(target, W, y, band)
         return y
 
     probe = Image.new("RGB", (W, H))
@@ -219,7 +341,7 @@ def render_phone_slide(slide, W, H, hsize):
     y += min(extra, int(W * 0.22))
     paste_phone(img, screen, px0, y, pw, radius, band)
     if kind == "photo":
-        receipt_card(img, W, y, pw)
+        photo_cards(img, W, y, pw)
     if slide.get("badge") == "sound":
         img = v1.paste_sound_badge(img, W, int(W * 0.79), int(W * (0.075 + 0.105 + 0.04) + hsize * 1.0))
     return img
@@ -491,7 +613,7 @@ def make_packages():
     d = ImageDraw.Draw(cmp_)
     d.text((lab // 2, hh + H // 2), "v2", font=font(26, 900), fill=(120, 120, 126), anchor="mm")
     d.text((lab // 2, hh + H + g + H // 2), "v3", font=font(26, 900), fill=INK, anchor="mm")
-    d.text((lab, hh // 2), "위: v2(흰 배경 당근 스타일, 첫 장 레시피 사진 콜라주) / 아래: v3(노랑·검정 우리 스타일, 같은 내용, 첫 장 타이포+아이콘 타일, 앱 속 사진 블러)", font=font(16, 700), fill=INK, anchor="lm")
+    d.text((lab, hh // 2), "위: v2(흰 배경 당근 스타일, 첫 장 레시피 사진 콜라주) / 아래: v3(노랑·검정 우리 스타일, 첫 장 타이포+아이콘 타일, 순서 재배치·음식 사진·썸네일 선명)", font=font(16, 700), fill=INK, anchor="lm")
     for r, files in enumerate([v2s, v3]):
         for i, f in enumerate(files):
             x, y = lab + g + i * (W + g), hh + r * (H + g)
@@ -506,8 +628,30 @@ def make_packages():
     print("packages ok")
 
 
+def make_before_after(before_dir):
+    """이전 v3(before_dir 의 PNG 8장, 파일명 순)와 지금 v3 의 변경 전후 비교(윗줄 이전·아랫줄 새). store/upload_packages/ (untracked)."""
+    import glob
+    out = os.path.join(STORE, "upload_packages")
+    old = sorted(glob.glob(os.path.join(before_dir, "*.png")))
+    new = sorted(glob.glob(os.path.join(STORE, "screenshots_v3", "play", "*.png")))
+    W, H, g, lab, hh = 270, 480, 12, 90, 50
+    im = Image.new("RGB", (lab + 8 * (W + g) + g, hh + 2 * (H + g) + g), (255, 255, 255))
+    d = ImageDraw.Draw(im)
+    d.text((lab // 2, hh + H // 2), "이전 v3", font=font(22, 900), fill=(120, 120, 126), anchor="mm")
+    d.text((lab // 2, hh + H + g + H // 2), "새 v3", font=font(22, 900), fill=INK, anchor="mm")
+    d.text((lab, hh // 2), "위: 이전 v3 / 아래: 새 v3 (순서·헤드라인·음식 사진·썸네일 선명·노란 조각 제거)", font=font(16, 700), fill=INK, anchor="lm")
+    for r, files in enumerate([old, new]):
+        for i, f in enumerate(files):
+            x, y = lab + g + i * (W + g), hh + r * (H + g)
+            im.paste(Image.open(f).resize((W, H), Image.LANCZOS), (x, y))
+    im.save(os.path.join(out, "v3_before_after_비교.png"))
+    print("before/after ok")
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     make_shots(only_play="preview" in args)
     if "preview" not in args:
         make_packages()
+    if "--before" in args:
+        make_before_after(args[args.index("--before") + 1])
