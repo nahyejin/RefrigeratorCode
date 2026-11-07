@@ -4,6 +4,7 @@ import { SplashScreen as NativeSplash } from '@capacitor/splash-screen';
 import AppRouter from './routes/AppRouter';
 import SplashScreen from './components/SplashScreen';
 import OfflineIndicator from './components/OfflineIndicator';
+import { setSplashBars } from './utils/barTint';
 
 function App() {
   // 한 번이라도 스플래시를 본 세션에서는 다시 표시하지 않음 (모바일 새로고침 시 재등장 방지)
@@ -33,6 +34,11 @@ function App() {
       NativeSplash.hide({ fadeOutDuration: 150 }).catch(() => {});
     }
   }, []);
+
+  // 스플래시가 떠 있는 동안 상태바·홈 인디케이터 영역까지 노랑으로(앱 화면에선 원래대로) — utils/barTint.ts, 2026-11-08
+  useEffect(() => {
+    void setSplashBars(showSplash);
+  }, [showSplash]);
 
   useEffect(() => {
     if (!showSplash) return;

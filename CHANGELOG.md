@@ -14890,3 +14890,31 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 스토어 v3 순서 재배치 — 차별점 → 핵심 기능 → AI 를 앞 3장에 (2026-11-08)
 
 - 새 순서: 01 brand · 02 match · 03 ai · 04 substitute(쿡 코치) · 05 photo · 06 expiry · 07 cook(요약·듣기) · 08 family. 파일명·번호가 바뀌었다(옛 02_cook·03_match·06_ai·07_expiry 삭제). 노랑/검정 번갈아 유지, 노랑 바탕에서도 읽히게 흐름 칩 색 추가. `make_brand_alts` 의 다음 장 참조도 새 파일명으로. Play·iOS 2종·zip·미리보기 재생성. 상세와 이유는 `store/STORE_LISTING.md` 맨 끝.
+
+### 스플래시 상태바 영역까지 노랑 (2026-11-08 「왜 쿡매치는 스플래시 화면 맨 위가 하얀색이야?」)
+
+**원인(코드로 확인).** 아이폰 스플래시(`SplashScreen.tsx`, 웹 `100vw×100vh` 노랑)는 웹뷰 안에 그려지는데, `capacitor.config.ts` 의 `ios.contentInset: 'always'` 때문에 웹뷰 내용이 상태바·홈 인디케이터 영역을 피해서 그려진다(그 설정은 고정 헤더가 상태바 밑에 깔려 버튼이 안 눌리던 문제 해결용 — 건드리면 안 됨). 거기에 `SceneDelegate.swift` 가 2026-09-20 부터 **창 맨 위 안전 영역에 흰색 UIView(`top`)를 얹어** 스크롤한 내용이 비치는 것을 가린다 → 웹이 아무리 노랗게 칠해도 그 띠는 네이티브 흰 뷰라 노랗게 될 수 없었다(`@capacitor/status-bar` 의 `setBackgroundColor` 는 iOS 에서 오버레이 모드가 아니면 가짜 뷰를 만들 뿐이고 이 흰 뷰 위로는 못 올라온다). 하단은 흰 뷰가 없고 웹 하단 탭이 그 영역을 쓰므로 노랑으로 보인다(사용자 스크린샷과 일치). 안드로이드(targetSdk 36 = 강제 edge-to-edge)는 Capacitor `SystemBars` 가 웹뷰 부모에 시스템 바 두께만큼 padding 을 줘서 **바 영역에는 창 배경(흰색)이 보인다**. `StatusBar.setBackgroundColor` 는 Android 15+ 에서 무시된다(`shouldSetStatusBarColor`).
+
+| 옵션 | 효과 | 위험 | 변경 범위 | 판단 |
+|---|---|---|---|---|
+| ① JS 만으로 플러그인 API(`StatusBar.setBackgroundColor` 등) | iOS: 위의 흰 UIView 가 덮고 있어 효과 없음. Android 15+: 무시됨 | 없음 | 없음 | 불가 |
+| ② `ios.backgroundColor` 를 노랑으로 | 흰 UIView 가 따로 덮고 있어 상단 그대로 흰색. 설령 흰 뷰를 없애도 앱 전체에서 GNB 위 노랑 띠 생김 | 큼(전 화면 모습 변경) | config 1줄 + 전 화면 | 기각 |
+| ③ `contentInset: 'never'` + 전 화면 `env(safe-area-inset-*)` 패딩 | 스플래시를 진짜 전체화면으로 | 매우 큼 — 고정 헤더·하단 탭·시트·모달·FAB 전수, 이번 빌드 직전 | `index.html` viewport-fit=cover + 수십 곳 | 기각(다음 큰 개편에서) |
+| ④ **작은 앱 내 Capacitor 플러그인으로 네이티브 덮개 색만 바꾸기(채택)** | 스플래시 동안 위·아래 덮개를 노랑, 끝나면 흰색/투명 → 앱 화면은 전과 동일 | 낮음 — 기존 파일 안에서만(`SceneDelegate.swift`·`MainActivity.java` + 새 `BarTintPlugin.java`), pbxproj 변경 없음. 맥 컴파일 확인 필요 | 아래 | 채택 |
+| ⑤ 웹뷰 밖 오버레이 뷰를 새로 얹기 | ④ 와 같은 효과 | ④ 가 곧 기존 덮개 뷰 재사용이라 중복 | — | ④ 로 흡수 |
+
+**구현.**
+- `frontend/src/utils/barTint.ts`(신규): `setSplashBars(active)` — 네이티브 앱에서만. `StatusBar.setStyle(Light/Default)`(노랑 위 시계·배터리를 어두운 글자로) → `BarTint.setSplash({active})`. 둘 다 try/catch(옛 네이티브 빌드·웹에선 무동작).
+- `frontend/src/App.tsx`: `useEffect(() => { setSplashBars(showSplash) }, [showSplash])` — 스플래시가 켜지면 노랑, 꺼지면 원래대로.
+- iOS `SceneDelegate.swift`: 흰 덮개 함수를 `SafeAreaCovers`(싱글턴)로 바꿈. 위 덮개(평소 흰색)+**새 아래 덮개(평소 투명, 홈 인디케이터 영역)**, 앱이 뜨는 순간부터 **노랑으로 시작**(네이티브 정지 스플래시 → 웹 스플래시 사이에 흰 띠가 끼지 않게), 웹이 `setSplash(false)` 를 부르면 흰색/투명. 웹이 10초 안에 한 번도 부르지 않으면(웹 로드 실패) 스스로 되돌린다. 같은 파일에 `BarTintPlugin`(CAPPlugin+CAPBridgedPlugin, jsName `BarTint`)을 만들고 `MainViewController.capacitorDidLoad` 에서 `bridge?.registerPluginInstance(BarTintPlugin())` 로 등록(Capacitor 공식 로컬 플러그인 방식, `CAPBridgeViewController`/`CapacitorBridge` 소스로 시그니처 확인). 터치는 `isUserInteractionEnabled = false` 라 그대로 통과.
+- Android: 새 `BarTintPlugin.java`(`@CapacitorPlugin(name="BarTint")`) — 스플래시 동안 창 배경을 노랑으로(Android 15+ 에서 바 뒤에 보이는 것이 창 배경), Android 14 이하는 `statusBarColor`·`navigationBarColor` 도 노랑 → 끝나면 저장해 둔 원래 값으로 복원. `MainActivity.onCreate` 에서 `registerPlugin(BarTintPlugin.class)`(super.onCreate 앞).
+- 하지 않은 것: `capacitor.config.ts`·viewport·CSS safe-area·Info.plist·pbxproj·Android 테마(`styles.xml`)는 안 건드림. 참고: `styles.xml` 의 Android 12+ 시스템 시작 화면은 코드상 **흰색(#FFFFFF)** 이다(주석: 옛 흰 스플래시에 맞춘 것) — 새 노랑 스플래시와 맞추려면 `windowSplashScreenBackground`·`android:background` 를 #FFD600 으로 바꾸는 별도 작업(요청 시).
+
+**검증.** `npx tsc -p tsconfig.app.json --noEmit` 0건, `npx vite build` 성공, `./gradlew assembleDebug` 성공(BarTintPlugin 컴파일 포함), 브라우저(5199)에서 스플래시 → 앱 화면 전환·콘솔에 barTint 오류 없음(웹은 무동작; 콘솔 오류는 로컬 백엔드 CORS 뿐). iOS 는 이 PC 에서 빌드 불가 → 정적 검증만.
+
+**맥에서 확인할 점(iOS 1.0.11/18 빌드 전).**
+1. Xcode 에서 빌드 오류 없는지(`SceneDelegate.swift` — `SafeAreaCovers`·`BarTintPlugin`·`registerPluginInstance`). 오류가 나면 `capacitorDidLoad` 의 `registerPluginInstance` 한 줄만 지우면 원래 동작(스플래시 상단만 흰색)으로 돌아간다.
+2. 실기기 콜드 스타트: 스플래시 내내 시계·배터리 줄과 홈 바 영역까지 노랑, 시계·배터리 글자는 검정. 네이티브 정지 스플래시 → 웹 스플래시 전환 때 흰 띠가 번쩍이지 않는지.
+3. 스플래시가 끝난 뒤: 맨 위 상태바 영역 흰색, 고정 헤더(GNB) 버튼(로그아웃 등)·하단 탭·시트가 이전과 똑같이 눌리고 보이는지, 글자색이 원래대로(다크 모드 폰이면 이전과 같은지).
+4. 앱을 홈으로 나갔다 돌아오기·알림으로 열기 때 상단 띠가 노랑으로 되돌아가지 않는지(스플래시는 콜드 스타트에만).
+5. Xcode 콘솔에 `Plugin ... must conform to CAPBridgedPlugin` 같은 로그가 없는지.

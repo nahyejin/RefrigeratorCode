@@ -1,5 +1,6 @@
 package com.cookmatch.app;
 
+import android.os.Bundle;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
@@ -18,6 +19,13 @@ public class MainActivity extends BridgeActivity {
      * iOS 웹뷰는 원래 휴대폰 글꼴 설정을 따르지 않아 해당 없음.
      */
     private static final float MAX_FONT_SCALE = 1.3f;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        // 앱 안 작은 플러그인(BarTintPlugin) — 웹 스플래시 동안 상태바·내비게이션 바 영역을 노랑으로. super.onCreate 앞에서 등록해야 한다.
+        registerPlugin(BarTintPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
 
     @Override
     public void onResume() {
