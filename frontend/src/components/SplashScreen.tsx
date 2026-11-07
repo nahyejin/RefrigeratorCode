@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Capacitor } from '@capacitor/core';
 import BrandMark from './brand/BrandMark';
 import BrandWordmark from './brand/BrandWordmark';
 
@@ -42,7 +41,7 @@ const STYLES = {
   },
   wordmarkBox: {
     marginTop: 14,
-    animation: 'brand-wordmark-in .35s ease-out .95s both',
+    animation: 'brand-wordmark-in .35s ease-out 1.25s both',
   },
   statGroup: {
     position: 'absolute' as const,
@@ -114,7 +113,8 @@ const prefersReducedMotion = (): boolean =>
 
 // iOS 는 네이티브 정지 스플래시(완성된 마크)가 먼저 보이다가 이 화면으로 넘어온다 — 같은 모양에서 시작해
 // 한 번 떴다 앉는다(hop). 웹·안드로이드는 받침부터 차례로 쌓는다(intro).
-const markMotion = (): 'hop' | 'intro' => (Capacitor.getPlatform() === 'ios' ? 'hop' : 'intro');
+// iOS 도 intro(받침 → 재료 낙하 → 앉음 → 잎)로 통일 — hop 은 완성된 마크에서 살짝 뜨기만 해 정지 화면처럼 보였다(2026-11-08 폰 녹화)
+const markMotion = (): 'hop' | 'intro' => 'intro';
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const [stage, setStage] = useState<'roulette' | 'final'>('roulette');
@@ -123,6 +123,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const rouletteStartTime = useRef<number>(0);
   // 마운트 때 한 번만 정한다 — 숫자가 도착해 다시 그려져도 앉는 모션이 한 번 더 돌지 않게
   const motionRef = useRef<'hop' | 'intro'>(markMotion());
+  // 앱 화면(WebView)이 실제로 보이기 시작한 뒤에 모션을 시작한다 — 마운트 직후부터 돌면 네이티브 스플래시가 덮고 있는 동안 끝나 버린다
+  const [markReady, setMarkReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMarkReady(true), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (recipeCount === 0) {
@@ -171,7 +177,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   return (
     <div style={STYLES.container}>
       <div style={STYLES.brandGroup}>
-        <BrandMark ingredient="ball" tone="onYellow" size={210} motion={motionRef.current} title="쿡매치" style={{ ...STYLES.mark, height: 'auto' }} />
+        {markReady
+          ? <BrandMark ingredient="ball" tone="onYellow" size={210} motion={motionRef.current} title="쿡매치" style={{ ...STYLES.mark, height: 'auto' }} />
+          : <div aria-hidden style={{ ...STYLES.mark, aspectRatio: '1 / 1' }} />}
         <div className="brand-wordmark-in" style={STYLES.wordmarkBox}>
           <BrandWordmark size={26} color={INK} subColor="rgba(26, 26, 30, 0.62)" />
         </div>

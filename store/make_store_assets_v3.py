@@ -420,7 +420,7 @@ def place_card(img, card, x, y, dark, blur=None):
         ImageDraw.Draw(img).rounded_rectangle([x, y, x + cw - 1, y + ch - 1], radius=r, outline=(66, 66, 72), width=max(2, img.width // 380))
 
 
-def brand_text(img, W, hsize, ink, sub, accent, bigk=0.265, pad=None, ytop=None, wm_color=None):
+def brand_text(img, W, hsize, ink, sub, accent, bigk=0.17, pad=None, ytop=None, wm_color=None):
     """워드마크 + 헤드라인(인기 레시피만 / 큰 4만 개, / 뭘 골라도 맛집) + 보조 두 줄. 반환: 다음 y.
     워드마크·헤드라인 첫 줄 위치는 다른 장(아이콘 원 + 헤드라인)과 같게 맞춘다."""
     d = ImageDraw.Draw(img)
@@ -434,9 +434,9 @@ def brand_text(img, W, hsize, ink, sub, accent, bigk=0.265, pad=None, ytop=None,
     d.text((pad, y), "인기 레시피만", font=f, fill=ink)
     y += int(hsize * 1.26)
     big = int(W * bigk)
-    fb = font(big, 900)
+    fb = font(big, 800)  # 900 + 너무 큰 크기는 세로로 늘어나 보였다(2026-11-08) — 크기를 줄이고 한 단계 가볍게
     d.text((pad - int(big * 0.03), y - int(big * 0.04)), "4만 개,", font=fb, fill=accent)
-    y += int(big * 1.10)
+    y += int(big * 1.2)  # 쉼표가 다음 줄(뭘 골라도 맛집)을 침범하지 않게
     d.text((pad, y), "뭘 골라도 맛집", font=f, fill=ink)
     y += int(hsize * 1.26) + int(W * 0.012)
     sf = font(int(W * 0.0375), 600)
@@ -457,10 +457,10 @@ def render_brand(W, H, hsize, variant=None):
         px = (W - cw) // 2
         top = int(W * 0.075) + int(W * 0.105) + int(W * 0.02)
         probe = Image.new("RGBA", (W, H))
-        iy = brand_text(probe, W, hsize, WHITE, (170, 170, 178), BRAND, bigk=0.25, pad=px + int(W * 0.06), ytop=top + int(W * 0.055), wm_color=INK)
+        iy = brand_text(probe, W, hsize, WHITE, (170, 170, 178), BRAND, bigk=0.16, pad=px + int(W * 0.06), ytop=top + int(W * 0.055), wm_color=INK)
         bottom = iy + int(W * 0.035)
         ImageDraw.Draw(img).rounded_rectangle([px, top, px + cw, bottom], radius=int(W * 0.06), fill=INK)
-        y_end = brand_text(img, W, hsize, WHITE, (170, 170, 178), BRAND, bigk=0.25, pad=px + int(W * 0.06), ytop=top + int(W * 0.055), wm_color=INK)
+        y_end = brand_text(img, W, hsize, WHITE, (170, 170, 178), BRAND, bigk=0.16, pad=px + int(W * 0.06), ytop=top + int(W * 0.055), wm_color=INK)
         y_end = bottom - int(W * 0.015)
     elif dark:
         y_end = brand_text(img, W, hsize, WHITE, (170, 170, 178), BRAND)
