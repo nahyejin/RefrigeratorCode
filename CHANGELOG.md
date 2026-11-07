@@ -14120,6 +14120,16 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ## 2026-11-06
 
+### 유튜브 조리 순서 자막 구제 결과 (2026-11-07)
+
+사용자 지시(「지금부터 백그라운드에서 진행」)로 `python scripts\rescue_youtube_steps.py --limit 20` 시험을 다시 시도했다. **결과: 유튜브가 아직 이 PC 의 접속을 막고 있다(IpBlocked).** 첫 요청(id 1384)에서 바로 `blocked` 가 나와 그 자리에서 멈췄다 — 11/6 15시경 막힌 뒤 하루가 지나지 않음.
+
+- **시험 수치**: 자막 확보율 · 조리 순서 2단계 이상 비율 모두 **측정 못 함**(0건 처리). 「자막을 AI 추출에 넣으면 조리 순서가 나오는가」는 여전히 미확인.
+- **적용 건수 0** — DB 백업·`--commit` 은 시험으로 기준을 확인하기 전이라 하지 않았다. 삭제도 하지 않았다. 실패 목록 파일(`youtube_rescue_failures_2026-11-07.csv`)은 처리 건수가 없어 만들지 않았다.
+- **우회하지 않음**: 프록시·IP 변경·간격 단축 없음. 로그(`ingredient_management/outputs/youtube_rescue_log.csv`)에 `blocked` 로 남아 다음 실행에서 다시 시도된다.
+- **수집 파이프라인 연동(`llm_ingredient_extraction.run`)도 보류** — 기준(2단계 이상 약 50%)을 확인하지 못했고, 자막이 막혀 있으면 새 글을 전부 올리지 않게 되는 위험이 있다.
+- **다시 시도**: 막힘은 보통 몇 시간~하루 이상. 11/8 이후 같은 명령으로 시험 → 기준 통과 시 `python scripts\backup_db.py` 뒤 `--limit 150 --commit` 을 배치로 반복.
+
 ### 재료 사전 정돈 (2026-11-06)
 
 「이상한 항목·브랜드명 항목을 정돈해 줘」. 대상 `frontend/public/ingredient_profile_dict_with_substitutes.csv`(3,795행 → 3,762행) + 서버용 사본 `backend/` 같은 이름 파일(`scripts/sync_ingredient_dict.py --write` 로 동기화). 원본은 `scratch_backups/ingredient_dict_before_tidy_2026-11-06.csv`, 행별 기록은 `scratch_backups/dictionary_tidy_2026-11-06.csv`. **레시피가 쓰는 keyword(사용 건수>0, 띄어쓰기 있는 표기 포함) 는 이름·행을 하나도 바꾸지 않았다.** 정돈 전후 이름→대표어 표를 비교해, 사라진 이름 10개(전부 깨진 행·잘못 묶인 동의어)와 의도한 이동 외에 바뀐 것이 없음을 확인.
