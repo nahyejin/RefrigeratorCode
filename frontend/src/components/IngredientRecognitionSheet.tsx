@@ -101,24 +101,41 @@ const usableExpiry = (expiry: string | null | undefined, purchase: string): stri
 };
 
 /**
- * 재료 사전에서 검색해 고르는 입력.
+ * 재료 사전에서 검색해 고르는 입력 (행을 펼쳤을 때 안에 들어간다).
  *
  * 내 냉장고의 재료 추가 입력과 같은 방식이다 — 사전(동의어 포함)에서 찾아
  * 대표어만 후보로 보여주고, 고르면 그 대표어가 확정된다. 사전에 없는 말을
  * 그대로 담게 두면 레시피 매칭에서 빠지므로 직접 입력은 받지 않는다.
+ *
+ * 이미 사전에 잡힌 재료는 이름만 채워 두고, 글자를 고치기 시작하면 그때부터 후보를
+ * 보여준다(펼치자마자 후보 목록이 깔리면 나머지 설정이 아래로 밀려난다).
+ * 사전에 없어 아직 이름이 없는 재료는 처음부터 후보를 보여주고 키보드를 올린다.
  */
 const DictPicker: React.FC<{
   dict: { [key: string]: string };
-  initial?: string;
+  /** 지금 정해진 대표어. 아직 없으면 null */
+  name: string | null;
+  /** 사진에서 읽은 표기 — 이름이 없을 때 검색어의 시작점이 된다 */
+  raw: string;
   onPick: (name: string) => void;
-  onCancel: () => void;
-}> = ({ dict, initial = '', onPick, onCancel }) => {
-  const [text, setText] = useState(initial);
+}> = ({ dict, name, raw, onPick }) => {
+  const [text, setText] = useState(name || raw);
+  const [dirty, setDirty] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const needsPick = !name;
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  // 이름 없는 행은 열리자마자 키보드를 올리고 글자를 전부 선택해 둔다 — 바로 쳐서 덮어쓰게
+  useEffect(() => {
+    if (!needsPick) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [needsPick]);
+
+  // 후보 목록이 시트 아래쪽에 가려지지 않게 보이는 자리로 끌어온다
+  const listRef = useRef<HTMLDivElement>(null);
 
   const options = useMemo(() => {
+    if (!dirty && !needsPick) return [];
     const q = text.trim().toLowerCase();
     if (!q) return [];
     const hit: string[] = [];
@@ -134,63 +151,56 @@ const DictPicker: React.FC<{
         return ax !== bx ? ax - bx : a.length - b.length;
       })
       .slice(0, 30);
-  }, [text, dict]);
+  }, [text, dict, dirty, needsPick]);
+
+  useEffect(() => {
+    if (options.length > 0) listRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [options]);
+
+  const pick = (n: string) => { setText(n); setDirty(false); onPick(n); };
 
   return (
-    <div style={{ padding: '8px 0' }}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-        <input
-          ref={inputRef}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && options.length > 0) onPick(options[0]);
-            if (e.key === 'Escape') onCancel();
-          }}
-          placeholder="재료명을 검색하세요"
-          style={{
-            flex: 1, minHeight: 40, borderRadius: 8, padding: '12px 12px',
-            border: '1px solid var(--line-200)', fontSize: 14,
-          }}
-        />
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{
-            minHeight: 40, padding: '12px 12px', borderRadius: 8,
-            border: '1px solid var(--line-200)', background: '#FFFFFF',
-            fontSize: 13, color: 'var(--ink-500)', cursor: 'pointer',
-          }}
-        >
-          취소
-        </button>
-      </div>
+    <div>
+      <input
+        ref={inputRef}
+        value={text}
+        onChange={e => { setText(e.target.value); setDirty(true); }}
+        onKeyDown={e => { if (e.key === 'Enter' && options.length > 0) pick(options[0]); }}
+        placeholder="재료명을 검색하세요"
+        aria-label="재료명 검색"
+        style={{
+          width: '100%', minHeight: 44, borderRadius: 10, padding: '10px 12px',
+          border: '1px solid var(--line-300)', background: '#FFFFFF', fontSize: 15,
+          boxSizing: 'border-box',
+        }}
+      />
       {options.length > 0 && (
         <div
+          ref={listRef}
           style={{
-            maxHeight: 168, overflowY: 'auto', border: '1px solid var(--line-200)',
-            borderRadius: 8, background: '#FFFFFF',
+            maxHeight: 176, overflowY: 'auto', border: '1px solid var(--line-200)',
+            borderRadius: 10, background: '#FFFFFF', marginTop: 6,
           }}
         >
-          {options.map(name => (
+          {options.map(n => (
             <button
-              key={name}
+              key={n}
               type="button"
               onMouseDown={e => e.preventDefault()}
-              onClick={() => onPick(name)}
+              onClick={() => pick(n)}
               style={{
-                display: 'block', width: '100%', textAlign: 'left',
+                display: 'block', width: '100%', textAlign: 'left', minHeight: 44,
                 padding: '10px 12px', border: 'none', background: 'transparent',
-                fontSize: 14, color: '#1A1A1E', cursor: 'pointer',
+                fontSize: 15, color: '#1A1A1E', cursor: 'pointer',
               }}
             >
-              {name}
+              {n}
             </button>
           ))}
         </div>
       )}
-      {text.trim() && options.length === 0 && (
-        <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '8px 2px' }}>
+      {(dirty || needsPick) && text.trim() && options.length === 0 && (
+        <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '8px 2px 0' }}>
           사전에 없는 재료예요. 다른 이름으로 찾아보세요.
         </div>
       )}
@@ -211,23 +221,6 @@ interface Row {
   checked: boolean;
 }
 
-/** 행 안의 작은 조작 버튼들이 같은 높이·모양을 갖도록 한 곳에 모아 둔다 */
-const chipStyle: React.CSSProperties = {
-  flexShrink: 0, minHeight: 30, padding: '7px 8px', borderRadius: 8,
-  border: '1px solid var(--line-200)', background: '#FFFFFF',
-  fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
-};
-
-/**
- * 사진에서 인식한 재료를 사용자가 검토하고 담는 시트.
- *
- * 왜 바로 담지 않나: OCR 은 반드시 틀린다. 영수증의 할인 항목을 재료로 읽거나,
- * 흐릿한 글자를 엉뚱한 재료로 읽을 수 있다. 사용자가 모르는 사이에 없는 재료가
- * 들어가면 추천 레시피 품질이 통째로 어긋나므로, 무엇을 담을지 눈으로 확인받는다.
- *
- * 틀린 항목은 눌러서 사전에서 다시 고를 수 있고, 사전에 없어 못 담는 항목도
- * 사용자가 직접 맞는 재료를 지정하면 담을 수 있다. 고칠 게 없으면 바로 반영하면 된다.
- */
 /**
  * 사진을 읽는 동안 보여 주는 화면.
  *
@@ -252,14 +245,79 @@ const RecognitionLoading: React.FC<{ photoCount?: number }> = ({ photoCount }) =
   />
 );
 
+/** 보관 위치 칩을 누를 때마다 도는 순서 */
+const BOX_CYCLE: StorageBox[] = ['fridge', 'frozen', 'room'];
+const boxLabel = (k: StorageBox) => BOXES.find(b => b.key === k)?.label ?? '';
+
+/**
+ * 키보드가 화면을 얼마나 가리는지(px).
+ *
+ * 폰에서 키보드가 뜨면 보이는 화면(visualViewport)만 줄고 시트가 붙어 있는 바닥은 그대로라,
+ * 하단의 「N개 담기」 가 키보드 뒤로 숨는다. 가려진 만큼 시트를 위로 올려 항상 보이게 한다.
+ */
+const useKeyboardInset = (active: boolean): number => {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!active || !vv) { setInset(0); return; }
+    const update = () => {
+      const covered = window.innerHeight - vv.height - vv.offsetTop;
+      setInset(covered > 80 ? Math.round(covered) : 0);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      setInset(0);
+    };
+  }, [active]);
+  return inset;
+};
+
+/** 펼친 영역 안의 「라벨 — 값」 한 줄 */
+const DetailRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
+    <div style={{ width: 52, flexShrink: 0, fontSize: 13, color: 'var(--ink-500)' }}>{label}</div>
+    <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+  </div>
+);
+
+/** 펼친 영역 안의 값 버튼 (날짜 고르기용) */
+const valueButtonStyle: React.CSSProperties = {
+  minHeight: 36, padding: '6px 12px', borderRadius: 8,
+  border: '1px solid var(--line-300)', background: '#FFFFFF',
+  fontSize: 14, fontWeight: 600, color: '#1A1A1E', cursor: 'pointer',
+};
+
+/**
+ * 사진에서 인식한 재료를 사용자가 검토하고 담는 시트.
+ *
+ * 왜 바로 담지 않나: OCR 은 반드시 틀린다. 영수증의 할인 항목을 재료로 읽거나,
+ * 흐릿한 글자를 엉뚱한 재료로 읽을 수 있다. 사용자가 모르는 사이에 없는 재료가
+ * 들어가면 추천 레시피 품질이 통째로 어긋나므로, 무엇을 담을지 눈으로 확인받는다.
+ *
+ * 화면 구성 (2026-11-07 단순화 — 「당근 디자이너라면 어떻게 짰을까」):
+ *  - 기본 화면은 **한 줄 = 체크 + 재료 이름 + 보관 위치 칩** 뿐이다. 대부분은 고칠 게 없고,
+ *    이 화면의 일은 「틀린 것만 빼고 담기」 이기 때문이다.
+ *  - 드물게 필요한 조작(이름 고치기·소비기한 지정·보관 위치 고르기·행별 구매일)은 행을
+ *    누르면 펼쳐지는 영역 안에 둔다. 한 번에 한 행만 펼쳐진다.
+ *  - 구매일자는 한 줄 요약, 긴 안내문은 「?」 를 눌렀을 때만.
+ *  - 「N개 담기」 는 시트 바닥에 고정해 목록이 길어도 항상 보인다.
+ *
+ * 영수증 / 음식 사진 / 앨범 모두 이 한 컴포넌트를 쓴다(MyFridge 의 유일한 입구).
+ */
 const IngredientRecognitionSheet: React.FC<Props> = ({
   isOpen, onClose, loading, photoCount, ingredients, unmatched, purchaseDate, datePerItem,
   errorText, ingredientDict, onConfirm,
 }) => {
   const [rows, setRows] = useState<Row[]>([]);
-  const [editing, setEditing] = useState<number | null>(null);
+  /** 지금 펼쳐진 행 (한 번에 하나) */
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
   /** 위쪽 일괄 구매일자 (영수증 등). 행별 모드에서는 쓰이지 않는다 */
   const [purchase, setPurchase] = useState<string>(todayStr());
+  const [showHelp, setShowHelp] = useState(false);
   /**
    * 지금 날짜를 고치는 대상. 모달은 하나만 두고 대상만 바꿔 끼운다.
    *  - kind: 구매일자냐 유통기한이냐 (모달의 안내 문구와 빠른 선택지가 다르다)
@@ -267,6 +325,9 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
    */
   const [dateTarget, setDateTarget] =
     useState<{ kind: 'purchase' | 'expiry'; idx: number | 'all' } | null>(null);
+
+  const hasRows = !loading && !errorText && rows.length > 0;
+  const keyboardInset = useKeyboardInset(isOpen && hasRows);
 
   // 새로 인식할 때마다 초기화한다. 사전에 잡힌 것은 켜진 상태, 못 잡은 것은 꺼진 상태로
   // 둔다 (사용자가 재료를 지정해야 담을 수 있으므로).
@@ -290,16 +351,30 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
         checked: false,
       })),
     ]);
-    setEditing(null);
+    setOpenIdx(null);
     setDateTarget(null);
+    setShowHelp(false);
     setPurchase(base);
   }, [ingredients, unmatched, purchaseDate]);
 
+  // 펼친 행이 키보드나 아래쪽에 가려지지 않게 보이는 자리로 끌어온다
+  useEffect(() => {
+    if (openIdx === null) return;
+    const el = document.getElementById('recog-row-' + openIdx);
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [openIdx, keyboardInset]);
+
   const selected = rows.filter(r => r.checked && r.name);
+  const selectable = rows.filter(r => r.name);
+  const allChecked = selectable.length > 0 && selectable.every(r => r.checked);
   const readCount = ingredients.length + unmatched.length;
 
   const update = (idx: number, patch: Partial<Row>) => {
     setRows(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+
+  const toggleAll = () => {
+    setRows(prev => prev.map(r => (r.name ? { ...r, checked: !allChecked } : r)));
   };
 
   /**
@@ -354,201 +429,271 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
       );
     }
 
+    const smallLink: React.CSSProperties = {
+      minHeight: 32, padding: '0 2px', border: 'none', background: 'transparent',
+      fontSize: 13, color: 'var(--ink-500)', cursor: 'pointer',
+    };
+
     return (
       <>
-        <div style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12 }}>
-          {readCount}개를 읽었어요. 틀린 항목은 눌러서 고칠 수 있어요.
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1E' }}>
+            {readCount}개를 찾았어요
+          </div>
+          <button type="button" onClick={toggleAll} style={{ ...smallLink, flexShrink: 0 }}>
+            {allChecked ? '전체 해제' : '전체 선택'}
+          </button>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--ink-500)', marginTop: -2 }}>
+          틀리면 눌러서 고치세요
         </div>
 
-        {/* 구매일자(일괄) — 영수증은 한 번에 산 것이므로 여기서 한 번만 정해 전부에 적용한다.
-            음식 사진처럼 서로 다른 날 산 것이 섞일 수 있는 경우는 행마다 따로 둔다. */}
+        {/* 구매일 한 줄 요약. 구매일자(일괄)는 영수증처럼 한 번에 산 것에만 나온다.
+            음식 사진처럼 서로 다른 날 산 것이 섞일 수 있으면 행마다 따로 둔다(펼친 영역 안). */}
         {!datePerItem && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 6 }}>구매일자</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {/* 날짜 고르기는 앱의 기존 모달을 그대로 쓴다. 예전엔 <input type="date">
-                  였는데 OS 기본 달력이 떠서 닫기 버튼도 없고 버튼 양식도 앱과 달랐다. */}
-              <button
-                type="button"
-                onClick={() => setDateTarget({ kind: 'purchase', idx: 'all' })}
-                style={{
-                  minHeight: 40, minWidth: 140, borderRadius: 8, padding: '12px 12px',
-                  border: '1px solid var(--line-200)', background: '#FFFFFF',
-                  fontSize: 14, fontWeight: 600, color: '#1A1A1E', cursor: 'pointer',
-                }}
-              >
-                {purchase}
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
-                {purchaseDate ? '영수증에서 읽었어요 · 눌러서 고치기' : '오늘 날짜예요 · 눌러서 고치기'}
-              </span>
-            </div>
-            {/* 구매일자와 유통기한이 어떤 관계인지 한 줄로 밝힌다.
-                둘 다 날짜라 "어느 쪽이 이기지?" 하고 헷갈릴 수 있는데, 규칙은 단순하다 —
-                직접 넣은 기한이 언제나 이긴다. */}
-            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.5 }}>
-              이 날짜로 <b style={{ fontWeight: 700 }}>기한을 짐작</b>해요.
-              제품에 적힌 날짜는 <b style={{ fontWeight: 700 }}>기한 +</b> 로 넣으면 그게 우선해요.
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => setDateTarget({ kind: 'purchase', idx: 'all' })}
+              aria-label={'구매일 ' + purchase + ', 눌러서 바꾸기'}
+              style={{ ...smallLink, color: 'var(--ink-700)', padding: 0 }}
+            >
+              구매일 {purchase} · <span style={{ textDecoration: 'underline' }}>바꾸기</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowHelp(v => !v)}
+              aria-label="구매일 설명"
+              aria-expanded={showHelp}
+              style={{
+                width: 20, height: 20, padding: 0, borderRadius: '50%', flexShrink: 0,
+                border: '1px solid var(--line-300)', background: '#FFFFFF',
+                fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', cursor: 'pointer',
+              }}
+            >
+              ?
+            </button>
+          </div>
+        )}
+        {showHelp && !datePerItem && (
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
+            구매일로 소비기한을 짐작해요. 제품에 적힌 날짜는 재료를 눌러 직접 넣으세요.
           </div>
         )}
 
-        <div style={{ border: '1px solid var(--line-200)', borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
+        <div style={{ marginTop: 8, marginBottom: 8 }}>
           {rows.map((row, idx) => {
-            const isEditing = editing === idx;
+            const isOpen = openIdx === idx;
+            const name = row.name;
+            const next = BOX_CYCLE[(BOX_CYCLE.indexOf(row.storage) + 1) % BOX_CYCLE.length];
+            // 이름 밑 작은 글씨 — 평소엔 비어 있고, 알아둘 때만 한 줄: 사진 표기가 이름과 다를 때, 직접 정한 기한이 있을 때
+            const hints: string[] = [];
+            if (!name) hints.push('사전에 없어요 · 눌러서 고르기');
+            else if (row.raw !== name) hints.push('읽은 글자 ' + row.raw);
+            if (name && row.expiry) hints.push('기한 ~' + shortDate(row.expiry));
             return (
               <div
                 key={row.raw + '-' + idx}
-                style={{
-                  padding: '10px 12px',
-                  borderBottom: idx === rows.length - 1 ? 'none' : '1px solid var(--line-200)',
-                  background: row.name ? '#FFFFFF' : 'var(--surface-sub)',
-                }}
+                id={'recog-row-' + idx}
+                style={{ borderBottom: '1px solid var(--line-200)', scrollMarginBottom: 12 }}
               >
-                {isEditing ? (
-                  <DictPicker
-                    dict={ingredientDict}
-                    initial={row.name || row.raw}
-                    onPick={name => { update(idx, { name, checked: true }); setEditing(null); }}
-                    onCancel={() => setEditing(null)}
-                  />
-                ) : (
-                  /* 한 행은 반드시 한 줄이다.
-                     잠깐 두 줄(이름 / 조작 버튼)로 나눠 봤는데, 항목이 10개 넘는 영수증에서
-                     목록이 두 배로 길어져 훑어보기가 나빠졌다. 대신 이름 칸만 줄어들게 두고
-                     (minWidth:0 + 말줄임) 조작 버튼들은 절대 안 줄어들게 고정한다. */
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => row.name && update(idx, { checked: !row.checked })}
-                      disabled={!row.name}
-                      aria-label={row.checked ? '빼기' : '담기'}
+                <div style={{ display: 'flex', alignItems: 'center', minHeight: 52 }}>
+                  {/* 체크 — 누를 자리는 40px, 눈에 보이는 상자는 22px */}
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={row.checked}
+                    aria-label={(name || row.raw) + (row.checked ? ' 빼기' : ' 담기')}
+                    onClick={() => name && update(idx, { checked: !row.checked })}
+                    disabled={!name}
+                    style={{
+                      width: 40, height: 52, flexShrink: 0, padding: 0, border: 'none',
+                      background: 'transparent', display: 'flex', alignItems: 'center',
+                      cursor: name ? 'pointer' : 'default',
+                    }}
+                  >
+                    <span
                       style={{
-                        width: 22, height: 22, flexShrink: 0, borderRadius: 6,
-                        border: row.checked ? 'none' : '1px solid var(--line-200)',
+                        width: 22, height: 22, borderRadius: 6, boxSizing: 'border-box',
+                        border: row.checked ? 'none' : '1.5px solid var(--line-300)',
                         background: row.checked ? '#FFD600' : '#FFFFFF',
                         color: '#1A1A1E', fontSize: 13, fontWeight: 700, lineHeight: '22px',
-                        padding: 0, cursor: row.name ? 'pointer' : 'default',
+                        textAlign: 'center', opacity: name ? 1 : 0.4,
                       }}
                     >
                       {row.checked ? '✓' : ''}
-                    </button>
+                    </span>
+                  </button>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* 이름 — 누르면 펼쳐진다 (이름 고치기·기한·보관 위치) */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenIdx(isOpen ? null : idx)}
+                    aria-expanded={isOpen}
+                    aria-label={(name || row.raw) + ' 자세히 고치기'}
+                    style={{
+                      flex: 1, minWidth: 0, minHeight: 52, padding: '6px 0', border: 'none',
+                      background: 'transparent', textAlign: 'left', cursor: 'pointer',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 16, fontWeight: 600,
+                        color: !name ? 'var(--ink-500)' : row.checked ? '#1A1A1E' : 'var(--ink-400)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {name || row.raw}
+                    </div>
+                    {hints.length > 0 && (
                       <div
                         style={{
-                          fontSize: 15, fontWeight: 600,
-                          color: row.name ? '#1A1A1E' : 'var(--ink-500)',
+                          fontSize: 11, color: 'var(--ink-400)', marginTop: 1,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}
                       >
-                        {row.name || row.raw}
+                        {hints.join(' · ')}
                       </div>
-                      {(!row.name || row.raw !== row.name) && (
-                        <div
-                          style={{
-                            fontSize: 11, color: 'var(--ink-500)', marginTop: 2,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {row.name ? '사진에서 읽은 표기: ' + row.raw : '사전에 없어요 · 눌러서 고르기'}
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </button>
 
-                    {/* 유통기한(행별).
-                        영수증 한 장으로 산 것이라도 제품마다 기한은 제각각이다. 그리고
-                        사용자가 직접 넣은 기한은 구매일로 짐작한 값보다 언제나 정확하므로,
-                        여기서 넣으면 그 행은 짐작을 버리고 이 값을 쓴다.
-                        새 칸을 만들지 않고 기존 배지 자리를 그대로 버튼으로 쓴다 — 한 줄을
-                        지키기 위해서다. */}
+                  {/* 보관 위치 — 누를 때마다 냉장 → 냉동 → 실온. 이름 없는 행은 먼저 이름부터 */}
+                  {name ? (
                     <button
                       type="button"
-                      onClick={() => setDateTarget({ kind: 'expiry', idx })}
-                      aria-label="유통기한"
-                      style={
-                        row.expiry
-                          ? {
-                              flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#1A1A1E',
-                              background: '#FFF3B0', border: '1px solid #FFD600',
-                              borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
-                            }
-                          : {
-                              flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink-500)',
-                              background: '#FFFFFF', border: '1px dashed var(--line-300)',
-                              borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
-                            }
-                      }
+                      onClick={() => update(idx, { storage: next })}
+                      aria-label={`보관 위치 ${boxLabel(row.storage)}, 누르면 ${boxLabel(next)}`}
+                      style={{
+                        flexShrink: 0, minWidth: 48, minHeight: 32, padding: '0 10px', marginLeft: 8,
+                        borderRadius: 16, border: 'none', background: 'var(--surface-sub)',
+                        fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
+                      }}
                     >
-                      {row.expiry ? `~${shortDate(row.expiry)}` : '기한 +'}
+                      {boxLabel(row.storage)}
                     </button>
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      style={{ flexShrink: 0, marginLeft: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}
+                    >
+                      고르기
+                    </span>
+                  )}
+                </div>
 
-                    {/* 구매일자(행별) — 재료마다 산 날이 다를 수 있는 경우에만 나온다 */}
-                    {datePerItem && (
-                      <button
-                        type="button"
-                        onClick={() => setDateTarget({ kind: 'purchase', idx })}
-                        aria-label="구매일자"
-                        style={chipStyle}
-                      >
-                        {shortDate(row.purchase)}
-                      </button>
+                {/* 펼친 영역 */}
+                {isOpen && (
+                  <div style={{ background: 'var(--surface-sub)', borderRadius: 12, padding: '10px 12px 12px', margin: '0 0 10px' }}>
+                    {(!name || row.raw !== name) && (
+                      <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
+                        사진에는 「{row.raw}」 로 읽혔어요
+                      </div>
                     )}
-
-                    {/* 보관함은 재료마다 다르다. 모델이 짐작한 값으로 시작하고,
-                        틀리면 여기서 바로 바꿀 수 있다. */}
-                    <select
-                      value={row.storage}
-                      onChange={e => update(idx, { storage: e.target.value as StorageBox })}
-                      aria-label="보관함"
-                      style={{ ...chipStyle, padding: '0 2px' }}
-                    >
-                      {BOXES.map(({ key, label }) => (
-                        <option key={key} value={key}>{label}</option>
-                      ))}
-                    </select>
-
-                    {/* "고치기" 만으로는 무엇을 고치는지 알 수 없다는 지적을 받아 대상까지 밝힌다 */}
-                    <button type="button" onClick={() => setEditing(idx)} style={chipStyle}>
-                      {row.name ? '재료명 고치기' : '재료명 고르기'}
-                    </button>
+                    <DictPicker
+                      key={name || 'none'}
+                      dict={ingredientDict}
+                      name={name}
+                      raw={row.raw}
+                      onPick={n => update(idx, { name: n, checked: true })}
+                    />
+                    {name && (
+                      <div style={{ marginTop: 6 }}>
+                        <DetailRow label="소비기한">
+                          <button
+                            type="button"
+                            onClick={() => setDateTarget({ kind: 'expiry', idx })}
+                            aria-label="소비기한 정하기"
+                            style={valueButtonStyle}
+                          >
+                            {row.expiry ? toDots(row.expiry) : '자동으로 짐작 · 정하기'}
+                          </button>
+                        </DetailRow>
+                        <DetailRow label="보관">
+                          <div role="radiogroup" aria-label="보관 위치" style={{ display: 'flex', gap: 6 }}>
+                            {BOXES.map(({ key, label }) => {
+                              const on = row.storage === key;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={on}
+                                  onClick={() => update(idx, { storage: key })}
+                                  style={{
+                                    flex: 1, minHeight: 36, borderRadius: 8, fontSize: 14, fontWeight: 600,
+                                    border: on ? '1.5px solid #1A1A1E' : '1px solid var(--line-300)',
+                                    background: '#FFFFFF', color: on ? '#1A1A1E' : 'var(--ink-500)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </DetailRow>
+                        {/* 구매일자(행별) — 재료마다 산 날이 다를 수 있는 경우(음식 사진)에만 나온다 */}
+                        {datePerItem && (
+                          <DetailRow label="구매일">
+                            <button
+                              type="button"
+                              onClick={() => setDateTarget({ kind: 'purchase', idx })}
+                              aria-label="구매일자 정하기"
+                              style={valueButtonStyle}
+                            >
+                              {row.purchase}
+                            </button>
+                          </DetailRow>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-
-        <button
-          type="button"
-          disabled={selected.length === 0}
-          onClick={() =>
-            onConfirm(
-              selected.map(r => ({
-                name: r.name as string,
-                expiry: r.expiry ?? null,
-                storage: r.storage,
-                purchase: r.purchase,
-              }))
-            )
-          }
-          style={{
-            width: '100%', minHeight: 48, borderRadius: 12, border: 'none',
-            background: selected.length === 0 ? 'var(--line-200)' : '#FFD600',
-            color: selected.length === 0 ? 'var(--ink-500)' : '#1A1A1E',
-            fontSize: 15, fontWeight: 700,
-            cursor: selected.length === 0 ? 'default' : 'pointer',
-          }}
-        >
-          {selected.length === 0 ? '담을 재료를 골라 주세요' : selected.length + '개 반영하기'}
-        </button>
       </>
     );
   };
 
+  const confirmButton = (
+    <button
+      type="button"
+      disabled={selected.length === 0}
+      onClick={() =>
+        onConfirm(
+          selected.map(r => ({
+            name: r.name as string,
+            expiry: r.expiry ?? null,
+            storage: r.storage,
+            purchase: r.purchase,
+          }))
+        )
+      }
+      style={{
+        width: '100%', minHeight: 52, borderRadius: 12, border: 'none',
+        background: selected.length === 0 ? 'var(--line-200)' : '#FFD600',
+        color: selected.length === 0 ? 'var(--ink-500)' : '#1A1A1E',
+        fontSize: 16, fontWeight: 700,
+        cursor: selected.length === 0 ? 'default' : 'pointer',
+      }}
+    >
+      {selected.length === 0 ? '담을 재료를 골라 주세요' : selected.length + '개 담기'}
+    </button>
+  );
+
   return (
     <>
-      <Sheet open={isOpen} onClose={onClose} title="사진에서 찾은 재료" maxHeight="86dvh" hideFooter>
+      <Sheet
+        open={isOpen}
+        onClose={onClose}
+        title="사진에서 찾은 재료"
+        maxHeight="86dvh"
+        hideFooter={!hasRows}
+        footer={hasRows ? confirmButton : undefined}
+        bottomOffset={keyboardInset}
+      >
         {body()}
       </Sheet>
       {/* nested — 시트 위에 떠야 한다. 같은 층위면 Portal 로 나중에 그려지는 시트가

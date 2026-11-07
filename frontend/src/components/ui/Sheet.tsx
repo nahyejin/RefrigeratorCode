@@ -19,6 +19,8 @@ interface SheetProps {
   hideFooter?: boolean;
   /** 바깥 틀(`role="dialog"` 요소) ref. 시트 위에 뜨는 것(쿡 코치 카드)이 제목줄 위치를 재는 데 쓴다. */
   dialogRef?: React.Ref<HTMLDivElement>;
+  /** 화면 바닥에서 띄울 높이(px). 모바일 키보드가 가리는 만큼 올려 하단 버튼이 키보드 뒤로 숨지 않게 한다. */
+  bottomOffset?: number;
 }
 
 /**
@@ -40,6 +42,7 @@ const Sheet: React.FC<SheetProps> = ({
   dismissLabel = '닫기',
   hideFooter = false,
   dialogRef,
+  bottomOffset = 0,
 }) => {
   // 안드로이드 폰 「뒤로」로 닫기(utils/closeOnBack)
   useCloseOnBack(open, onClose);
@@ -160,11 +163,11 @@ const Sheet: React.FC<SheetProps> = ({
           position: 'fixed',
           left: 0,
           right: 0,
-          bottom: 0,
+          bottom: bottomOffset,
           margin: '0 auto',
           maxWidth: 460,
-          maxHeight: expanded ? '95dvh' : maxHeight,
-          height: expanded ? '95dvh' : undefined,
+          maxHeight: bottomOffset ? `calc(${expanded ? '95dvh' : maxHeight} - ${bottomOffset}px)` : expanded ? '95dvh' : maxHeight,
+          height: expanded ? (bottomOffset ? `calc(95dvh - ${bottomOffset}px)` : '95dvh') : undefined,
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--surface)',
