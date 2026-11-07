@@ -899,7 +899,8 @@ const CookModeSheet: React.FC<Props> = ({
     </Sheet>
     {/* 요리 한 건 전용 도우미 「쿡 코치」(2026-11-06) — 우하단 떠 있는 버튼 → 대화 카드. 재료·순서가 뜬 레시피에만 두고,
         레시피 창을 닫으면 사라져 대화도 지워진다. */}
-    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} steps={steps} onHasChat={has => { coachHasChatRef.current = has; }} />}
+    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} steps={steps} onHasChat={has => { coachHasChatRef.current = has; }}
+      recipe={{ title: data?.title || fallbackTitle || '레시피', thumbnail: thumbUrl, ingredientCount: names.length || detail.length }} />}
     {/* 쿡 코치 대화가 있는데 레시피 창을 닫으려 할 때 — 대화는 메모리에만 있어 닫으면 사라진다. 돌아갈 길(주 버튼)을 먼저 둔다.
         「레시피를 완료하셨나요?」는 이 확인에서 「그래도 닫기」를 누른 **뒤에** 이어서 뜬다(팝업이 겹치지 않는다). */}
     {leaveAsk && (
@@ -911,8 +912,8 @@ const CookModeSheet: React.FC<Props> = ({
         width={300}
         showClose={false}
         actions={[
-          { label: '나가기', variant: 'outline', onClick: () => { setLeaveAsk(false); coachHasChatRef.current = false; closeNow(); } },
-          { label: '취소', onClick: () => setLeaveAsk(false) },
+          { label: '닫기', variant: 'outline', onClick: () => { setLeaveAsk(false); coachHasChatRef.current = false; closeNow(); } },
+          { label: '닫지 않기', onClick: () => setLeaveAsk(false) },
         ]}
       />
     )}

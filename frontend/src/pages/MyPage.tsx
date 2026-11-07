@@ -1426,13 +1426,14 @@ const MyPage: React.FC = () => {
             즐겨찾기·기록·완료 세 칸만 둔다(2026-11-07 「식구 쪽에는 최근 본까지 필요한가」). */}
         <nav style={{ display: 'grid', gridTemplateColumns: `repeat(${showAllHousehold ? 3 : 4}, minmax(0, 1fr))`, padding: '10px 6px 14px' }}>
           {[
+            // 아이콘은 레시피 카드·레시피 창의 같은 버튼과 **같은 모양**(즐겨찾기=별, 기록=책갈피, 완료=체크; 2026-11-07 「아이콘을 하나로 통일」).
             // 목록을 보러 가는 입구. 전용 목록 화면은 그대로 두되(여기서 온 것을 그대로 그린다).
             { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite', recipes: displayFavoriteRecipes,
               icon: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" /> },
             { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded', recipes: displayRecordedRecipes,
-              icon: <><path d="M4 20h4l10-10-4-4L4 16z" /><path d="M13 7l4 4" /></> },
+              icon: <path d="M6 4h12v16l-6-4-6 4z" /> },
             { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed', recipes: displayCompletedRecipes,
-              icon: <><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.7 2.7L16 9.5" /></> },
+              icon: <path d="M5 13l4 4L19 7" /> },
             // 최근 본(2026-11-05) — 이 기기에서 2개월 안에 연 레시피. 다른 칸처럼 화면(`/mypage/recent`)으로 가고 숫자 배지도 단다(2026-11-06 지적).
             { label: '최근 본', count: recentCount, to: '/mypage/recent', recipes: [] as any[],
               icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },

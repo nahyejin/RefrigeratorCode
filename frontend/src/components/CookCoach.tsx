@@ -1,3 +1,4 @@
+import { shortRecipeTitle } from '../utils/recipeTitle';
 import { takePendingCoachQuestion } from '../utils/substituteStore';
 import ChatText from './ui/ChatText';
 import React from 'react';
@@ -93,7 +94,9 @@ const CookCoach: React.FC<{
   steps?: string[];
   /** 대화가 생기면 true, 비면 false — 레시피 창이 **닫기 전에 「대화가 지워져요」 확인**을 띄울지 정하는 데 쓴다. */
   onHasChat?: (has: boolean) => void;
-}> = ({ recipeId, anchor, steps = [], onHasChat }) => {
+  /** 지금 이 대화가 **어느 요리 얘기인지** 카드 위쪽에 보여 주는 한 줄(썸네일·이름·재료/단계 수) — 레시피와 연결된 느낌(2026-11-07). */
+  recipe?: { title: string; thumbnail?: string; ingredientCount: number };
+}> = ({ recipeId, anchor, steps = [], onHasChat, recipe }) => {
   const usage = useUsage();
   const cost = (usage?.credits as any)?.coach ?? 1;
   const guestOut = !!usage && usage.is_guest && !usage.can_use_ai;
@@ -296,6 +299,34 @@ const CookCoach: React.FC<{
               </svg>
             </button>
           </header>
+
+          {/* 이 대화가 다루는 요리 — 썸네일 + 이름 + 「재료 N개 · N단계」. 누르는 곳은 아니고, 어느 요리 얘기인지만 알려 준다. */}
+          {recipe && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', flexShrink: 0,
+              borderBottom: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.04)',
+            }}>
+              {recipe.thumbnail ? (
+                <img src={recipe.thumbnail} alt="" style={{
+                  width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: SURFACE2,
+                }} />
+              ) : (
+                <span aria-hidden style={{
+                  width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: SURFACE2,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                }}>🍽</span>
+              )}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{
+                  display: 'block', fontSize: 13, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.35,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{shortRecipeTitle(recipe.title)}</span>
+                <span style={{ display: 'block', fontSize: 11.5, color: MUTED, marginTop: 1 }}>
+                  재료 {recipe.ingredientCount}개{steps.length > 0 ? ` · 조리 ${steps.length}단계` : ''}
+                </span>
+              </span>
+            </div>
+          )}
 
           <div className="ai-chat-scroll" style={{
             flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px',
