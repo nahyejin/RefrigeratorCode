@@ -46,12 +46,21 @@ const BASE_SUGGESTIONS: Suggestion[] = [
  * 요리 중 가장 자주 묻는 「재료 준비 끝났는데 그다음은?」. 처음엔 질문에 이 레시피의 **첫 단계를 실었는데**(2026-11-07), 사용자가 첫 단계를 이미
  * 했는지는 알 수 없으니 「첫 단계인 …부터 시작할게요」가 앞서가는 말이 된다 → **재료 준비만 끝났다고 말하고 순서대로 알려 달라**고만 보낸다.
  * 조리 순서가 없는 레시피(알려 줄 순서가 없다)엔 만들지 않는다.
+ *
+ * 대화가 이어지면 **진행 칩**이 한 걸음씩 나아간다 — 「1단계 끝났어요, 그다음은?」 → 「2단계 끝났어요, 그다음은?」(눌러야만 나간다. 사용자가 고른 말이다).
+ * `done` = 지금까지 끝났다고 말한 단계 수(0이면 아직 재료 준비 칩).
  */
-function nextStepSuggestion(firstStep?: string): Suggestion | null {
-  if (!(firstStep || '').trim()) return null;
+function progressSuggestion(steps: string[], done: number): Suggestion | null {
+  if (!steps.length) return null;
+  if (done <= 0) {
+    return { label: '재료 준비 끝났어요, 그다음은?', ask: '재료 준비는 끝났어요. 순서대로 알려주세요.' };
+  }
+  if (done >= steps.length) return null;
+  const raw = (steps[done - 1] || '').replace(/\s+/g, ' ').trim();
+  const short = raw.length > 40 ? raw.slice(0, 38) + '…' : raw;
   return {
-    label: '재료 준비 끝났어요, 그다음은?',
-    ask: '재료 준비는 끝났어요. 순서대로 알려주세요.',
+    label: `${done}단계 끝났어요, 그다음은?`,
+    ask: `${done}단계${short ? `(「${short}」)` : ''}까지 했어요. 그다음 순서를 알려주세요.`,
   };
 }
 
@@ -80,9 +89,9 @@ const CookCoach: React.FC<{
   recipeId: number;
   /** 레시피 창(`Sheet`)의 바깥 틀. 카드 윗변을 그 제목줄 아래에 맞추는 데 쓴다. */
   anchor?: React.RefObject<HTMLElement | null>;
-  /** 이 레시피의 첫 조리 단계 — 「재료 준비 끝났어요, 그다음은?」 칩이 이것을 말에 싣는다. 없으면 그 칩은 없다. */
-  firstStep?: string;
-}> = ({ recipeId, anchor, firstStep }) => {
+  /** 이 레시피의 조리 단계 — 「N단계 끝났어요, 그다음은?」 진행 칩이 쓴다. 비어 있으면(조리 순서가 없는 글) 그 칩은 없다. */
+  steps?: string[];
+}> = ({ recipeId, anchor, steps = [] }) => {
   const usage = useUsage();
   const cost = (usage?.credits as any)?.coach ?? 1;
   const guestOut = !!usage && usage.is_guest && !usage.can_use_ai;
@@ -91,6 +100,9 @@ const CookCoach: React.FC<{
   // 안드로이드 폰 「뒤로」는 카드부터 접는다.
   useCloseOnBack(open, () => setOpen(false));
   const [messages, setMessages] = React.useState<Msg[]>([]);
+  // 서버가 답과 함께 준 「다음 질문」 2개(가장 최근 답 기준) · 진행 칩으로 끝났다고 말한 단계 수
+  const [followups, setFollowups] = React.useState<string[]>([]);
+  const [stepsDone, setStepsDone] = React.useState(0);
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
@@ -136,7 +148,7 @@ const CookCoach: React.FC<{
 
   // 다른 요리로 바뀌면 대화를 비운다(요리 한 건 전용이라 이어 갈 맥락이 없다).
   React.useEffect(() => {
-    setMessages([]); setInput(''); setError(''); setOpen(false);
+    setMessages([]); setInput(''); setError(''); setOpen(false); setFollowups([]); setStepsDone(0);
   }, [recipeId]);
 
   // 카드 바깥의 대체 칩을 눌러 들어왔으면 질문이 맡겨져 있다 — 카드를 열고 질문만 채운다(보내기는 사용자가). 위의 비우기 효과 **뒤**에 두어야 이긴다.
@@ -163,6 +175,7 @@ const CookCoach: React.FC<{
     }
     const next: Msg[] = [...messages, { role: 'user', content }];
     setMessages(next);
+    setFollowups([]);
     setInput('');
     setError('');
     setLoading(true);
@@ -184,6 +197,7 @@ const CookCoach: React.FC<{
         throw new Error(data?.error || '답을 가져오지 못했어요. 잠시 뒤 다시 물어봐 주세요.');
       }
       setMessages(prev => [...prev, { role: 'assistant', content: String(data.reply || '') }]);
+      setFollowups(Array.isArray(data.next) ? data.next.map((q: unknown) => String(q)).filter(Boolean).slice(0, 2) : []);
     } catch (e) {
       setError(e instanceof TypeError
         ? '서버에 연결하지 못했어요. 잠시 뒤 다시 물어봐 주세요.'
@@ -196,12 +210,24 @@ const CookCoach: React.FC<{
 
   const turns = messages.filter(m => m.role === 'user').length;
   const asked = new Set(messages.filter(m => m.role === 'user').map(m => m.content));
-  // 「그다음은?」 칩을 **맨 앞**에 둔다(요리 중에 가장 쓸모 있는 질문)
-  const suggestions: Suggestion[] = React.useMemo(() => {
-    const next = nextStepSuggestion(firstStep);
-    return next ? [next, ...BASE_SUGGESTIONS] : BASE_SUGGESTIONS;
-  }, [firstStep]);
-  const remaining = suggestions.filter(s => !asked.has(s.ask));
+  // 처음 화면: 「재료 준비 끝났어요」 + 기본 질문 4개. 대화 중: **진행 칩 + 방금 답에서 이어지는 다음 질문**(서버 제안, 없으면 안 물어본 기본 질문).
+  // 진행 칩은 **맨 앞**(요리 중에 가장 쓸모 있는 질문).
+  const progress = React.useMemo(() => progressSuggestion(steps, stepsDone), [steps.join('|'), stepsDone]);
+  const suggestions: Suggestion[] = React.useMemo(
+    () => (progress ? [progress, ...BASE_SUGGESTIONS] : BASE_SUGGESTIONS),
+    [progress],
+  );
+  const remaining: Suggestion[] = [
+    ...(progress ? [progress] : []),
+    ...(followups.length > 0
+      ? followups.filter(q => !asked.has(q)).map(q => ({ label: q, ask: q }))
+      : BASE_SUGGESTIONS.filter(s => !asked.has(s.ask))),
+  ];
+  // 진행 칩을 눌러 보냈으면 다음엔 한 단계 더 나아간 칩이 뜬다
+  const sendSuggestion = (sg: Suggestion) => {
+    if (progress && sg.ask === progress.ask) setStepsDone(d => d + 1);
+    void send(sg.ask);
+  };
 
   return (
     <Portal>
@@ -282,7 +308,7 @@ const CookCoach: React.FC<{
                       key={s.label}
                       type="button"
                       disabled={loading}
-                      onClick={() => void send(s.ask)}
+                      onClick={() => sendSuggestion(s)}
                       style={{
                         padding: '8px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer',
                         background: SURFACE2, color: '#F1F1F4', fontSize: 12.5, textAlign: 'left',
@@ -339,7 +365,7 @@ const CookCoach: React.FC<{
                   <button
                     key={s.label}
                     type="button"
-                    onClick={() => void send(s.ask)}
+                    onClick={() => sendSuggestion(s)}
                     style={{
                       flex: 'none', padding: '7px 11px', borderRadius: 9999, border: 'none', cursor: 'pointer',
                       background: SURFACE2, color: '#F1F1F4', fontSize: 12.5, whiteSpace: 'nowrap',
