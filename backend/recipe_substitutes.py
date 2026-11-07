@@ -84,6 +84,123 @@ def build_prompt(recipe):
 - 출력은 평문 한 줄에 하나: 재료이름=대체1,대체2 (재료이름은 위 [재료] 그대로). 쓸 게 없으면 「없음」 한 단어만. 설명·번호·기호 금지."""
 
 
+# ---------------------------------------------------------------- 묶음 프롬프트 (2026-11-07)
+# 무료 티어의 병목은 토큰이 아니라 「하루 호출 횟수」(약 500회)다. 레시피 1건당 1호출이면 4.4만 호출 = 88일.
+# 한 호출에 12건을 묶으면 호출은 12분의 1이 된다. 출력은 `[번호] 재료=대체1,대체2 | 재료=대체` 한 줄씩.
+
+BATCH_SIZE = 12          # 한 호출에 싣는 레시피 수(시험 결과는 CHANGELOG 「대체 재료 3단계 — 묶음 호출」 참고)
+BATCH_MAX_CHARS = 6500   # 레시피 본문(요리·재료·분량) 합계가 이보다 길면 그 호출은 건수를 줄인다
+
+
+def _recipe_block(num, recipe):
+    tokens = ingredient_tokens(recipe)
+    detail = ' / '.join(_lines(recipe.get('ingredients_detail')))[:300]
+    return (f"[{num}] 요리: {(recipe.get('title') or '').strip()[:80]}\n"
+            f"재료: {', '.join(tokens)}\n"
+            f"분량: {detail or '(없음)'}")
+
+
+def make_batches(recipes, size=BATCH_SIZE, max_chars=BATCH_MAX_CHARS):
+    """레시피 목록을 호출 단위로 나눈다 — 건수 `size` 와 글자 수 `max_chars` 중 먼저 닿는 쪽에서 끊는다."""
+    out, cur, chars = [], [], 0
+    for r in recipes:
+        n = len(_recipe_block(len(cur) + 1, r))
+        if cur and (len(cur) >= size or chars + n > max_chars):
+            out.append(cur)
+            cur, chars = [], 0
+        cur.append(r)
+        chars += n
+    if cur:
+        out.append(cur)
+    return out
+
+
+def build_batch_prompt(recipes):
+    """recipes(1~12건) → 한 호출용 프롬프트. 번호는 호출 안에서 1부터(= 목록 순서)."""
+    blocks = '\n\n'.join(_recipe_block(i, r) for i, r in enumerate(recipes, 1))
+    return f"""아래 레시피 {len(recipes)}개 각각에 대해, 그 레시피의 [재료] 중 **이 요리에서 같은 역할을 하는 같은 종류의 재료로 바꿔도 맛·식감이 거의 그대로**인 것만, 집에 흔한 대체 재료를 최대 2개(알맞은 순서) 골라라.
+- 같은 종류끼리만: 파↔파, 기름↔기름, 깨↔깨, 단맛 재료↔단맛 재료, 육수·장류↔같은 계열. 맛·향 계열이 다르면 안 된다(예: 마늘→양파, 간장→액젓, 오이→애호박은 안 됨). 확신이 없으면 그 재료는 쓰지 마라(억지로 채우지 마라, 대부분 비워도 된다).
+- 주재료(요리의 정체), 핵심 향미 재료, 소금·후추·물은 쓰지 마라. 브랜드·요리 이름도 쓰지 마라.
+- 재료이름은 **그 레시피의 [재료]에 적힌 그대로**만 쓴다. 다른 레시피의 재료와 섞지 마라.
+- 출력은 레시피마다 정확히 한 줄: `[번호] 재료이름=대체1,대체2 | 재료이름=대체1`. 바꿀 게 없는 레시피는 `[번호] 없음`. {len(recipes)}개 번호를 하나도 빠뜨리지 말고 순서대로. 설명·기호·빈 줄 금지.
+
+{blocks}"""
+
+
+_NONE_WORDS = ('없음', '없음.', '없다', '-', '없음 ')
+_LINE_RE = re.compile(r'^\s*[\[\(]?(\d{1,3})[\]\)]?\s*[:.]?\s*(.*)$')
+
+
+def batch_max_output(n):
+    return 80 + 70 * n
+
+
+def parse_batch(text, recipes):
+    """묶음 답을 레시피별로 나눠 정리한다.
+
+    반환: [(result_or_None, stats_or_reason), …] — recipes 와 같은 길이·순서.
+      * result 가 dict(비어 있어도) → 이 레시피는 **정상 처리**(저장해도 된다).
+      * result 가 None → 이 레시피만 **건너뛴다**(처리 완료 표시 안 함 → 다음 실행에서 다시). 두 번째 값은 사유 문자열.
+    다른 레시피로 번호가 어긋난 걸 막는 검사: 대체 후보의 재료 키가 **그 레시피의 재료 목록에 없으면** 그 줄은 버리고,
+    키가 전부 그런 줄이면(= 번호가 밀렸을 가능성) 그 레시피는 건너뛴다.
+    """
+    n = len(recipes)
+    bodies = {}
+    last = None
+    for line in (text or '').replace('```', '').splitlines():
+        if not line.strip():
+            continue
+        m = _LINE_RE.match(line)
+        if m and 1 <= int(m.group(1)) <= n and ('=' in m.group(2) or m.group(2).strip() in _NONE_WORDS
+                                                 or m.group(2).strip().strip('「」') == '없음'):
+            last = int(m.group(1))
+            bodies.setdefault(last, m.group(2).strip())
+        elif last is not None and '=' in line and not _LINE_RE.match(line):
+            bodies[last] += ' | ' + line.strip()   # 줄이 꺾여 이어진 경우
+    out = []
+    for i, r in enumerate(recipes, 1):
+        tokens = ingredient_tokens(r)
+        if i not in bodies:
+            out.append((None, 'missing'))
+            continue
+        body = bodies[i].strip().strip('「」').strip()
+        if body in _NONE_WORDS or body == '없음':
+            out.append(({}, {'raw': 0, 'kept': 0, 'dropped_unknown': 0, 'foreign_keys': 0}))
+            continue
+        tokset = set(tokens)
+        lines, foreign, total = [], 0, 0
+        for seg in body.split('|'):
+            seg = seg.strip()
+            if '=' not in seg:
+                continue
+            total += 1
+            key = seg.partition('=')[0].strip()
+            if key in tokset:
+                lines.append(seg)
+            else:
+                foreign += 1
+        if not total:
+            out.append((None, 'bad_format'))
+            continue
+        if not lines:
+            out.append((None, 'foreign_keys'))   # 이 레시피에 없는 재료뿐 — 번호가 밀렸을 수 있다
+            continue
+        res, stats = parse_result('\n'.join(lines), tokens)
+        if res is None:
+            out.append((None, 'bad_format'))
+            continue
+        stats['foreign_keys'] = foreign
+        out.append((res, stats))
+    return out
+
+
+def ingredients_hash(recipe_or_tokens):
+    """재료 목록의 짧은 지문 — 처리 완료 표시 행에 같이 저장해 두고, 재추출로 재료가 바뀌면 다시 만들게 한다."""
+    import hashlib
+    tokens = ingredient_tokens(recipe_or_tokens) if isinstance(recipe_or_tokens, dict) else list(recipe_or_tokens)
+    return hashlib.md5(','.join(sorted(tokens)).encode('utf-8')).hexdigest()[:8]
+
+
 # ---------------------------------------------------------------- LLM 호출
 
 PRICE_IN_PER_M = 0.30    # USD / 1M 입력 토큰 — gemini-3.5-flash-lite 표준(유료) 단가, 제3자 가격표 기준 「추정」
@@ -94,6 +211,7 @@ class LlmError(Exception):
     def __init__(self, msg, status=None):
         super().__init__(msg)
         self.status = status
+        self.body = ''
 
 
 def default_model():
@@ -105,7 +223,7 @@ def pick_key():
     return (os.getenv('GEMINI_API_KEY') or '').strip()
 
 
-def call_gemini(api_key, prompt, model=None, timeout=40):
+def call_gemini(api_key, prompt, model=None, timeout=40, max_output=400):
     """(text, usage) 를 돌려준다. usage = {prompt, output, thoughts}. 실패하면 LlmError(status)."""
     model = model or default_model()
     url = f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent'
@@ -113,7 +231,7 @@ def call_gemini(api_key, prompt, model=None, timeout=40):
         'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
         'generationConfig': {
             'temperature': 0.2,
-            'maxOutputTokens': 400,
+            'maxOutputTokens': max_output,
             'thinkingConfig': {'thinkingLevel': 'minimal'},   # 생각 토큰은 출력 단가로 청구된다 — 이 일엔 필요 없다
         },
     }
@@ -122,7 +240,9 @@ def call_gemini(api_key, prompt, model=None, timeout=40):
     except requests.RequestException as e:
         raise LlmError(f'network: {type(e).__name__}') from e
     if res.status_code != 200:
-        raise LlmError(f'http {res.status_code}: {res.text[:200]}', status=res.status_code)
+        err = LlmError(f'http {res.status_code}: {res.text[:200]}', status=res.status_code)
+        err.body = res.text[:3000]   # 429 의 quotaId(PerDay/PerMinute)는 200자 뒤에 있을 수 있다
+        raise err
     data = res.json()
     meta = data.get('usageMetadata') or {}
     usage = {
@@ -260,13 +380,17 @@ def parse_result(text, tokens):
 
 # ---------------------------------------------------------------- 저장·조회
 
-def save(conn, recipe_id, result, model, commit=True):
-    """한 레시피의 결과를 저장한다(이미 있으면 갈아 끼움). 대체가 없어도 완료 표시 행('')은 남긴다."""
+def save(conn, recipe_id, result, model, commit=True, ihash=None):
+    """한 레시피의 결과를 저장한다(이미 있으면 갈아 끼움). 대체가 없어도 완료 표시 행('')은 남긴다.
+
+    완료 표시 행의 substitutes 에는 `{"h": 재료 지문}` 을 넣는다(없으면 `[]`) — 재추출로 재료가 바뀌었는지 알아보려고.
+    `load_for_recipe` 는 ingredient='' 행을 건너뛰므로 화면에는 영향이 없다.
+    """
     now = datetime.now()
     cur = conn.cursor()
     try:
         cur.execute(f'DELETE FROM {TABLE} WHERE recipe_id=%s', (recipe_id,))
-        rows = [(recipe_id, '', '[]', now, model)]
+        rows = [(recipe_id, '', json.dumps({'h': ihash}) if ihash else '[]', now, model)]
         for ing, subs in result.items():
             rows.append((recipe_id, ing[:100], json.dumps(subs, ensure_ascii=False), now, model))
         cur.executemany(

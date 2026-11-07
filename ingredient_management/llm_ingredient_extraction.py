@@ -947,6 +947,17 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         print("DB에 반영했습니다 (used_ingredients).", flush=True)
     else:
         print("DB 미반영 (미리보기만). 반영하려면 --commit 을 추가하세요.", flush=True)
+    # 새 글의 「대체 재료」도 같이 만든다(2026-11-07, 대체 재료 3단계). 재료 추출이 **끝난 뒤** 남는 무료 한도로만 돈다.
+    # 매일 배치(--pending-only --commit)에서만, 표가 이미 있을 때만, SUBSTITUTES_AT_COLLECTION=0 이면 끈다.
+    # 어떤 예외·429 가 나도 수집을 막지 않는다(run_for_collection 이 삼키고 로그 한 줄만 남긴다).
+    if commit and pending_only:
+        try:
+            from backend.recipe_substitutes_runner import run_for_collection
+            run_for_collection(log=lambda m: print(m, flush=True), extractor_quota_exhausted=extractor.quota_exhausted)
+        except BaseException as _e:  # noqa: BLE001 — import 실패까지 포함, 수집 결과는 이미 저장됐다
+            if isinstance(_e, KeyboardInterrupt):
+                raise
+            print(f"[대체 재료] 연결 실패(무시): {type(_e).__name__}: {str(_e)[:120]}", flush=True)
 
 
 # 이름 같지 않은 것은 사전 후보로도 남기지 않는다.
