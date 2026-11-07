@@ -38,18 +38,18 @@ SUB_Y = (82, 66, 0)  # 노랑 배경 위 보조 글자색
 # 번호 = 올리는 순서. band: y 노랑, k 검정(번갈아). cut: 캡처 위에서 잘라 낼 css px.
 SLIDES = [
     dict(key="brand", kind="brand", band="y"),
-    dict(key="cook", src="cook_v3.png", cut=236, icon="speaker", ai=False, band="k", kind="cook",
-         headline="단계별로 요약해서\n손 안 대고 귀로 듣기"),
-    dict(key="match", src="list_top_v3.png", cut=56, icon="fridge", ai=False, band="y",
+    dict(key="match", src="list_top_v3.png", cut=56, icon="fridge", ai=False, band="k",
          headline="재료 매칭률 높은 순으로\n만들 수 있는 요리 찾기"),
+    dict(key="ai", src="chat_v3.png", cut=150, icon="chat", ai=True, kind="ai", band="y", fix="chat",
+         headline="물어보면 레시피부터\n식단까지 척척"),
     dict(key="substitute", src="coach_substitute_v3.png", src_short="coach_substitute_v3_short.png", cut=108, icon="swap", ai=True, band="k", fix="coach",
          headline="재료 대체부터 계량까지\n쿡 코치가 다 답해요"),
     dict(key="photo", src="photo_receipt_v2.png", cut=140, icon="camera", ai=True, kind="photo", band="y", fix="photo",
          headline="사진 한 장으로\n재료 등록 끝"),
-    dict(key="ai", src="chat_v3.png", cut=150, icon="chat", ai=True, kind="ai", band="k", fix="chat",
-         headline="물어보면 레시피부터\n식단까지 척척"),
-    dict(key="expiry", src="expiry_v3.png", cut=150, cut_short=270, icon="timer", ai=False, band="y", fix="expiry",
+    dict(key="expiry", src="expiry_v3.png", cut=150, cut_short=270, icon="timer", ai=False, band="k", fix="expiry",
          headline="소비기한은 자동으로\n곧 상할 재료부터 먼저"),
+    dict(key="cook", src="cook_v3.png", cut=236, icon="speaker", ai=False, band="y", kind="cook",
+         headline="단계별로 요약해서\n손 안 대고 귀로 듣기"),
     dict(key="family", src="family_v3.png", cut=56, icon="users", ai=False, band="k",
          headline="가족과 함께 쓰고\n아낀 돈도 한눈에"),
 ]
@@ -271,7 +271,14 @@ def flow_chips(img, W, y, band):
         ff = fb if kind == "hi" else f
         tw = d.textlength(t, font=ff)
         w = int(tw + h * 0.9)
-        if kind == "hi":
+        if band == "y":  # 노랑 바탕: 강조 칩은 검정 바탕+노랑 글자, 나머지는 옅은 노랑 칩+검정 글자
+            if kind == "hi":
+                d.rounded_rectangle([x, y, x + w, y + h], radius=h // 2, fill=INK)
+                col = BRAND
+            else:
+                d.rounded_rectangle([x, y, x + w, y + h], radius=h // 2, fill=(255, 238, 140), outline=(26, 26, 30), width=3)
+                col = INK
+        elif kind == "hi":
             d.rounded_rectangle([x, y, x + w, y + h], radius=h // 2, fill=BRAND)
             col = INK
         else:
@@ -282,8 +289,9 @@ def flow_chips(img, W, y, band):
         if i < len(items) - 1:
             ax0, ax1, ay = x + gap * 0.22, x + gap * 0.78, y + h / 2
             lw = max(3, int(W * 0.004))
-            d.line([(ax0, ay), (ax1, ay)], fill=(176, 176, 184), width=lw)
-            d.line([(ax1 - gap * 0.18, ay - gap * 0.18), (ax1, ay), (ax1 - gap * 0.18, ay + gap * 0.18)], fill=(176, 176, 184), width=lw, joint="curve")
+            ac = (26, 26, 30) if band == "y" else (176, 176, 184)
+            d.line([(ax0, ay), (ax1, ay)], fill=ac, width=lw)
+            d.line([(ax1 - gap * 0.18, ay - gap * 0.18), (ax1, ay), (ax1 - gap * 0.18, ay + gap * 0.18)], fill=ac, width=lw, joint="curve")
             x += gap
     return y + h + int(W * 0.04)
 
@@ -515,7 +523,7 @@ def make_brand_alts():
         im = render_brand(W, H, hs, v)
         save_png(im, os.path.join(alt, f"01_{v}.png"))
         shots.append(im)
-    nxt = [Image.open(os.path.join(STORE, "screenshots_v3", "play", f)) for f in ("02_cook.png", "03_match.png")]
+    nxt = [Image.open(os.path.join(STORE, "screenshots_v3", "play", f)) for f in ("02_match.png", "03_ai.png")]
     out = os.path.join(STORE, "upload_packages")
     os.makedirs(out, exist_ok=True)
     cw, ch, g, top = 400, 711, 20, 56

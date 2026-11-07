@@ -14886,3 +14886,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **문서·`brand/`** `brand/README.md` 「결정 대기」→「결정됨」, `logo/app_icon/` = `1_기본_옅은판`·`2_검정바탕판`·`3_노랑바탕판`(사본 6사이즈 재생성), `logo/mark`·`logo/android`(배경 흰색)·`store`·`logo/lockup`(락업 3종·스토어 1번 장 상단)·`guide/home_screen.png`(홈 화면 4종 배경 + iOS 다크/틴트) 갱신 — 신규 `store/make_icon_preview.py` 가 미리보기를 만든다. `ROLLOUT_CHECKLIST.md`·`STORE_LISTING.md`(「앱 아이콘·로고」)·`AD_BRIEF.md`·`INSTAGRAM_AUTO_DM.md`·`RECIPE_PDF_GUIDE.md`·`logo_decision_README.md` 갱신.
 - **한계**: 밝은(흰·연회색) 배경화면에서는 흰 타일 경계가 약하다(받침·재료·잎이 윤곽을 만들어 알아볼 수는 있음). 노랑·어두운·알록달록 배경에서는 또렷. 홈 화면 모습은 합성 목업 기준 — 실기기 확인 필요(맥: AppIcon 3칸·홈 화면).
 - 확인: `npx tsc -p tsconfig.app.json --noEmit` 0건, `npx vite build` 성공, `make_native_assets.py check` 통과, `./gradlew assembleDebug` 성공.
+
+### 스토어 v3 순서 재배치 — 차별점 → 핵심 기능 → AI 를 앞 3장에 (2026-11-08)
+
+- 새 순서: 01 brand · 02 match · 03 ai · 04 substitute(쿡 코치) · 05 photo · 06 expiry · 07 cook(요약·듣기) · 08 family. 파일명·번호가 바뀌었다(옛 02_cook·03_match·06_ai·07_expiry 삭제). 노랑/검정 번갈아 유지, 노랑 바탕에서도 읽히게 흐름 칩 색 추가. `make_brand_alts` 의 다음 장 참조도 새 파일명으로. Play·iOS 2종·zip·미리보기 재생성. 상세와 이유는 `store/STORE_LISTING.md` 맨 끝.
