@@ -1602,6 +1602,7 @@ def register(app, get_db):
                        COALESCE(ai.chat, 0) ai_chat,
                        COALESCE(ai.vision, 0) ai_vision,
                        COALESCE(ai.plan, 0) ai_plan,
+                       COALESCE(ai.coach, 0) ai_coach,
                        COALESCE(ai.credits, 0) credits,
                        GREATEST(
                          u.created_at,
@@ -1616,7 +1617,7 @@ def register(app, get_db):
                 """ + ev_join + """
                 LEFT JOIN (
                   SELECT user_id,
-                         SUM(kind = 'chat') chat, SUM(kind = 'vision') vision, SUM(kind = 'plan') plan,
+                         SUM(kind = 'chat') chat, SUM(kind = 'vision') vision, SUM(kind = 'plan') plan, SUM(kind = 'coach') coach,
                          SUM(credits) credits, MAX(created_at) last_at
                   FROM llm_usage WHERE user_id IS NOT NULL GROUP BY user_id
                 ) ai ON ai.user_id = u.id
@@ -1629,7 +1630,7 @@ def register(app, get_db):
             people = cursor.fetchall()
             for r in people:
                 for k in ('visits', 'visit_days', 'ing_added', 'ing_removed',
-                          'ai_chat', 'ai_vision', 'ai_plan', 'credits'):
+                          'ai_chat', 'ai_vision', 'ai_plan', 'ai_coach', 'credits'):
                     r[k] = int(r[k] or 0)
                 r['in_household'] = bool(r['in_household'])
 
@@ -1696,7 +1697,7 @@ def register(app, get_db):
                 # 비회원도 체험 크레딧으로 AI 를 쓸 수 있다 — 기기별로 종류를 나눠 붙인다.
                 cursor.execute(
                     "SELECT device_id, SUM(kind = 'chat') chat, SUM(kind = 'vision') vision, "
-                    "SUM(kind = 'plan') plan FROM llm_usage "
+                    "SUM(kind = 'plan') plan, SUM(kind = 'coach') coach FROM llm_usage "
                     f"WHERE user_id IS NULL AND device_id IS NOT NULL{use_cond} GROUP BY device_id",
                     tuple(use_params),
                 )
@@ -1706,6 +1707,7 @@ def register(app, get_db):
                     r['ai_chat'] = int(ai.get('chat') or 0)
                     r['ai_vision'] = int(ai.get('vision') or 0)
                     r['ai_plan'] = int(ai.get('plan') or 0)
+                    r['ai_coach'] = int(ai.get('coach') or 0)
                     r['views'] = int(r['views'] or 0)
                     r['first_at'] = r['first_at'].isoformat() if r['first_at'] else None
                     r['last_at'] = r['last_at'].isoformat() if r['last_at'] else None

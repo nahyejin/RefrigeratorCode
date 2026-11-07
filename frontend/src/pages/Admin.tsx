@@ -3692,9 +3692,10 @@ const Dashboard: React.FC = () => {
             const LOGIN_COL: ActivityCol = { key: 'logins', label: '로그인', group: '방문' };
             const PROVIDER_LABEL: Record<string, string> = { kakao: '카카오', naver: '네이버', google: '구글', apple: '애플', local: '이메일' };
             const AI: ActivityCol[] = [
-              { key: 'ai_chat', label: '챗봇', group: 'AI (쓴 횟수)' },
+              { key: 'ai_chat', label: '쿡 픽', group: 'AI (쓴 횟수)' },
               { key: 'ai_vision', label: '사진 등록', group: 'AI (쓴 횟수)' },
               { key: 'ai_plan', label: '식단 짜기', group: 'AI (쓴 횟수)' },
+              { key: 'ai_coach', label: '쿡 코치', group: 'AI (쓴 횟수)' },
             ];
             const COLS: ActivityCol[] = [
               ...VISIT,
