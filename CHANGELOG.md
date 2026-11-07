@@ -14797,3 +14797,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **문서**: `AD_BRIEF.md` 6장 브랜드 자산에서 옛 마스코트 「냉털이」·저장소에 없는 `쿡매치글씨로고.png` 안내를 새 로고·워드마크·바탕별 규칙으로 교체, `RECIPE_PDF_GUIDE.md`·`INSTAGRAM_AUTO_DM.md` 에 로고 메모(PDF·DM 카드에는 원래 로고가 없어 틀 변경 없음).
 - **인증 메일(`backend/app.py`)**: 철자 「Cookmatch」→「쿡매치」, 머리글에 노랑 바 + 「쿡매치 CookMatch」 글자(이미지 호스팅 주소가 없어 텍스트로 대체). 발송·배포 안 함.
 - **점검표**: `store/logo_proposals/ROLLOUT_CHECKLIST.md` 끝에 「6. 진행 상태」 — 완료/미완료와 사용자가 저장소 밖에서 할 일(Xcode·App Store Connect·Play Console·인스타 프로필·카카오/구글/네이버 로고·KIPRIS·스레드)을 올릴 파일 경로와 함께 정리하고 해당 단계 체크를 갱신.
+
+### 브랜드 적용 B — 마크 컴포넌트·스플래시 애니메이션·헤더 락업·빈 화면·딱 맞는다 모션·웹 아이콘·OG (2026-11-07)
+새 로고(P1 확정안)와 「딱 맞는다」(재료가 받침에 딱 앉는다 = 재료와 레시피가 맞는다) 컨셉을 앱 안(웹 코드)에 적용했다. 내일 모레 올릴 iOS 1.0.11/18·Android 1.0.14/15 빌드에 들어가도록 main 에 바로 반영. 작업을 세 번에 나눠 푸시한다(① 마크·스플래시·헤더 ② 빈 화면·로딩·모션 ③ 웹 아이콘·OG).
+- **① 마크 컴포넌트·스플래시·헤더 (1차 푸시)**
+  - `frontend/src/components/brand/BrandMark.tsx` 신설 — 확정 시안(`store/logo_proposals/e9_final/p1_final`)의 마크를 React SVG 로. 받침·잎 윤곽은 시안 래스터 마스크를 `scripts/make_brand_mark_paths.py` 로 따라 그린 경로(문서 초안의 손으로 그린 경로는 모서리 둥글림이 빠져 있어 쓰지 않음) → 시안 아이콘과 픽셀 비교 IoU 99.2%(받침·잎, 가장자리 안티앨리어싱 차이뿐). 톤 4종(onYellow·color·reverse·mono), 재료 11종 + 점선 재료 자리(slot) + 굴러 나간 재료(rolledOut, 「맞는 레시피 없음」 전용), 접근성 `title`(없으면 aria-hidden), CSS 변수 폴백. `index.css` 에 `--brand-leaf`(#1E9252)·`--brand-leaf-on-dark`(#3CBE6E) 토큰과 brand-* 키프레임(seat 0.4초·intro·hop, `prefers-reduced-motion` 은 0.12초 페이드만) 추가.
+  - `components/brand/BrandWordmark.tsx` 신설 — 굵은 한글 「쿡매치」 + 작은 영문 「CookMatch」 글자 로고(이미지 없이 글자로).
+  - 스플래시(`SplashScreen.tsx`): 흰 바탕 + 옛 아이콘 이미지 + 가는 영문 이미지 → **노랑 #FFD600 바탕 + 마크가 받침부터 나타나 재료가 위에서 내려와 앉고(눌림) 잎이 펴지는 애니메이션(약 1.2초) + 워드마크 페이드**. 누적 레시피 수·표시 시간·닫힘 조건은 그대로, 글자색은 노랑 위에서 읽히게 검정 계열로, `prefers-reduced-motion` 에서는 숫자 굴리기도 건너뜀. iOS 는 네이티브 정지 스플래시(완성된 마크)에서 이어지도록 완성된 모양에서 시작해 한 번 떴다 앉는 hop 모션.
+  - `App.tsx`: 네이티브 스플래시를 앱이 뜨는 즉시 닫는 로직(안드로이드)을 **iOS 에도 적용** — iOS 는 launchShowDuration 2초 동안 정지 스플래시가 붙잡혀 있어 그 뒤에서 도는 애니메이션이 가려지기 때문.
+  - 헤더(`TopNavBar.tsx`): 가는 영문 PNG(`냉털이 로고 white.png`) → 굵은 「쿡매치」 + 작은 「CookMatch」 글자(마크 없이 글자만, 가이드대로).

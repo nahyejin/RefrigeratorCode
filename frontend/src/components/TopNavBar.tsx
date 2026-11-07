@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logoImg from '../assets/냉털이 로고 white.png';
+import BrandWordmark from './brand/BrandWordmark';
 import { useAuth } from '../context/AuthContext';
 import { useUsage, PlanBadge, useIsAdmin } from './UsageMeter';
 
@@ -85,7 +85,8 @@ const TopNavBar: React.FC = () => {
           cursor: 'pointer',
         }}
       >
-        <img src={logoImg} alt="쿡매치" style={{ height: 20, width: 'auto', display: 'block' }} />
+        {/* 글자 로고(굵은 한글 + 작은 영문) — 헤더에는 마크 없이 글자만(헤더에 마크까지 넣으면 혼잡) */}
+        <BrandWordmark size={19} />
       </button>
 
       <div className="flex items-center" style={{ gap: 2, minWidth: 0 }}>

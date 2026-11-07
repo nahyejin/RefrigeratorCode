@@ -30,6 +30,8 @@
   --brand-strong: #F2C200;  /* hover / press */
   --brand-soft: #FFF6C2;    /* 연한 배경 — 정보량 많은 곳에서 원색 대신 사용 */
   --brand-on-soft: #6B5200; /* --brand-soft 위 글자색 */
+  --brand-leaf: #1E9252;          /* 마크의 잎 — 밝은·노랑 바탕 위 */
+  --brand-leaf-on-dark: #3CBE6E;  /* 마크의 잎 — 검정 바탕 위 */
 
   /* 상태 */
   --success: #059669;
@@ -1322,4 +1324,79 @@ select:focus-visible {
 .splash-number,
 .splash-number * {
   font-family: 'Manrope', 'Pretendard', sans-serif !important;
+}
+
+/* ── 브랜드 마크 모션(components/brand/BrandMark.tsx) ──────────────────────────
+   「딱 맞는다」 = 재료가 받침에 딱 앉는다. 위에서 내려와 앉고 → 한 번 눌렸다 → 올라온다.
+   좌표(px)는 SVG 사용자 좌표(마크 기준 1024 캔버스)다 — 받침 바닥선은 y≈733, 재료 아랫면은 y≈642.
+   prefers-reduced-motion 에서는 이동·눌림 없이 0.12초 페이드만 한다. */
+.brand-mark .brand-mark__ingredient { transform-origin: 512px 642px; }
+.brand-mark .brand-mark__leaves { transform-origin: 514px 290px; }
+
+/* 1) seat — 0.4초(마이크로 인터랙션: 레시피 N/M 완성·사진 인식 완료·식단 완성) */
+.brand-mark--seat .brand-mark__ingredient { animation: brand-seat .4s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes brand-seat {
+  0%   { transform: translateY(-96px); opacity: 0; }
+  60%  { transform: translateY(0); opacity: 1; }
+  78%  { transform: translateY(0) scale(1.04, .94); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+/* 2) intro — 스플래시(웹·안드로이드): 받침 → 재료가 내려와 앉음 → 눌림 → 잎이 펴짐(약 1.2초) */
+.brand-mark--intro .brand-mark__bowl { animation: brand-bowl-in .3s cubic-bezier(.2,.8,.3,1) both; }
+.brand-mark--intro .brand-mark__ingredient { animation: brand-drop .55s linear .3s both; }
+.brand-mark--intro .brand-mark__leaves { animation: brand-leaf-open .5s cubic-bezier(.2,.9,.3,1) .78s both; }
+@keyframes brand-bowl-in {
+  0%   { transform: translateY(36px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes brand-drop {
+  0%   { transform: translateY(-190px); opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .85, .55); }
+  14%  { opacity: 1; }
+  58%  { transform: translateY(0); opacity: 1; animation-timing-function: cubic-bezier(.2, .9, .3, 1); }
+  76%  { transform: translateY(0) scale(1.05, .92); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes brand-leaf-open {
+  0%   { transform: scale(.15) rotate(-12deg); opacity: 0; }
+  50%  { transform: scale(1.08) rotate(5deg); opacity: 1; }
+  75%  { transform: scale(1) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* 3) hop — 스플래시(iOS 등 네이티브 정지 스플래시에서 이어질 때): 완성된 마크에서 시작해 한 번 떴다 「딱」 앉는다 */
+.brand-mark--hop .brand-mark__ingredient { animation: brand-hop .62s cubic-bezier(.3,.1,.4,1) .14s both; }
+.brand-mark--hop .brand-mark__leaves { animation: brand-leaf-wiggle .5s ease-in-out .62s both; }
+@keyframes brand-hop {
+  0%   { transform: translateY(0); }
+  34%  { transform: translateY(-72px); animation-timing-function: cubic-bezier(.5,0,.9,.5); }
+  66%  { transform: translateY(0); animation-timing-function: ease-out; }
+  82%  { transform: translateY(0) scale(1.05, .92); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes brand-leaf-wiggle {
+  0%   { transform: rotate(0deg); }
+  30%  { transform: rotate(6deg); }
+  60%  { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* 재료가 위에서 내려오는 동안 받침과 겹치지 않는 로고 규칙 때문에 별도 처리는 없다(재료 자리 r190 안으로만 내려온다). */
+@keyframes brand-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark--seat .brand-mark__ingredient,
+  .brand-mark--intro .brand-mark__ingredient,
+  .brand-mark--hop .brand-mark__ingredient { animation: brand-fade .12s linear both; }
+  .brand-mark--intro .brand-mark__bowl { animation: brand-fade .12s linear both; }
+  .brand-mark--intro .brand-mark__leaves,
+  .brand-mark--hop .brand-mark__leaves { animation: none; }
+}
+
+/* 스플래시 워드마크 — 마크가 앉은 뒤에 떠오른다 */
+@keyframes brand-wordmark-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-wordmark-in { animation: none !important; }
 }

@@ -22,9 +22,14 @@ function App() {
   // capacitor.config 의 launchShowDuration(2초) 동안 그 화면이 붙잡혀 있어서, 진짜 스플래시(아래
   // SplashScreen) 전에 아이콘 화면이 2초 넘게 먼저 보였다("아이콘이 전체화면으로 나온 다음 스플래시가
   // 나온다" — 실사용 지적, 2026-09-21). 시작 화면의 아이콘은 styles.xml 에서 투명·배경은 흰색으로
-  // 바꿔 두어, 닫히기 전 잠깐도 흰 화면으로만 보이게 했다. iOS 는 기존 동작 그대로 둔다.
+  // 바꿔 두어, 닫히기 전 잠깐도 흰 화면으로만 보이게 했다.
+  //
+  // iOS 도 같은 이유로 앱이 뜨는 즉시 닫는다(2026-11-07 새 로고) — 네이티브 정지 스플래시(완성된 마크)를 launchShowDuration(2초)
+  // 동안 붙잡아 두면 그 뒤에서 도는 「재료가 받침에 딱 앉는」 스플래시 애니메이션이 가려진다. 정지 스플래시와 같은 모양에서
+  // 시작하도록(SplashScreen 의 hop 모션) 만들어 두어 넘어갈 때 튀지 않는다.
   useEffect(() => {
-    if (Capacitor.getPlatform() === 'android') {
+    const platform = Capacitor.getPlatform();
+    if (platform === 'android' || platform === 'ios') {
       NativeSplash.hide({ fadeOutDuration: 150 }).catch(() => {});
     }
   }, []);

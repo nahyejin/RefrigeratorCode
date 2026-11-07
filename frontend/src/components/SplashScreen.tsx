@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import cookmatchIcon from '../assets/cookmatch_icon.png';
-import cookmatchWordmark from '../assets/냉털이 로고 white.png';
+import { Capacitor } from '@capacitor/core';
+import BrandMark from './brand/BrandMark';
+import BrandWordmark from './brand/BrandWordmark';
 
 interface SplashScreenProps {
   recipeCount: number;
@@ -12,18 +13,20 @@ const CONSTANTS = {
   DIGIT_LENGTH: 4,
 } as const;
 
-// 스타일 상수 (앱 본편과 동일한 화이트/블랙/옐로우 톤)
+// 노랑 #FFD600 바탕에 마크(재료가 받침에 딱 앉는다) — 앱 아이콘·네이티브 스플래시와 같은 얼굴.
+// 글자색은 검정 계열(노랑 위 회색은 안 읽힌다).
+const INK = '#1A1A1E';
 const STYLES = {
   container: {
     width: '100vw',
     height: '100vh',
     position: 'relative' as const,
-    background: '#ffffff',
+    background: '#FFD600',
     overflow: 'hidden',
   },
   brandGroup: {
     position: 'absolute' as const,
-    top: '42%',
+    top: '40%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
     display: 'flex' as const,
@@ -31,18 +34,15 @@ const STYLES = {
     alignItems: 'center' as const,
     width: '90%',
   },
-  // 아이콘 = 진짜 앱 아이콘 그대로(2026-10-18 김 애니메이션은 2026-10-19 사용자 요청으로 뺌)
-  icon: {
-    width: 'clamp(124px, 36vw, 168px)',
-    height: 'clamp(124px, 36vw, 168px)',
+  // 마크 크기 — 짧은 화면에서는 아래 숫자 영역과 겹치지 않게 높이로도 제한한다
+  mark: {
+    width: 'min(46vw, 26vh, 210px)',
+    minWidth: 128,
     display: 'block' as const,
-    marginBottom: 26,
-    position: 'relative' as const,
   },
-  wordmark: {
-    height: 'clamp(28px, 7vw, 38px)',
-    width: 'auto',
-    display: 'block' as const,
+  wordmarkBox: {
+    marginTop: 14,
+    animation: 'brand-wordmark-in .35s ease-out .95s both',
   },
   statGroup: {
     position: 'absolute' as const,
@@ -55,7 +55,7 @@ const STYLES = {
     width: '90%',
   },
   label: {
-    color: '#9A9AA2',
+    color: 'rgba(26, 26, 30, 0.68)',
     fontSize: 'clamp(14px, 3.2vw, 17px)',
     fontWeight: 600,
     letterSpacing: '0.02em',
@@ -64,7 +64,7 @@ const STYLES = {
   // 글꼴은 `splash-number` 클래스(Manrope)가 정한다 — 전역 규칙이 글꼴을 Pretendard 로
   // 강제해서 인라인 fontFamily 로는 못 바꾼다. 번들한 굵기는 700 하나다(main.tsx).
   numberDisplay: {
-    color: '#1A1A1E',
+    color: INK,
     fontWeight: 700,
     fontSize: 'clamp(38px, 10.5vw, 54px)',
     letterSpacing: '-0.01em',
@@ -85,7 +85,7 @@ const STYLES = {
     textAlign: 'center' as const,
   },
   descriptionText: {
-    color: '#B8B8C0',
+    color: 'rgba(26, 26, 30, 0.62)',
     fontSize: 'clamp(14px, 3vw, 17px)',
     fontWeight: 400,
     textAlign: 'center' as const,
@@ -108,16 +108,33 @@ const Utils = {
   },
 };
 
+const prefersReducedMotion = (): boolean =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// iOS 는 네이티브 정지 스플래시(완성된 마크)가 먼저 보이다가 이 화면으로 넘어온다 — 같은 모양에서 시작해
+// 한 번 떴다 앉는다(hop). 웹·안드로이드는 받침부터 차례로 쌓는다(intro).
+const markMotion = (): 'hop' | 'intro' => (Capacitor.getPlatform() === 'ios' ? 'hop' : 'intro');
+
 const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const [stage, setStage] = useState<'roulette' | 'final'>('roulette');
   const [displayDigits, setDisplayDigits] = useState<string[]>(['0']);
   const animationRef = useRef<number | undefined>(undefined);
   const rouletteStartTime = useRef<number>(0);
+  // 마운트 때 한 번만 정한다 — 숫자가 도착해 다시 그려져도 앉는 모션이 한 번 더 돌지 않게
+  const motionRef = useRef<'hop' | 'intro'>(markMotion());
 
   useEffect(() => {
     if (recipeCount === 0) {
       setDisplayDigits(['0']);
       setStage('roulette');
+      return;
+    }
+
+    // 움직임 줄이기: 숫자를 굴리지 않고 바로 최종 숫자를 보인다
+    if (prefersReducedMotion()) {
+      setStage('final');
+      setDisplayDigits(recipeCount.toString().split(''));
       return;
     }
 
@@ -153,8 +170,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   return (
     <div style={STYLES.container}>
       <div style={STYLES.brandGroup}>
-        <img src={cookmatchIcon} alt="CookMatch" style={STYLES.icon} draggable={false} />
-        <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
+        <BrandMark ingredient="ball" tone="onYellow" size={210} motion={motionRef.current} title="쿡매치" style={{ ...STYLES.mark, height: 'auto' }} />
+        <div className="brand-wordmark-in" style={STYLES.wordmarkBox}>
+          <BrandWordmark size={26} color={INK} subColor="rgba(26, 26, 30, 0.62)" />
+        </div>
       </div>
       <div style={STYLES.statGroup}>
         <div style={STYLES.label}>누적 레시피 수</div>
