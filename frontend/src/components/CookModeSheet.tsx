@@ -50,6 +50,8 @@ export interface CookData {
   ingredients: string[];
   ingredients_detail: string[];
   steps: string[];
+  /** 미리 계산해 둔 「이 요리에서 바꿔 써도 되는 재료」 `{재료: [이름…]}`. 키 자체가 없으면 아직 계산 전(표 기반 후보로), `{}` 면 계산했는데 대체할 게 없음 */
+  substitutes?: { [ingredient: string]: string[] };
 }
 
 const API_BASE_URL =
@@ -674,6 +676,7 @@ const CookModeSheet: React.FC<Props> = ({
                   needIngredients={names}
                   myIngredients={myIngredients}
                   substituteTable={readSubstituteTable() || {}}
+                  storedSubstitutes={data?.substitutes ?? null}
                   title={data?.title || fallbackTitle || ''}
                   onSubstituteClick={(from, to) => window.dispatchEvent(new CustomEvent('cookmatch:ask-coach', {
                     detail: { question: `${from} 대신 ${to} 써도 돼요?` },

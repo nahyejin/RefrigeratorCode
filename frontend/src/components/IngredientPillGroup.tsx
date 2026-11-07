@@ -9,6 +9,8 @@ interface IngredientPillGroupProps {
   substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
   /** 레시피 제목 — 주재료는 대체 칩으로 보이지 않게 한다 */
   title?: string;
+  /** 이 레시피에서 미리 계산해 저장해 둔 대체 후보 `{재료: [이름…]}` — 레시피 창에서만 넘긴다. 객체가 오면 표 대신 이것만 쓴다 */
+  storedSubstitutes?: { [ingredient: string]: string[] } | null;
   style?: React.CSSProperties;
   /** 대체 칩(「쪽파 → 대파」)을 눌렀을 때 — 레시피 창을 열고 쿡 코치에게 묻는다. 없으면 칩은 표시 전용 */
   onSubstituteClick?: (from: string, to: string) => void;
@@ -23,7 +25,7 @@ let globalSynonymDict: { [key: string]: string } | null = null;
 let globalSynonymDictLoading = false;
 let globalSynonymDictPromise: Promise<{ [key: string]: string }> | null = null;
 
-const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, title, style, onMissingClick, onSubstituteClick, compact = false }) => {
+const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, title, storedSubstitutes, style, onMissingClick, onSubstituteClick, compact = false }) => {
   const [synonymDict, setSynonymDict] = useState<{ [key: string]: string } | null>(globalSynonymDict);
   const [isDictLoaded, setIsDictLoaded] = useState(!!globalSynonymDict);
   
@@ -106,11 +108,23 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
     });
   }, [myIngredients, synonymDict, isDictLoaded]);
   
+  // 저장된 후보의 키는 레시피 재료 원래 이름 — 칩 계산은 동의어 변환된 이름으로 하므로 변환된 이름 키로도 찾을 수 있게 맞춘다
+  const storedForPills = React.useMemo(() => {
+    if (!storedSubstitutes) return null;
+    const out: { [k: string]: string[] } = { ...storedSubstitutes };
+    needIngredients.forEach((orig, i) => {
+      const list = storedSubstitutes[orig];
+      if (list && convertedNeedIngredients[i]) out[convertedNeedIngredients[i]] = list;
+    });
+    return out;
+  }, [storedSubstitutes, needIngredients, convertedNeedIngredients]);
+
   const pillInfo = getUniversalIngredientPillInfo({ 
     needIngredients: convertedNeedIngredients, 
     myIngredients: convertedMyIngredients,
     substituteTable,
     title,
+    storedSubstitutes: storedForPills,
   });
   
   // 디버깅: 대체제 정보 확인

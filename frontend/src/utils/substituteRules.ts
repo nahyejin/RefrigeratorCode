@@ -62,7 +62,18 @@ export function pickSubstitute<T extends Candidate>(
   list: T[] | undefined | null,
   mySet: Set<string>,
   title?: string,
+  /**
+   * 이 레시피에서 **미리 계산해 저장해 둔** 대체 후보(서버 `recipe_substitutes`, 알맞은 순서). 배열이 오면(빈 배열 포함) 표는 보지 않는다:
+   * 그 레시피를 읽고 고른 것이라 주재료 규칙·점수 하한이 필요 없고, 없으면 「이 요리엔 대체할 만한 게 없다」는 뜻이다.
+   * `undefined`(아직 계산 전인 레시피)일 때만 위의 표 기반 후보로 간다 — 동작 후퇴 없음. 브랜드 이름만은 여기서도 거른다.
+   */
+  preferred?: string[],
 ): T | undefined {
+  if (preferred) {
+    const missingIsBrand = BRAND_NAMES.has(norm(missing));
+    const name = preferred.find(n => mySet.has(norm(n)) && (missingIsBrand || !BRAND_NAMES.has(norm(n))));
+    return name ? ({ ingredient_b: name } as T) : undefined;
+  }
   if (isMainIngredient(missing, title)) return undefined;
   return usableSubstitutes(list, missing)
     .filter(c => mySet.has(norm(c.ingredient_b)))

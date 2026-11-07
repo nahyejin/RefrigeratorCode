@@ -6583,6 +6583,15 @@ def get_recipe_cook_steps(recipe_id):
             (recipe_id,),
         )
         row = cursor.fetchone()
+        # 레시피별로 미리 계산해 둔 「이 요리에서 바꿔 써도 되는 재료」(대체 재료 3단계, backend/recipe_substitutes.py).
+        # 아직 안 돌린 레시피·표가 없는 환경이면 None → 아래에서 키를 생략해 화면이 기존(표 기반) 후보로 간다.
+        substitutes = None
+        if row:
+            try:
+                import recipe_substitutes
+                substitutes = recipe_substitutes.load_for_recipe(db, recipe_id)
+            except Exception as e:  # noqa: BLE001
+                print(f"[recipe cook] 대체 재료 조회 실패(무시): {e}", flush=True)
     finally:
         cursor.close()
         db.close()
@@ -6593,7 +6602,7 @@ def get_recipe_cook_steps(recipe_id):
     def lines(text):
         return [x.strip() for x in (text or '').split('\n') if x.strip()]
 
-    return jsonify({
+    payload = {
         'id': row['id'],
         'title': row['title'],
         'link': row['link'],
@@ -6605,7 +6614,11 @@ def get_recipe_cook_steps(recipe_id):
         # 분량이 붙은 원문 그대로의 재료 — 화면에 보여 줄 것
         'ingredients_detail': lines(row['ingredients_detail']),
         'steps': lines(row['cook_steps']),
-    })
+    }
+    if substitutes is not None:
+        # {재료: [대체 이름…]} — 빈 객체 {} 는 「처리했는데 대체할 만한 게 없다」(화면이 표 후보로 되돌아가지 않게 구분)
+        payload['substitutes'] = substitutes
+    return jsonify(payload)
 
 
 @app.route('/api/recipes/<int:recipe_id>/ask', methods=['POST'])

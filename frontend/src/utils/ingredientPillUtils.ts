@@ -1,5 +1,5 @@
 import { SubstituteTable } from './recipeUtils';
-import { usableSubstitutes, isMainIngredient } from './substituteRules';
+import { usableSubstitutes, isMainIngredient, pickSubstitute } from './substituteRules';
 
 // =====================
 // 타입 정의
@@ -19,6 +19,12 @@ export interface UniversalIngredientPillParams {
   /** 레시피 제목 — 주재료는 대체하지 않는다(utils/substituteRules.ts) */
   title?: string;
   substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
+  /**
+   * 이 레시피에서 미리 계산해 저장해 둔 대체 후보 `{재료: [이름…]}`(서버 `recipe_substitutes`, 레시피 창에서만 넘김).
+   * 객체가 오면(빈 객체 포함) 이 레시피는 계산이 끝난 것 → 표는 보지 않고 저장된 후보 중 **내 냉장고에 있는 것**만 칩으로 만든다.
+   * 없으면(아직 계산 전) 기존 표 기반 후보 그대로.
+   */
+  storedSubstitutes?: { [ingredient: string]: string[] } | null;
 }
 
 // =====================
@@ -60,7 +66,8 @@ function findSubstituteIngredients(
   mySet: Set<string>,
   mineSet: Set<string>,
   substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] },
-  title?: string
+  title?: string,
+  storedSubstitutes?: { [ingredient: string]: string[] } | null
 ): { substituteTargets: string[]; substitutes: string[] } {
   const substituteTargets: string[] = [];
   const substitutes: string[] = [];
@@ -73,6 +80,17 @@ function findSubstituteIngredients(
   needIngredients.forEach(needRaw => {
     const need = normalize(needRaw);
     if (mineSet.has(need)) return;
+
+    // 이 레시피를 읽고 미리 골라 둔 후보가 있으면 그것만 본다(없는 재료 = 이 요리엔 대체할 게 없음)
+    if (storedSubstitutes) {
+      const key = Object.keys(storedSubstitutes).find(k => normalize(k) === need);
+      const picked = pickSubstitute(needRaw, undefined, mySet, title, key ? storedSubstitutes[key] : []);
+      if (picked) {
+        substituteTargets.push(needRaw);
+        substitutes.push(`${needRaw}→${picked.ingredient_b}`);
+      }
+      return;
+    }
 
     // substituteTable의 키를 normalize해서 접근
     const originalKey = Object.keys(substituteTable).find(k => normalize(k) === need);
@@ -160,6 +178,7 @@ export function getUniversalIngredientPillInfo({
   myIngredients,
   substituteTable,
   title,
+  storedSubstitutes,
 }: UniversalIngredientPillParams): IngredientPillInfo {
   const mySet = new Set(myIngredients.map(normalize));
 
@@ -185,7 +204,8 @@ export function getUniversalIngredientPillInfo({
     mySet,
     mineSet,
     substituteTable,
-    title
+    title,
+    storedSubstitutes
   );
   
   // 디버깅: 결과 확인
