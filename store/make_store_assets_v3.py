@@ -7,7 +7,8 @@
 v2 에서 가져온 것: 8장의 구성·헤드라인·이야기 흐름, 아이콘 칩, AI 통합 장, 상태줄(9:41)을 그려 넣고 웹 상단 줄(로그인/회원가입)을 잘라 낸 폰 화면.
 v1 에서 가져온 것: 노랑(#FFD600)/검정(#1A1A1E) 꽉 찬 배경을 번갈아, 큰 굵은 왼쪽 정렬 헤드라인, ✦AI 칩, 폰 화면 크게(아래가 잘림).
 v3 에서 새로 한 것:
-  · 첫 장: 남의 사진 콜라주를 버리고 **타이포 + 직접 그린 재료·조리도구 아이콘 타일**로 구성(저작권·심사 대응).
+  · 첫 장(2026-11-07 재디자인): 큰 글자 + 앱 헤더 워드마크(작게) + 앱 목록의 실제 카드. 시안 A·B·C 중 BRAND_VARIANT(=A)가 정식, 셋 다 screenshots_v3/alt/ 에 둔다.
+  · 4번 장(2026-11-07): 대체 칩 → 쿡 코치 카드 화면(답은 가짜 응답). Play(9:16)는 짧은 캡처(src_short), iOS 는 긴 캡처.
   · 순서(2026-11-07 수정): 1 브랜드 → 2 요약된 단계+귀로 듣기 → 3 내 냉장고 매칭 → 4 대체 재료 → 5 사진 등록(영수증+음식 사진)
     → 6 AI 통합(쿡 픽·식단 짜기·쿡 코치) → 7 곧 상할 재료 → 8 가족.
   · 앱 화면 속 레시피 썸네일·N/YT 배지는 가리지 않고 **그대로**(사용자: 기존 앱스토어 이미지도 같은 네이버·유튜브 이미지를 써서 괜찮다고 판단). 로고 이미지를 새로 넣지는 않는다.
@@ -41,8 +42,8 @@ SLIDES = [
          headline="단계별로 요약해서\n손 안 대고 귀로 듣기"),
     dict(key="match", src="list_top_v3.png", cut=56, icon="fridge", ai=False, band="y",
          headline="내 냉장고 재료로\n만들 수 있는 요리 찾기"),
-    dict(key="substitute", src="substitute_card_v3.png", cut=120, icon="swap", ai=False, band="k",
-         headline="재료가 없으면\n대체 재료까지 알려줘요"),
+    dict(key="substitute", src="coach_substitute_v3.png", src_short="coach_substitute_v3_short.png", cut=108, icon="swap", ai=True, band="k", fix="coach",
+         headline="재료가 없으면\n쿡 코치가 대체까지"),
     dict(key="photo", src="photo_receipt_v2.png", cut=140, icon="camera", ai=True, kind="photo", band="y", fix="photo",
          headline="사진 한 장으로\n재료 등록 끝"),
     dict(key="ai", src="chat_v3.png", cut=150, icon="chat", ai=True, kind="ai", band="k", fix="chat",
@@ -97,12 +98,26 @@ def fix_expiry(im):
     return im
 
 
-FIXES = {"chat": fix_chat, "photo": fix_photo, "expiry": fix_expiry}
+def fix_coach(im):
+    """쿡 코치 카드 아래(카드와 화면 아래 사이 12px)에 비치는 뒤 화면 조각(쿠팡 파트너스 안내 글 등)을 흐린 배경색으로 덮는다. 카드는 그대로."""
+    im = im.copy()
+    px = im.load()
+    x = im.width // 2
+    y = im.height - 1
+    while y > 0 and sum(px[x, y][:3]) > 150:  # 아래에서 위로: 카드(검정) 맨 아랫변을 찾는다
+        y -= 1
+    bg = px[3, min(im.height - 1, y + 8)]
+    ImageDraw.Draw(im).rectangle([0, y + 3, im.width, im.height], fill=bg)
+    return im
+
+
+FIXES = {"chat": fix_chat, "photo": fix_photo, "expiry": fix_expiry, "coach": fix_coach}
 
 
 def build_screen(slide, pw):
     """v2.build_screen 과 같되, 캡처에 `fix` 가 지정돼 있으면 먼저 정리한다."""
-    im = Image.open(os.path.join(SRC, slide["src"])).convert("RGB")
+    src = slide["src_short"] if slide.get("_short") and "src_short" in slide else slide["src"]  # 9:16(플레이)용으로 따로 찍은 캡처가 있으면 그것
+    im = Image.open(os.path.join(SRC, src)).convert("RGB")
     if slide.get("fix"):
         im = FIXES[slide["fix"]](im)
     sc = pw / im.width
@@ -350,235 +365,116 @@ def render_phone_slide(slide, W, H, hsize):
 
 
 # ---------------------------------------------------------------------------
-# 첫 장(브랜드 장): 타이포 + 직접 그린 아이콘 타일. 남의 사진은 한 장도 쓰지 않는다.
+# 첫 장(브랜드 장) 2026-11-07 재디자인: 타이포가 주인공, 로고는 앱 헤더의 워드마크(CookMatch)만 작게, 아래는 앱의 실제 목록 카드.
+# 시안 3개(A·B·C)를 만들어 하나를 정식 01_brand 로 쓴다 — BRAND_VARIANT 로 고른다. 장식(타일·형광펜 띠·알약·반짝임)은 모두 뺐다.
 # ---------------------------------------------------------------------------
-def glyph(name, S, main=INK, bgc=WHITE):
-    """100 격자로 그린 납작한 재료·조리도구 그림(투명 배경). 4배로 그려 줄인다."""
-    K = 4
-    N = S * K
-    u = N / 100.0
-    im = Image.new("RGBA", (N, N), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-
-    def P(x, y):
-        return (x * u, y * u)
-
-    def circ(cx, cy, r, fill):
-        d.ellipse([(cx - r) * u, (cy - r) * u, (cx + r) * u, (cy + r) * u], fill=fill)
-
-    def rr(x0, y0, x1, y1, r, fill):
-        d.rounded_rectangle([x0 * u, y0 * u, x1 * u, y1 * u], radius=r * u, fill=fill)
-
-    def poly(pts, fill):
-        d.polygon([P(*p) for p in pts], fill=fill)
-
-    def stroke(pts, w, fill):
-        pp = [P(*p) for p in pts]
-        d.line(pp, fill=fill, width=int(w * u), joint="curve")
-        for p in pp:
-            d.ellipse([p[0] - w * u / 2, p[1] - w * u / 2, p[0] + w * u / 2, p[1] + w * u / 2], fill=fill)
-
-    def wave(x, y0, y1, amp, w, fill):
-        import math
-        pts = [(x + amp * math.sin((t / 10.0) * math.pi * 2), y0 + (y1 - y0) * t / 10.0) for t in range(11)]
-        stroke(pts, w, fill)
-
-    if name == "egg":
-        for cx, cy, r in [(40, 44, 24), (62, 40, 21), (58, 64, 24), (36, 64, 18), (72, 56, 14)]:
-            circ(cx, cy, r, WHITE)
-        circ(52, 52, 15, (255, 170, 0))
-        circ(47, 46, 4.5, (255, 224, 140))
-    elif name == "pot":
-        wave(38, 8, 24, 2.2, 4.2, main); wave(50, 4, 24, 2.2, 4.2, main); wave(62, 8, 24, 2.2, 4.2, main)
-        rr(18, 44, 82, 84, 10, main)
-        rr(12, 36, 88, 48, 6, main)
-        rr(6, 54, 20, 62, 4, main); rr(80, 54, 94, 62, 4, main)
-        rr(44, 28, 56, 38, 4, main)
-        rr(24, 50, 76, 53, 1.5, bgc)
-    elif name == "pan":
-        inner = (70, 70, 78) if main != INK else (62, 62, 68)
-        rr(70, 48, 98, 58, 5, main)
-        circ(44, 54, 36, main)
-        circ(44, 54, 29, inner)
-        for cx, cy, r in [(36, 48, 12), (50, 44, 11), (48, 60, 12), (34, 60, 9)]:
-            circ(cx, cy, r, WHITE)
-        circ(43, 53, 8, (255, 170, 0))
-    elif name == "bowl":
-        wave(40, 6, 26, 2.2, 4.2, main); wave(56, 10, 26, 2.2, 4.2, main)
-        d.pieslice([10 * u, 22 * u, 90 * u, 102 * u], 0, 180, fill=main)
-        rr(36, 82, 64, 92, 4, main)
-        rr(8, 50, 92, 56, 3, bgc if main != INK else WHITE)
-    elif name == "tofu":
-        poly([(20, 40), (68, 40), (86, 24), (38, 24)], (255, 255, 244))
-        poly([(68, 40), (86, 24), (86, 70), (68, 86)], (230, 210, 150))
-        rr(20, 40, 68, 86, 3, (255, 244, 214))
-        for cx, cy in [(34, 56), (52, 68), (40, 74)]:
-            circ(cx, cy, 2.2, (232, 214, 160))
-    elif name == "carrot":
-        for p0, p1 in [((72, 32), (66, 8)), ((72, 32), (84, 10)), ((72, 32), (94, 22))]:
-            stroke([p0, p1], 8, GREEN)
-        poly([(62, 28), (84, 46), (24, 92)], ORANGE)
-        stroke([(62, 28), (84, 46), (24, 92), (62, 28)], 6, ORANGE)
-        for a, b in [((58, 44), (68, 50)), ((46, 58), (58, 64)), ((36, 72), (46, 78))]:
-            stroke([a, b], 3.2, (214, 100, 8))
-    elif name == "tomato":
-        circ(50, 58, 34, RED)
-        circ(38, 46, 7, (255, 150, 140))
-        poly([(50, 16), (56, 28), (70, 26), (60, 36), (66, 48), (50, 40), (34, 48), (40, 36), (30, 26), (44, 28)], GREEN)
-        stroke([(50, 10), (50, 24)], 5, GREEN)
-    elif name == "chili":
-        import math
-        pts = [(24, 22), (46, 22), (68, 38), (78, 62), (70, 88)]
-        # 곡선을 따라 지름이 줄어드는 원을 찍는다
-        def bez(t):
-            n = len(pts) - 1
-            xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
-            from math import comb
-            x = sum(comb(n, i) * (1 - t) ** (n - i) * t ** i * xs[i] for i in range(n + 1))
-            y = sum(comb(n, i) * (1 - t) ** (n - i) * t ** i * ys[i] for i in range(n + 1))
-            return x, y
-        for i in range(60):
-            t = i / 59.0
-            x, y = bez(t)
-            circ(x, y, 12 - 9 * t, RED)
-        stroke([(22, 22), (12, 14)], 6.5, GREEN)
-        circ(34, 17, 3, (255, 160, 150))
-    elif name == "scallion":
-        for x, dx in [(34, -8), (50, 0), (66, 9)]:
-            stroke([(x, 60), (x + dx, 12)], 11, GREEN)
-            stroke([(x, 60), (x + dx * 0.3, 40)], 5, (150, 214, 160))
-            stroke([(x, 62), (x, 86)], 13, WHITE)
-        for x in (34, 50, 66):
-            stroke([(x - 3, 90), (x - 6, 96)], 2.2, (200, 190, 160)); stroke([(x + 3, 90), (x + 6, 96)], 2.2, (200, 190, 160))
-    elif name == "mushroom":
-        rr(38, 54, 62, 88, 8, (250, 232, 200))
-        d.pieslice([12 * u, 22 * u, 88 * u, 84 * u], 180, 360, fill=(206, 138, 84))
-        rr(12, 52, 88, 60, 4, (206, 138, 84))
-        for cx, cy, r in [(34, 44, 5), (58, 36, 6), (70, 50, 4)]:
-            circ(cx, cy, r, (255, 240, 220))
-    return im.resize((S, S), Image.LANCZOS)
+BRAND_VARIANT = "A"
+WORDMARK = os.path.join(os.path.dirname(STORE), "frontend", "src", "assets", "냉털이 로고 white.png")  # 앱 헤더 로고(투명 배경 글자)
+CARD_FILES = ["card12_v3.png", "card9_v3.png", "card2_v3.png"]  # 냉장고요리 목록의 실제 카드 캡처(폰 화면 밖, 카드만)
 
 
-TILE_PLAN = [  # (그림, 타일 바탕) 5열
-    [("carrot", "w"), ("egg", "k"), ("pot", "c"), ("tomato", "w"), ("tofu", "k")],
-    [("bowl", "c"), ("mushroom", "w"), ("pan", "k"), ("chili", "w"), ("scallion", "k")],
-    [("egg", "k"), ("tomato", "w"), ("pot", "k"), ("carrot", "c"), ("pan", "c")],
-    [("scallion", "k"), ("tofu", "k"), ("bowl", "k"), ("mushroom", "c"), ("chili", "w")],
-    [("pot", "c"), ("carrot", "w"), ("egg", "k"), ("pan", "c"), ("tomato", "w")],
-]
-TILE_BG = {"w": WHITE, "k": INK, "c": CREAM}
+def wordmark(width, color):
+    """앱 헤더 워드마크 「CookMatch」를 알파 마스크로 단색 칠해 돌려준다(RGBA)."""
+    im = Image.open(WORDMARK).convert("RGBA")
+    im = im.crop(im.getbbox())
+    h = int(width * im.height / im.width)
+    a = im.split()[3].resize((width, h), Image.LANCZOS)
+    out = Image.new("RGBA", (width, h), tuple(color) + (255,))
+    out.putalpha(a)
+    return out
 
 
-def tile_mosaic(W, T, gap, cols=5, rows=5):
-    """타일 격자(투명 배경, 그림자 포함)."""
-    pad = int(T * 0.4)
-    gw = cols * T + (cols - 1) * gap + pad * 2
-    gh = rows * T + (rows - 1) * gap + pad * 2
-    base = Image.new("RGBA", (gw, gh), (0, 0, 0, 0))
-    sh = Image.new("RGBA", (gw, gh), (0, 0, 0, 0))
-    sd = ImageDraw.Draw(sh)
-    tiles = []
-    for r in range(rows):
-        for c in range(cols):
-            x, y = pad + c * (T + gap), pad + r * (T + gap)
-            sd.rounded_rectangle([x, y + int(T * 0.04), x + T, y + T + int(T * 0.04)], radius=int(T * 0.22), fill=(60, 44, 0, 70))
-            tiles.append((r, c, x, y))
-    base.alpha_composite(sh.filter(ImageFilter.GaussianBlur(int(T * 0.06))))
-    bd = ImageDraw.Draw(base)
-    cache = {}
-    for r, c, x, y in tiles:
-        gname, bgk = TILE_PLAN[r % len(TILE_PLAN)][(c + r // len(TILE_PLAN) * 2) % len(TILE_PLAN[0])]
-        bgc = TILE_BG[bgk]
-        # 타일은 4배로 그려 모서리를 매끈하게
-        tm = Image.new("L", (T * 3, T * 3), 0)
-        ImageDraw.Draw(tm).rounded_rectangle([0, 0, T * 3 - 1, T * 3 - 1], radius=int(T * 3 * 0.22), fill=255)
-        tile = Image.new("RGBA", (T, T), bgc + (255,))
-        tile.putalpha(tm.resize((T, T), Image.LANCZOS))
-        main = BRAND if bgk == "k" else INK
-        key = (gname, main, bgc)
-        if key not in cache:
-            cache[key] = glyph(gname, int(T * 0.72), main=main, bgc=bgc)
-        g = cache[key]
-        tile.alpha_composite(g, ((T - g.width) // 2, (T - g.height) // 2))
-        base.alpha_composite(tile, (x, y))
-    return base
+def card_image(name, cw, radius):
+    """앱 목록 카드 캡처를 폭 cw 로 맞춰 둥근 모서리 RGBA 로. 아래 가장자리에 걸치는 다음 카드 띠는 잘라 낸다."""
+    im = Image.open(os.path.join(SRC, name)).convert("RGB")
+    ye = im.height - 1
+    while ye > 0 and im.getpixel((im.width * 3 // 4, ye))[:3] != (255, 255, 255):  # 카드 아래 회색 틈(다음 카드와의 간격)은 잘라 낸다
+        ye -= 1
+    im = im.crop((0, 0, im.width, ye + 1))
+    h = int(im.height * cw / im.width)
+    im = im.resize((cw, h), Image.LANCZOS)
+    m = Image.new("L", (cw * 2, h * 2), 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, cw * 2 - 1, h * 2 - 1], radius=radius * 2, fill=255)
+    out = im.convert("RGBA")
+    out.putalpha(m.resize((cw, h), Image.LANCZOS))
+    return out
 
 
-def render_brand(W, H):
-    img = bg_image(W, H, "y").convert("RGBA")
-    d = ImageDraw.Draw(img)
-    pad = int(W * PAD)
-    tall = H / W > 2.0
-
-    # 맨 위: 앱 아이콘 + 쿡매치
-    isz = int(W * 0.15)
-    icon = Image.open(os.path.join(STORE, "icons", "appstore_icon_1024.png")).convert("RGB").resize((isz, isz), Image.LANCZOS).convert("RGBA")
-    icon.putalpha(rounded_mask(isz, 0.225))
-    y0 = int(W * 0.085)
+def place_card(img, card, x, y, dark, blur=None):
+    """카드를 그림자와 함께 올린다(캔버스 밖으로 나가는 부분은 알아서 잘린다)."""
+    cw, ch = card.size
+    r = int(cw * 0.045)
     sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    sm = Image.new("RGBA", icon.size, (0, 0, 0, 0))
-    sm.putalpha(icon.split()[3].point(lambda a: int(a * 0.3)))
-    sh.paste(sm, (pad, y0 + int(isz * 0.06)), sm)
-    img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(int(isz * 0.07))))
-    img.alpha_composite(icon, (pad, y0))
-    d = ImageDraw.Draw(img)
-    d.text((pad + isz + int(W * 0.035), y0 + isz / 2), "쿡매치", font=font(int(W * 0.062), 900), fill=INK, anchor="lm")
+    ImageDraw.Draw(sh).rounded_rectangle([x, y + int(cw * 0.014), x + cw, y + ch + int(cw * 0.014)], radius=r,
+                                         fill=(0, 0, 0, 170) if dark else (70, 50, 0, 70))
+    img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(blur or int(cw * 0.035))))
+    img.alpha_composite(card, (x, y))
+    if dark:
+        ImageDraw.Draw(img).rounded_rectangle([x, y, x + cw - 1, y + ch - 1], radius=r, outline=(66, 66, 72), width=max(2, img.width // 380))
 
-    # 헤드라인: 인기 레시피만 / (큰) 4만 개, / 뭘 골라도 맛집
-    y = y0 + isz + int(W * (0.075 if tall else 0.055))
-    f1 = font(int(W * 0.098), 900)
-    d.text((pad, y), "인기 레시피만", font=f1, fill=INK)
-    y += int(W * 0.098 * 1.2)
-    big = int(W * (0.235 if tall else 0.215))
-    f2 = font(big, 900)
-    tw = d.textlength("4만 개,", font=f2)
-    # 하이라이트 띠(흰색)
-    d.rounded_rectangle([pad - int(W * 0.012), y + int(big * 0.64), pad + tw - int(big * 0.14), y + int(big * 0.90)], radius=int(big * 0.1), fill=WHITE)
-    d.text((pad, y), "4만 개,", font=f2, fill=INK)
-    y += int(big * 1.2)
-    d.text((pad, y), "뭘 골라도 맛집", font=f1, fill=INK)
-    y += int(W * 0.098 * 1.2) + int(W * 0.02)
+
+def brand_text(img, W, hsize, ink, sub, accent, bigk=0.265, pad=None, ytop=None, wm_color=None):
+    """워드마크 + 헤드라인(인기 레시피만 / 큰 4만 개, / 뭘 골라도 맛집) + 보조 두 줄. 반환: 다음 y.
+    워드마크·헤드라인 첫 줄 위치는 다른 장(아이콘 원 + 헤드라인)과 같게 맞춘다."""
+    d = ImageDraw.Draw(img)
+    D = int(W * 0.105)
+    y0 = int(W * 0.075)
+    wm = wordmark(int(W * 0.30), wm_color or ink)
+    img.alpha_composite(wm, (int(W * PAD), y0 + (D - wm.height) // 2))
+    pad = pad if pad is not None else int(W * PAD)
+    y = ytop if ytop is not None else y0 + D + int(W * 0.04)
+    f = font(hsize, 900)
+    d.text((pad, y), "인기 레시피만", font=f, fill=ink)
+    y += int(hsize * 1.26)
+    big = int(W * bigk)
+    fb = font(big, 900)
+    d.text((pad - int(big * 0.03), y - int(big * 0.04)), "4만 개,", font=fb, fill=accent)
+    y += int(big * 1.10)
+    d.text((pad, y), "뭘 골라도 맛집", font=f, fill=ink)
+    y += int(hsize * 1.26) + int(W * 0.012)
     sf = font(int(W * 0.0375), 600)
     for t in ["네이버·유튜브에서 매일 엄선한 레시피를", "냉장고 속 재료로 바로 찾아요"]:
-        d.text((pad, y), t, font=sf, fill=SUB_Y)
+        d.text((pad, y), t, font=sf, fill=sub)
         y += int(W * 0.058)
-    y_text_end = y
+    return y
 
-    # 타일 모자이크(기울여서 오른쪽·아래로 흘려 보낸다)
-    T = int(W * 0.215)
-    gap = int(W * 0.03)
-    mosaic = tile_mosaic(W, T, gap, cols=6, rows=6)
-    rot = mosaic.rotate(9, resample=Image.BICUBIC, expand=True)
-    my = y_text_end - int(W * (0.02 if tall else 0.06))
-    mx = -int(W * 0.17)
-    sx0, sy0 = max(0, -mx), max(0, -my)
-    rot = rot.crop((sx0, sy0, min(rot.width, img.width - mx), min(rot.height, img.height - my)))
-    img.alpha_composite(rot, (max(0, mx), max(0, my)))
-    d = ImageDraw.Draw(img)
 
-    # 떠 있는 매칭률 알약(앱의 「내 재료 4/5 (93%)」 표시를 본뜬 그림)
-    pf = font(int(W * 0.042), 900)
-    txt = "내 재료 4/5 (93%)"
-    tw = d.textlength(txt, font=pf)
-    ph = int(W * 0.095)
-    pw_ = int(tw + W * 0.07)
-    px, py = pad, y_text_end + int(W * 0.035)
-    pill_sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    ImageDraw.Draw(pill_sh).rounded_rectangle([px, py + int(ph * 0.12), px + pw_, py + ph + int(ph * 0.12)], radius=ph // 2, fill=(0, 0, 0, 120))
-    img.alpha_composite(pill_sh.filter(ImageFilter.GaussianBlur(int(ph * 0.14))))
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle([px, py, px + pw_, py + ph], radius=ph // 2, fill=INK)
-    d.text((px + pw_ / 2, py + ph / 2 + 1), txt, font=pf, fill=BRAND, anchor="mm")
-
-    # 반짝임
-    for sx, sy, sr in [(0.90, 0.075, 0.034), (0.80, 0.145, 0.02)]:
-        sparkle(d, W * sx, W * sy + int(W * 0.04), W * sr, INK + (255,))
+def render_brand(W, H, hsize, variant=None):
+    variant = variant or BRAND_VARIANT
+    dark = variant == "B"
+    img = bg_image(W, H, "k" if dark else "y").convert("RGBA")
+    gap = int(W * 0.05)
+    if variant == "C":
+        # C: 검은 둥근 판(벤토 칸) 안에 글, 그 아래 노란 바탕 위에 실제 카드 — 워드마크는 판 밖 위쪽에 작게
+        cw = int(W * 0.86)
+        px = (W - cw) // 2
+        top = int(W * 0.075) + int(W * 0.105) + int(W * 0.02)
+        probe = Image.new("RGBA", (W, H))
+        iy = brand_text(probe, W, hsize, WHITE, (170, 170, 178), BRAND, bigk=0.25, pad=px + int(W * 0.06), ytop=top + int(W * 0.055), wm_color=INK)
+        bottom = iy + int(W * 0.035)
+        ImageDraw.Draw(img).rounded_rectangle([px, top, px + cw, bottom], radius=int(W * 0.06), fill=INK)
+        y_end = brand_text(img, W, hsize, WHITE, (170, 170, 178), BRAND, bigk=0.25, pad=px + int(W * 0.06), ytop=top + int(W * 0.055), wm_color=INK)
+        y_end = bottom - int(W * 0.015)
+    elif dark:
+        y_end = brand_text(img, W, hsize, WHITE, (170, 170, 178), BRAND)
+    else:
+        y_end = brand_text(img, W, hsize, INK, SUB_Y, INK)
+    # 목록 카드 두세 장을 쌓아 아래로 흘려 보낸다(폰 프레임 없음)
+    cw = int(W * 0.86)
+    x = (W - cw) // 2
+    y = y_end + gap
+    for nm in CARD_FILES:
+        c = card_image(nm, cw, int(cw * 0.045))
+        place_card(img, c, x, y, dark)
+        y += c.height + int(W * 0.035)
+        if y > H:
+            break
     return img.convert("RGB")
 
 
 def render_slide(slide, W, H, hsize):
     if slide.get("kind") == "brand":
-        return render_brand(W, H)
+        return render_brand(W, H, hsize)
     return render_phone_slide(slide, W, H, hsize)
 
 
@@ -595,6 +491,44 @@ def make_shots(only_play=False):
         for i, slide in enumerate(SLIDES, 1):
             save_png(render_slide(slide, W, H, hs), os.path.join(out, f"{i:02d}_{slide['key']}.png"))
         print(f"{platform} {W}x{H}: {len(SLIDES)}장 (헤드라인 {hs}px)")
+
+
+def make_brand_alts():
+    """첫 장 시안 A·B·C(Play 1080x1920) → screenshots_v3/alt/01_*.png + 비교 이미지 upload_packages/v3_first_slide_시안비교.png.
+    비교 이미지: 윗줄 시안 3장(크게), 아랫줄 「스토어 목록에서 작게 보일 때」(첫 장 시안 + 2·3번 장)."""
+    W, H = SIZES["play"]
+    hs = headline_size(W)
+    alt = os.path.join(STORE, "screenshots_v3", "alt")
+    os.makedirs(alt, exist_ok=True)
+    shots = []
+    for v in "ABC":
+        im = render_brand(W, H, hs, v)
+        save_png(im, os.path.join(alt, f"01_{v}.png"))
+        shots.append(im)
+    nxt = [Image.open(os.path.join(STORE, "screenshots_v3", "play", f)) for f in ("02_cook.png", "03_match.png")]
+    out = os.path.join(STORE, "upload_packages")
+    os.makedirs(out, exist_ok=True)
+    cw, ch, g, top = 400, 711, 20, 56
+    sw = 128
+    sh_ = int(sw * 16 / 9)
+    canvas = Image.new("RGB", (3 * cw + 4 * g, top + ch + 3 * g + 36 + sh_ + g), (255, 255, 255))
+    d = ImageDraw.Draw(canvas)
+    titles = {"A": "A  노랑 · 큰 숫자 + 카드 쌓기", "B": "B  검정 · 노랑 숫자 + 카드 쌓기", "C": "C  노랑 · 검은 판 안의 글 + 카드"}
+    for i, (v, im) in enumerate(zip("ABC", shots)):
+        x = g + i * (cw + g)
+        d.text((x, top // 2), titles[v] + ("  (정식 채택)" if v == BRAND_VARIANT else ""), font=font(20, 900), fill=INK, anchor="lm")
+        canvas.paste(im.resize((cw, ch), Image.LANCZOS), (x, top))
+        if v == BRAND_VARIANT:
+            d.rectangle([x - 3, top - 3, x + cw + 2, top + ch + 2], outline=BRAND, width=3)
+    y2 = top + ch + 2 * g
+    d.text((g, y2), "스토어 목록에서 작게 보일 때(시안 + 이어지는 2·3번 장):", font=font(16, 700), fill=INK, anchor="lm")
+    for i, im in enumerate(shots):
+        x = g + i * (cw + g) + (cw - (3 * sw + 2 * 8)) // 2
+        for pic in [im] + nxt:
+            canvas.paste(pic.resize((sw, sh_), Image.LANCZOS), (x, y2 + 24))
+            x += sw + 8
+    canvas.save(os.path.join(out, "v3_first_slide_시안비교.png"))
+    print("brand alts ok")
 
 
 def make_packages():
@@ -655,5 +589,6 @@ if __name__ == "__main__":
     make_shots(only_play="preview" in args)
     if "preview" not in args:
         make_packages()
+        make_brand_alts()
     if "--before" in args:
         make_before_after(args[args.index("--before") + 1])
