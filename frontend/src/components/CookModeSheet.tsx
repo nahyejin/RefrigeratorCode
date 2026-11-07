@@ -943,7 +943,7 @@ const CookModeSheet: React.FC<Props> = ({
     </Sheet>
     {/* 요리 한 건 전용 도우미 「쿡 코치」(2026-11-06) — 우하단 떠 있는 버튼 → 대화 카드. 재료·순서가 뜬 레시피에만 두고,
         레시피 창을 닫으면 사라져 대화도 지워진다. */}
-    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} />}
+    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} firstStep={steps[0]} />}
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}
     {toast && <Toast message={toast} />}

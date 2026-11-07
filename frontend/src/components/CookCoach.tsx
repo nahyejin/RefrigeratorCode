@@ -32,12 +32,29 @@ const API_BASE_URL =
 
 interface Msg { role: 'user' | 'assistant'; content: string }
 
-const SUGGESTIONS = [
+/** 추천 질문 하나 — `label` 은 칩에 보이는 글자, `ask` 는 실제로 보내는 질문(보통 같다). */
+interface Suggestion { label: string; ask: string }
+
+const BASE_SUGGESTIONS: Suggestion[] = [
   '재료가 없는데 다른 걸로 대체해도 돼요?',
   '5배로 만들면 계량은 어떻게 해요?',
   '덜 맵게 하려면 어떻게 해요?',
   '아이가 먹어도 괜찮을까요?',
-];
+].map(t => ({ label: t, ask: t }));
+
+/**
+ * 요리 중 가장 자주 묻는 「재료 준비 끝났는데 그다음은?」(2026-11-07 제안). **이 레시피의 첫 단계를 말에 넣어** 보낸다 — 쿡 코치가 어디까지
+ * 했다는 말인지 정확히 알고 그다음 순서를 이어서 알려 주게. 칩 글자는 짧게, 보내는 질문에만 첫 단계를 싣는다. 조리 순서가 없는 레시피엔 안 만든다.
+ */
+function nextStepSuggestion(firstStep?: string): Suggestion | null {
+  const step = (firstStep || '').replace(/\s+/g, ' ').trim();
+  if (!step) return null;
+  const short = step.length > 60 ? step.slice(0, 58) + '…' : step;
+  return {
+    label: '재료 준비 끝났어요, 그다음은?',
+    ask: `재료 준비는 끝났어요. 첫 단계인 「${short}」부터 시작할게요. 그다음 순서는 어떻게 돼요?`,
+  };
+}
 
 /** 레시피 창(`Sheet`)의 가로 최대폭 460 에 맞춰, 넓은 화면에서도 버튼이 창 안쪽 오른쪽 아래에 오게 한다. */
 const FAB_RIGHT = 'max(16px, calc((100vw - 460px) / 2 + 16px))';
@@ -64,7 +81,9 @@ const CookCoach: React.FC<{
   recipeId: number;
   /** 레시피 창(`Sheet`)의 바깥 틀. 카드 윗변을 그 제목줄 아래에 맞추는 데 쓴다. */
   anchor?: React.RefObject<HTMLElement | null>;
-}> = ({ recipeId, anchor }) => {
+  /** 이 레시피의 첫 조리 단계 — 「재료 준비 끝났어요, 그다음은?」 칩이 이것을 말에 싣는다. 없으면 그 칩은 없다. */
+  firstStep?: string;
+}> = ({ recipeId, anchor, firstStep }) => {
   const usage = useUsage();
   const cost = (usage?.credits as any)?.coach ?? 1;
   const guestOut = !!usage && usage.is_guest && !usage.can_use_ai;
@@ -178,7 +197,12 @@ const CookCoach: React.FC<{
 
   const turns = messages.filter(m => m.role === 'user').length;
   const asked = new Set(messages.filter(m => m.role === 'user').map(m => m.content));
-  const remaining = SUGGESTIONS.filter(s => !asked.has(s));
+  // 「그다음은?」 칩을 **맨 앞**에 둔다(요리 중에 가장 쓸모 있는 질문)
+  const suggestions: Suggestion[] = React.useMemo(() => {
+    const next = nextStepSuggestion(firstStep);
+    return next ? [next, ...BASE_SUGGESTIONS] : BASE_SUGGESTIONS;
+  }, [firstStep]);
+  const remaining = suggestions.filter(s => !asked.has(s.ask));
 
   return (
     <Portal>
@@ -254,18 +278,18 @@ const CookCoach: React.FC<{
                   재료를 바꾸거나, 양을 늘리거나, 간을 맞추는 것까지 이 요리에 대한 건 뭐든 물어보세요.
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {SUGGESTIONS.map(s => (
+                  {suggestions.map(s => (
                     <button
-                      key={s}
+                      key={s.label}
                       type="button"
                       disabled={loading}
-                      onClick={() => void send(s)}
+                      onClick={() => void send(s.ask)}
                       style={{
                         padding: '8px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer',
                         background: SURFACE2, color: '#F1F1F4', fontSize: 12.5, textAlign: 'left',
                       }}
                     >
-                      {s}
+                      {s.label}
                     </button>
                   ))}
                 </div>
@@ -314,15 +338,15 @@ const CookCoach: React.FC<{
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '0 -12px', padding: '0 12px', scrollbarWidth: 'none' }}>
                 {remaining.map(s => (
                   <button
-                    key={s}
+                    key={s.label}
                     type="button"
-                    onClick={() => void send(s)}
+                    onClick={() => void send(s.ask)}
                     style={{
                       flex: 'none', padding: '7px 11px', borderRadius: 9999, border: 'none', cursor: 'pointer',
                       background: SURFACE2, color: '#F1F1F4', fontSize: 12.5, whiteSpace: 'nowrap',
                     }}
                   >
-                    {s}
+                    {s.label}
                   </button>
                 ))}
               </div>
