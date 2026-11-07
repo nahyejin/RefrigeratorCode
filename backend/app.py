@@ -5714,33 +5714,15 @@ def get_household_meal_plans():
 
 
 # =====================
-# AI 식단 추천 "지난 대화" — 계정별 서버 저장
+# AI 식단 추천 "지난 대화" — 호환용 빈 응답 (2026-11-07 정리)
 # =====================
 #
-# 예전에는 이 기기 저장소(localStorage)에만 있어서, 다른 기기·앱·웹에서 열면 지난 대화가
-# 없었다(2026-09-20 "기기 기준이 아니라 아이디별로 해야 한다"는 지적). 로그인한 사람의
-# 지난 대화(최대 10개)를 계정에 붙여 서버에 둔다. 비회원은 계속 기기에만 남는다.
-# 계정 하나에 한 줄(JSON)로 두는 이유: 대화는 통째로 읽고 통째로 바꾸며(최대 10개),
-# 검색·부분 수정이 필요 없어서 표를 나눌 이유가 없다.
-AI_CHAT_MAX_SESSIONS = 10
-AI_CHAT_MAX_MESSAGES = 80
-AI_CHAT_MAX_BYTES = 600_000
-
-
-def ensure_ai_chat_sessions_table():
-    db = get_db()
-    cursor = db.cursor()
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS ai_plan_chat_sessions (
-                user_id INT NOT NULL PRIMARY KEY,
-                sessions_json MEDIUMTEXT NOT NULL,
-                updated_at DATETIME NOT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """)
-        db.commit()
-    finally:
-        db.close()
+# 2026-09-20 ~ 11-05 에는 로그인한 사람의 지난 대화(최대 10개)를 계정별로 서버(표 ai_plan_chat_sessions)에
+# 두었다. 2026-11-06 「식단 짜기」 개편으로 AI 대화 화면과 이 저장이 화면에서 사라졌고, 새 프론트는 아래
+# 엔드포인트를 부르지 않는다. 다만 **스토어에 이미 나간 앱 빌드 중 9/20 이후 것(iOS ≤1.0.10, Android ≤1.0.13)은
+# 로그인·식단 화면에서 아직 부른다** → 404 로 두면 옛 앱에서 오류가 날 수 있어 삭제하지 않고, 인증만 확인한 뒤 DB 에 닿지 않고
+# 빈 목록/성공을 돌려준다. 표를 새로 만들지도, 읽지도, 쓰지도 않는다(옛 행은 scripts/drop_ai_plan_chat_sessions.py 로 정리).
+# 옛 앱 빌드가 거의 사라지면 이 두 엔드포인트도 지워도 된다.
 
 
 def _auth_user_id():
@@ -5853,73 +5835,21 @@ def put_shopping_memo():
 
 @app.route('/api/users/me/ai-chat-sessions', methods=['GET'])
 def get_ai_chat_sessions():
-    """내 AI 식단 추천 지난 대화 목록."""
-    user_id, err = _auth_user_id()
+    """(호환용) 옛 앱이 부르는 AI 식단 지난 대화 목록 — 서버에 더는 두지 않아 항상 빈 목록."""
+    _user_id, err = _auth_user_id()
     if err:
         return err
-    ensure_ai_chat_sessions_table()
-    db = get_db()
-    cursor = db.cursor()
-    try:
-        cursor.execute("SELECT sessions_json FROM ai_plan_chat_sessions WHERE user_id = %s", (user_id,))
-        row = cursor.fetchone()
-        try:
-            sessions = json.loads(row['sessions_json']) if row else []
-        except (ValueError, TypeError):
-            sessions = []
-        return jsonify({'sessions': sessions if isinstance(sessions, list) else []})
-    finally:
-        db.close()
+    return jsonify({'sessions': []})
 
 
 @app.route('/api/users/me/ai-chat-sessions', methods=['PUT'])
 def put_ai_chat_sessions():
-    """내 지난 대화 목록을 통째로 바꾼다(최대 10개, 새것 먼저).
-
-    body: { sessions: [{ id, at, title, messages: [...] }] }
-    합치는 일(여러 기기에서 만든 것)은 프론트가 하고, 서버는 받은 목록을 검증해 그대로 둔다."""
-    user_id, err = _auth_user_id()
+    """(호환용) 옛 앱이 올리는 지난 대화 — 서버에 더는 두지 않으므로 인증만 확인하고 받은 것을 버린다.
+    옛 앱은 성공(ok)을 받아야 오류 없이 넘어가므로 200 을 돌려준다. 앱 안의 기기 저장분은 그대로다."""
+    _user_id, err = _auth_user_id()
     if err:
         return err
-    data = request.get_json(silent=True) or {}
-    sessions = data.get('sessions')
-    if not isinstance(sessions, list) or len(sessions) > AI_CHAT_MAX_SESSIONS:
-        return jsonify({'error': f'sessions 는 최대 {AI_CHAT_MAX_SESSIONS}개 목록이어야 합니다.'}), 400
-    clean = []
-    for sess in sessions:
-        if not isinstance(sess, dict):
-            return jsonify({'error': '잘못된 형식입니다.'}), 400
-        messages = sess.get('messages')
-        if (not isinstance(sess.get('id'), str) or not isinstance(sess.get('at'), (int, float))
-                or not isinstance(messages, list) or len(messages) > AI_CHAT_MAX_MESSAGES):
-            return jsonify({'error': '잘못된 형식입니다.'}), 400
-        clean.append({
-            'id': sess['id'][:40],
-            'at': int(sess['at']),
-            'title': str(sess.get('title') or '')[:80],
-            'messages': messages,
-        })
-    payload = json.dumps(clean, ensure_ascii=False)
-    if len(payload.encode('utf-8')) > AI_CHAT_MAX_BYTES:
-        return jsonify({'error': '대화가 너무 큽니다.'}), 413
-
-    ensure_ai_chat_sessions_table()
-    db = get_db()
-    cursor = db.cursor()
-    try:
-        cursor.execute(
-            """INSERT INTO ai_plan_chat_sessions (user_id, sessions_json, updated_at)
-               VALUES (%s, %s, %s)
-               ON DUPLICATE KEY UPDATE sessions_json = VALUES(sessions_json), updated_at = VALUES(updated_at)""",
-            (user_id, payload, datetime.now())
-        )
-        db.commit()
-        return jsonify({'ok': True, 'count': len(clean)})
-    except Exception as e:
-        db.rollback()
-        return jsonify({'error': str(e)}), 500
-    finally:
-        db.close()
+    return jsonify({'ok': True, 'count': 0})
 
 
 @app.route('/api/users/<int:user_id>/meal-plans', methods=['POST'])
