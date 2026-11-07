@@ -243,14 +243,14 @@ def paste_phone(img, screen, px0, y, pw, radius, band):
 
 
 def flow_chips(img, W, y, band):
-    """조리 순서 장의 흐름 칩: 원문 → 5단계 요약 → 읽어 주기. 반환: 다음 요소의 y."""
+    """조리 순서 장의 흐름 칩: 원문 → 요약 → 읽어 주기(단계 수는 쓰지 않는다 — 레시피마다 다르다). 반환: 다음 요소의 y."""
     d = ImageDraw.Draw(img)
     pad = int(W * PAD)
     h = int(W * 0.088)
     f = font(int(W * 0.0385), 800)
     fb = font(int(W * 0.0385), 900)
     gap = int(W * 0.045)
-    items = [("원문", "dim"), ("5단계 요약", "hi"), ("읽어 주기", "dim")]
+    items = [("원문", "dim"), ("요약", "hi"), ("읽어 주기", "dim")]
     x = pad
     for i, (t, kind) in enumerate(items):
         ff = fb if kind == "hi" else f
@@ -280,14 +280,16 @@ def photo_cards(img, W, phone_y, pw):
     dim_top = phone_y + int(48 * css)
     dim_bot = phone_y + int((48 + 223) * css)
     mid = (dim_top + dim_bot) // 2
-    cw = int(W * 0.50)
+    cw = int(W * 0.40)
     box = (0, 706, 1206, 1400)
-    v2.paste_card(img, os.path.join(SRC, "camera_receipt.png"), box, cw, int(W * 0.5 - W * 0.16), mid - int(W * 0.035), -5)
-    v2.paste_card(img, os.path.join(SRC, "camera_pizza_cheese.png"), box, cw, int(W * 0.5 + W * 0.16), mid + int(W * 0.025), 5)
+    # 왼쪽 영수증 · 가운데(뒤→앞) 음식 한 접시 · 오른쪽 쿠팡 주문내역(여러 식품) — 2026-11-07 「여러 음식이 있는 사진도」
+    v2.paste_card(img, os.path.join(SRC, "camera_receipt.png"), box, cw, int(W * 0.5 - W * 0.285), mid - int(W * 0.03), -6)
+    v2.paste_card(img, os.path.join(SRC, "camera_coupang.png"), box, cw, int(W * 0.5 + W * 0.285), mid - int(W * 0.01), 6)
+    v2.paste_card(img, os.path.join(SRC, "camera_pizza_cheese.png"), box, cw, int(W * 0.5), mid + int(W * 0.03), -1)
     # 칩: 카드 아래쪽 가운데에 걸친다
     d = ImageDraw.Draw(img)
     f = font(int(W * 0.036), 900)
-    txt = "영수증 · 음식 사진"
+    txt = "영수증 · 음식 · 주문내역"
     h = int(W * 0.082)
     ic = v2.draw_icon("camera", int(h * 0.56), color=BRAND)
     tw = d.textlength(txt, font=f)
