@@ -27,7 +27,8 @@ import make_store_assets_v2 as v2
 from make_store_assets import BRAND, BRAND_LIGHT, INK, STORE, font, rounded_mask, save_png
 
 SRC = os.path.join(STORE, "sources")
-SIZES = v1.SIZES
+# 태블릿(Play 7인치·10인치 공통, 9:16) — 2026-11-08 사용자 요청. 폰과 같은 장을 더 크게 그린다.
+SIZES = {**v1.SIZES, "tablet_1440x2560": (1440, 2560)}
 CREAM = (255, 244, 190)
 WHITE = (255, 255, 255)
 ORANGE = (255, 138, 26)
