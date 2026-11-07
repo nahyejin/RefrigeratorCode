@@ -271,84 +271,45 @@ def make_feature_graphic(icon):
 # 스크린샷
 # ---------------------------------------------------------------------------
 
-# 원본 화면: (저장소 기준 경로, 영상이면 초 단위 시점, 위에서 잘라낼 px). 녹화본 대부분은
-# 위쪽이 iOS 상태바 + 화면 녹화 표시라 잘라낸다. 상태바 없이 앱 화면만 녹화된 것(01·02편 데모)은 0.
-# store/sources/ 는 사용자가 직접 찍어 준 실제 앱 캡처(2026-09-18).
-V = "my-video/public/"
+# 원본 화면: (저장소 기준 경로, 영상이면 초 단위 시점, 위에서 잘라낼 px). 전부 store/sources/ 의 앱 캡처(1290x2796).
+#
+# 2026-11-07 8장으로 다시 만들었다. 개발 서버(localhost:5178)의 **현재 앱**을 크롬 헤드리스(430x932 @3x)로 찍었고,
+# 레시피·썸네일은 배포 서버의 실제 데이터다. AI 호출이 드는 화면은 크레딧을 쓰지 않으려고 서버 응답만 가짜로 갈아 끼워 찍었다:
+#   diet(/api/plan/suggest)·photo(/api/ingredients/recognize)·chat(/api/chat)·coach(/api/recipes/<id>/ask)
+#   → 응답 속 레시피는 전부 실제 DB 레시피, 문장·이유 줄만 앱이 낼 법한 말로 직접 썼다.
+# family 는 로그인 화면을 보이려고 가족 API 응답(샘플 식구 엄마·아빠, 이번 달 8회)을 가짜로 넣었다.
+# match·expiry·cook 은 서버 응답을 그대로 쓴 실제 화면이다(비회원, 샘플 냉장고 13개).
 SOURCES = {
-    # 2026-11-06 새 UI 로 다시 찍음 — 개발 서버의 실제 앱(비회원, 배포 서버 레시피·실제 AI 호출)을 휴대폰 크기(430x932, 3배 = 1290x2796)로 직접 캡처
-    "diet": ("store/sources/diet_ai_plan.png", None, 0),
-    "chat": ("store/sources/chat_demo.png", None, 0),
-    "photo": (V + "reel1_loading_freeze.png", None, 0),
-    # (INSETS crop 의 y 는 웹뷰 좌표에 상태바 132px 를 더한 화면 캡처 좌표다)
-    # 2026-10-09 화면 개편 뒤 새로 찍음 — 안드로이드 에뮬레이터(1080x2400)에서 실제 앱(비회원 + 배포 서버
-    # 레시피)을 그대로 캡처. 위 132px 는 안드로이드 상태바. 아래 INSETS 의 같은 이름 항목도 같은 캡처에서 자른다.
     "match": ("store/sources/match_main.png", None, 0),
-    "substitute": ("store/sources/substitute_main.png", None, 0),
-    "expiry": ("store/sources/match_main.png", None, 0),  # 배경은 목록 그대로(임박 필터 적용 뒤 화면은 썸네일이 안 뜬 카드가 섞였다)
-    "cook": ("store/sources/cook_main.png", None, 0),
-    # 2026-10-12: 로그인한 가족 계정(엄마) 새 UI 녹화에서 뽑음 — 헤더의 닉네임은 기본 블러(NO_BLUR 아님)
-    "family": ("store/sources/family_main.png", None, 0),
-    # 2026-11-06 쿡 코치 장표용 — 레시피 창 위에 쿡 코치 카드를 열고 「5배로 만들면 계량은?」을 실제로 물은 화면
+    "diet": ("store/sources/diet_ai_plan.png", None, 0),
+    "photo": ("store/sources/photo_confirm.png", None, 0),
+    "chat": ("store/sources/chat_demo.png", None, 0),
     "coach": ("store/sources/coach_demo.png", None, 0),
+    "expiry": ("store/sources/expiry_sheet.png", None, 0),
+    "cook": ("store/sources/cook_main.png", None, 0),
+    "family": ("store/sources/family_main.png", None, 0),
 }
 
-NO_BLUR = {"diet", "chat", "match", "expiry", "substitute", "cook", "coach"}  # substitute 는 로그인 상태(`엄마`)로 찍혀 헤더 블러
+NO_BLUR = set(SOURCES)  # 모든 원본이 비회원이거나 샘플 계정(엄마)이라 가릴 것이 없다
 
-# 폰 화면 위에 겹쳐 올리는 보조 이미지(기울인 작은 카드 / 확대 콜아웃).
-#   crop: 원본 픽셀 좌표(상태바 자르기 전)  w: 캔버스 폭 대비 너비  angle: 반시계 방향 기울기(도)
-#   cx: 캔버스 폭 대비 중심 x  cy: 폰 화면 윗변에서 중심까지 거리(캔버스 폭 대비)
-INSETS = {
-    # 사진 찍는 화면 3장(영수증 · 음식 · 쿠팡 주문내역) — "영수증이든 음식 사진이든"을 한눈에.
-    # 위쪽에 부채꼴로 펼치고, 가운데 장을 맨 앞에(목록 순서대로 그려서 마지막이 위로 온다).
-    "photo": [
-        dict(src="store/sources/camera_receipt.png", crop=(0, 223, 1206, 2622),
-             w=0.27, angle=9, cx=0.22, cy=0.36, radius=0.045),
-        dict(src="store/sources/camera_coupang.png", crop=(0, 223, 1206, 2622),
-             w=0.27, angle=-9, cx=0.78, cy=0.36, radius=0.045),
-        dict(src="store/sources/camera_pizza_cheese.png", crop=(0, 223, 1206, 2622),
-             w=0.29, angle=0, cx=0.5, cy=0.33, radius=0.045),
-    ],
-    # 재료 매칭도 설정 팝업
-    "match": dict(src="store/sources/match_filter_popup.png", crop=(94, 582, 986, 1887),
-                  w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
-    # "대체 가능 · 당근→양파"가 있는 레시피 카드를 잘라 크게
-    "substitute": dict(src="store/sources/substitute_main.png", crop=(30, 1520, 1260, 1930),
-                       w=0.92, angle=-2, cx=0.5, cy=0.78, radius=0.03),
-    # 임박 재료 설정 팝업
-    "expiry": dict(src="store/sources/expiry_filter_popup.png", crop=(94, 582, 986, 1887),
-                   w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
-    # 가족별 요리 횟수 + 이번 달 절약액과 그 계산식
-    "family": dict(src="store/sources/family_savings.png", crop=(20, 140, 920, 420),
-                   w=0.9, angle=-2, cx=0.5, cy=0.62, radius=0.03),
-}
+# 폰 화면 위에 겹쳐 올리는 보조 이미지(기울인 작은 카드). 이번 8장에는 쓰지 않는다 — 글을 줄이고 화면을 크게 보이려고.
+INSETS = {}
 
-# band: k=검정(AI 기능), y=브랜드 노랑, w=밝은 회색. focus: 폰 화면을 위에서부터 어디쯤
-# 보여줄지(원본 높이 대비 비율, 상태바 자른 뒤 기준) — 핵심 UI가 잘리지 않게 편마다 맞춤.
+# 올리는 순서 = 파일 번호. band: k=검정(AI 기능), y=브랜드 노랑, w=밝은 회색.
+# 글은 큰 헤드라인(두 줄 이내)뿐 — 눈썹 문구·보조 문장은 뺐다. AI 장에만 ✦AI 칩.
 # badge="sound": 폰 화면 가운데에 소리 표시(요리 모드).
 SLIDES = [
-    dict(key="diet", band="k", ai=True, eyebrow="식단 짜기",
-         headline="말 한마디로\n일주일 식단 완성", sub="냉장고 재료로 먼저 채워서, 장보기는 최소한만", focus=0.0),
-    dict(key="chat", band="k", ai=True, eyebrow="쿡 픽",
-         headline="검색 말고,\n그냥 물어보세요", sub="내 재료·취향까지 반영해서 골라드려요", focus=0.0),
-    dict(key="photo", band="k", ai=True, eyebrow="사진 인식",
-         headline="사진 한 장이면\n재료 등록 끝", sub="영수증이든 음식 사진이든, 재료와 유통기한까지", focus=0.0),
-    dict(key="match", band="y", ai=False, eyebrow="냉장고 요리",
-         headline="지금 있는 재료로\n만들 수 있는 요리", sub="내 냉장고 기준 매칭률 순으로 정렬해드려요", focus=0.0),
-    dict(key="substitute", band="y", ai=False, eyebrow="대체 재료",
-         headline="재료가 없어도\n포기하지 마세요", sub="한두 개 부족하면 대신 쓸 재료를 알려드려요", focus=0.0),
-    dict(key="expiry", band="w", ai=False, eyebrow="유통기한 관리",
-         headline="곧 상할 재료부터\n먼저 요리하세요", sub="유통기한 임박한 재료 순으로 레시피를 추천해요", focus=0.0),
-    dict(key="cook", band="w", ai=False, eyebrow="요리 모드",
-         headline="손에 물 묻어도\n귀로 들으세요", sub="조리 순서를 소리로 읽어드려요", focus=0.0, badge="sound"),
-    dict(key="family", band="y", ai=False, eyebrow="우리 식구 요리",
-         headline="가족이 함께,\n아낀 돈까지 한눈에", sub="가족이 함께 무슨 요리를 얼마나 했는지,\n외식 대비 아낀 돈을 계산해요.", focus=0.0),
-    # 파일 번호는 만든 순서라 기존 01~08 을 건드리지 않으려고 맨 뒤(09)에 둔다 — 올리는 순서는 STORE_LISTING.md 표를 따른다.
-    dict(key="coach", band="k", ai=True, eyebrow="쿡 코치",
-         headline="요리하다 막히면\n바로 물어보세요", sub="이 요리 한 가지만 보고 재료 대체·분량·간 조절까지", focus=0.0),
+    dict(key="match", band="y", ai=False, headline="냉장고에 있는 걸로\n오늘 저녁 해결"),
+    dict(key="diet", band="k", ai=True, headline="말 한마디로\n일주일 식단 끝"),
+    dict(key="photo", band="k", ai=True, focus=0.18, headline="사진 한 장이면\n재료 등록 끝"),
+    dict(key="chat", band="k", ai=True, headline="검색 말고,\n그냥 물어보세요"),
+    dict(key="coach", band="k", ai=True, headline="요리하다 막히면\n바로 물어보세요"),
+    dict(key="expiry", band="y", ai=False, focus=0.40, headline="곧 상할 재료부터\n먼저 알려드려요"),
+    dict(key="cook", band="w", ai=False, headline="손에 물 묻어도\n귀로 들으세요", badge="sound"),
+    dict(key="family", band="y", ai=False, headline="가족과 함께,\n아낀 돈까지"),
 ]
 
-SIZES = {"play": (1080, 1920), "ios": (1290, 2796)}
+SIZES = {"play": (1080, 1920), "ios": (1290, 2796), "ios_1206x2622": (1206, 2622)}
 
 
 def load_frame(key):
@@ -421,7 +382,7 @@ def paste_inset(img, spec, W, phone_top):
 def paste_sound_badge(img, W, cx, cy):
     """요리 모드 — 폰 화면 가운데에 "소리로 읽는 중" 표시(노란 원 + 스피커 + 음파, 아래 알약 문구)."""
     base = img.convert("RGBA")
-    D = int(W * 0.3)
+    D = int(W * 0.22)
     layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     # 그림자
@@ -464,55 +425,36 @@ def render_slide(slide, W, H):
     d = ImageDraw.Draw(img)
 
     head_c = (255, 255, 255) if band == "k" else INK
-    sub_c = (216, 216, 222) if band == "k" else ((61, 47, 0) if band == "y" else (91, 91, 99))
-    label_c = (255, 214, 94) if band == "k" else ((107, 82, 0) if band == "y" else (154, 123, 0))
 
     pad = int(W * 0.075)
-    y = int(W * 0.085)
-    # eyebrow: [AI] 칩 + 기능 이름
-    ef = font(int(W * 0.036), 800)
-    x = pad
+    y = int(W * 0.08)
+    # ✦AI 칩 — AI 장에만. (칩이 없는 장도 같은 자리를 비워 헤드라인 높이를 맞춘다)
+    ch = int(W * 0.062)
     if slide["ai"]:
-        cf = font(int(W * 0.032), 900)
+        cf = font(int(W * 0.036), 900)
         tw = d.textlength("AI", font=cf)
-        ch = int(W * 0.058)
         chip_bg, chip_fg = (BRAND, INK) if band == "k" else (INK, BRAND)
-        d.rounded_rectangle([x, y, x + tw + ch * 0.9, y + ch], radius=ch // 2, fill=chip_bg)
-        d.text((x + ch * 0.45, y + ch / 2), "AI", font=cf, fill=chip_fg, anchor="lm")
-        x += int(tw + ch * 0.9 + W * 0.02)
-    d.text((x, y + int(W * 0.029)), slide["eyebrow"], font=ef, fill=label_c, anchor="lm")
-    y += int(W * 0.058) + int(W * 0.035)
+        sx = ch * 0.5  # 별(✦) 지름 기준
+        d.rounded_rectangle([pad, y, pad + ch * 0.62 + sx + tw + ch * 0.5, y + ch], radius=ch // 2, fill=chip_bg)
+        cx, cy, r = pad + ch * 0.62 + sx / 2 - ch * 0.12, y + ch / 2, sx / 2
+        k = r * 0.28  # 네 갈래 별(✦)
+        d.polygon([(cx, cy - r), (cx + k, cy - k), (cx + r, cy), (cx + k, cy + k), (cx, cy + r), (cx - k, cy + k), (cx - r, cy), (cx - k, cy - k)], fill=chip_fg)
+        d.text((cx + r + ch * 0.2, y + ch / 2), "AI", font=cf, fill=chip_fg, anchor="lm")
+    y += ch + int(W * 0.03)
 
-    hf = font(int(W * 0.088), 900)
+    hf = font(int(W * 0.098), 900)
     for line in wrap_lines(slide["headline"]):
         d.text((pad, y), line, font=hf, fill=head_c)
-        y += int(W * 0.088 * 1.2)
-    y += int(W * 0.018)
-    sf = font(int(W * 0.038), 500)
-    # 설명 줄이 폭을 넘으면 어절(띄어쓰기) 단위로 줄바꿈 — 한 단어가 두 줄로 쪼개지지 않게
-    # (문장 안에 \n 을 넣으면 그 자리에서 먼저 끊는다 — 쉼표 뒤처럼 읽기 좋은 자리에서 끊고 싶을 때)
-    lines = []
-    for part in slide["sub"].split("\n"):
-        cur = ""
-        for word in part.split(" "):
-            trial = f"{cur} {word}".strip()
-            if cur and d.textlength(trial, font=sf) > W - pad * 2:
-                lines.append(cur)
-                cur = word
-            else:
-                cur = trial
-        lines.append(cur)
-    for line in lines:
-        d.text((pad, y), line, font=sf, fill=sub_c)
-        y += int(W * 0.038 * 1.45)
-    y += int(W * 0.06)
+        y += int(W * 0.098 * 1.2)
+    y += int(W * 0.05)
 
     # 폰 화면: 가운데, 둥근 모서리 + 그림자, 아래로는 화면 밖으로 흘려 보낸다
     frame = load_frame(slide["key"])
-    pw = int(W * 0.8)
+    pw = int(W * 0.86)
     ph = int(frame.height * pw / frame.width)
     shot = frame.resize((pw, ph), Image.LANCZOS)
-    focus_px = int(ph * slide["focus"])
+    # focus: 폰 화면을 위에서 몇 %부터 보일지(핵심 UI가 잘리지 않게). 화면 끝이 캔버스 바닥보다 위에서 끝나지 않게 상한을 둔다.
+    focus_px = min(int(ph * slide.get("focus", 0.0)), max(0, ph - (H - y)))
     radius = int(pw * 0.06)
     px0 = (W - pw) // 2
     # 화면이 캔버스 안에 다 들어가면(앱스토어처럼 세로로 긴 캔버스) 아래 모서리까지 둥글게
@@ -554,6 +496,9 @@ def make_shots():
     for platform, (W, H) in SIZES.items():
         out = os.path.join(STORE, "screenshots", platform)
         os.makedirs(out, exist_ok=True)
+        for old in os.listdir(out):  # 장수·이름이 바뀌어도 옛 파일이 섞여 남지 않게
+            if old.endswith(".png"):
+                os.remove(os.path.join(out, old))
         for i, slide in enumerate(SLIDES, 1):
             save_png(render_slide(slide, W, H), os.path.join(out, f"{i:02d}_{slide['key']}.png"))
         print(f"{platform} {W}x{H}: {len(SLIDES)}장")
