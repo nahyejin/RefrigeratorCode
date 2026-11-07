@@ -1,3 +1,4 @@
+import { getSharedSubstituteTable } from '../utils/substituteStore';
 import React from 'react';
 import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
@@ -110,6 +111,9 @@ interface Props {
 type SubstituteTable = { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
 let substituteTableMemo: SubstituteTable | null = null;
 function readSubstituteTable(): SubstituteTable | null {
+  // 목록이 받아 둔 표를 **메모리에서** 먼저 — 휴대폰 저장소(5MB)엔 29MB 표가 안 들어가 저장이 실패한다(utils/substituteStore.ts)
+  const sharedTable = getSharedSubstituteTable();
+  if (sharedTable) return sharedTable as SubstituteTable;
   if (substituteTableMemo) return substituteTableMemo;
   try {
     const c = JSON.parse(localStorage.getItem('substitute_table_cache') || 'null');

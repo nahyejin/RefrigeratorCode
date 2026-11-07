@@ -1,3 +1,4 @@
+import { shareSubstituteTable } from '../utils/substituteStore';
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { fetchCsvOnce } from '../utils/csvOnce';
 import BackButton from '../components/ui/BackButton';
@@ -783,6 +784,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         });
         
         setSubstituteTable(table);
+        shareSubstituteTable(table);
       } catch (error) {
         // 에러 발생 시 콘솔에만 출력
         console.warn('[IngredientDetail] 대체재료 테이블 로드 실패:', error);

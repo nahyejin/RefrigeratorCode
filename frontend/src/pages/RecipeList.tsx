@@ -1,3 +1,4 @@
+import { shareSubstituteTable } from '../utils/substituteStore';
 import axios, { AxiosResponse } from 'axios';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import FloatingScanLoader from '../components/FloatingScanLoader';
@@ -1666,6 +1667,7 @@ const RecipeList: React.FC = () => {
     ]).then(([ingredients, substitutes]) => {
       setAllIngredients(ingredients);
       setSubstituteTable(substitutes);
+      shareSubstituteTable(substitutes);
       console.log('[RecipeList] CSV 파일 병렬 로드 완료');
       console.log('[RecipeList] 대체제 테이블 로드 확인:', {
         substituteTableKeys: Object.keys(substitutes).length,

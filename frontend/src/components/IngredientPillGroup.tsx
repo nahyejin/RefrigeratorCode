@@ -10,6 +10,8 @@ interface IngredientPillGroupProps {
   /** 레시피 제목 — 주재료는 대체 칩으로 보이지 않게 한다 */
   title?: string;
   style?: React.CSSProperties;
+  /** 대체 칩(「쪽파 → 대파」)을 눌렀을 때 — 레시피 창을 열고 쿡 코치에게 묻는다. 없으면 칩은 표시 전용 */
+  onSubstituteClick?: (from: string, to: string) => void;
   /** 부족 재료 pill 을 눌렀을 때 (구매 연결 등). 없으면 pill 은 표시 전용 */
   onMissingClick?: (ingredient: string) => void;
   /** 가로 목록처럼 카드 높이를 일정하게 유지해야 하는 곳에서 켠다 */
@@ -21,7 +23,7 @@ let globalSynonymDict: { [key: string]: string } | null = null;
 let globalSynonymDictLoading = false;
 let globalSynonymDictPromise: Promise<{ [key: string]: string }> | null = null;
 
-const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, title, style, onMissingClick, compact = false }) => {
+const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, title, style, onMissingClick, onSubstituteClick, compact = false }) => {
   const [synonymDict, setSynonymDict] = useState<{ [key: string]: string } | null>(globalSynonymDict);
   const [isDictLoaded, setIsDictLoaded] = useState(!!globalSynonymDict);
   
@@ -191,6 +193,22 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
           const clickable = state === 'missing' && !!onMissingClick;
           if (!clickable) {
             const target = state === 'substitutable' ? substituteTarget.get(normalize(displayName)) ?? substituteTarget.get(normalize(ing)) : undefined;
+            // 눌러서 쿡 코치에게 묻는다 — 표는 후보만 내고 「이 요리에서 정말 되나」는 이 요리를 읽는 AI 가 답한다
+            if (target && onSubstituteClick) {
+              return (
+                <button
+                  key={ing}
+                  type="button"
+                  title={`${displayName} 대신 ${target} 써도 되는지 쿡 코치에게 물어보기`}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSubstituteClick(displayName, target); }}
+                  style={{ ...pillStyle(state), cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {displayName}
+                  <span aria-hidden style={{ margin: '0 5px', opacity: 0.7 }}>→</span>{target}
+                  <span aria-hidden style={{ marginLeft: 5, opacity: 0.55, fontWeight: 700 }}>›</span>
+                </button>
+              );
+            }
             return (
               <span key={ing} style={pillStyle(state)}>
                 {displayName}

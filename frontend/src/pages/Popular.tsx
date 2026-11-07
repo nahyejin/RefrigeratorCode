@@ -1,3 +1,4 @@
+import { shareSubstituteTable } from '../utils/substituteStore';
 import React, { useState, useEffect, useMemo } from 'react';
 import { setPageContext } from '../utils/pageContext';
 import { fetchCsvOnce } from '../utils/csvOnce';
@@ -755,6 +756,7 @@ const Popular = () => {
               if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
                 console.log('[Popular] 캐시된 대체재료 테이블 사용', Object.keys(parsedCache.data).length, '개 재료');
                 setSubstituteTable(parsedCache.data);
+                shareSubstituteTable(parsedCache.data);
                 return;
               } else {
                 console.log('[Popular] 캐시 버전 불일치, 새로 로드합니다. (기존:', parsedCache.version, ', 새:', CACHE_VERSION, ')');
@@ -852,6 +854,7 @@ const Popular = () => {
         }
         
         setSubstituteTable(table);
+        shareSubstituteTable(table);
       } catch (error) {
         console.error('[Popular] 대체재료 테이블 로드 실패:', error);
       }

@@ -5,7 +5,7 @@
  * 역할을 모른다** — 꽃굴무침에서 「알배추 → 대파」, 「굴 → 오징어」(0.64), 「알룰로스 → 라칸토 감미료」(브랜드 0.73) 같은 추천이 나왔다.
  * 규칙으로 막을 수 있는 것부터 막는다(비용 0). 남는 애매한 것은 레시피 창에서 칩을 눌러 쿡 코치에게 묻는다(맥락을 아는 AI).
  *
- *   1) 유사도 `MIN_SUBSTITUTE_SCORE`(0.60) 미만은 추천하지 않는다. 표는 점수순이라 예전엔 「냉장고에 있는 **첫** 후보」를 점수와 상관없이 골랐다.
+ *   1) 유사도 `MIN_SUBSTITUTE_SCORE`(0.60) **이하**는 추천하지 않는다(0.60 은 「유사한 특성」 하한 값 그대로라 6.4% 가 정확히 0.60 이고, 「양념 소불고기 → 만두」도 0.60 이었다). 표는 점수순이라 예전엔 「냉장고에 있는 **첫** 후보」를 점수와 상관없이 골랐다.
  *      0.70 으로 시험했더니 괜찮은 대체(홍게간장→간장 0.62, 버터→마가린 0.62, 굴→홍합살 0.65)도 같이 빠져서 0.60 으로 낮췄다 — 확실히 무관한 것
  *      (알배추→대파 0.45)만 점수로 막고, 남는 애매한 것은 주재료 제외(3)와 쿡 코치 확인(칩을 누름)이 받친다.
  *   2) 브랜드·제품명 후보는 뺀다(없는 재료 쪽이 브랜드일 때만 허용 — 다시다 → 미원).
@@ -32,15 +32,28 @@ export function usableSubstitutes<T extends Candidate>(list: T[] | undefined | n
   if (!Array.isArray(list)) return [];
   const missingIsBrand = BRAND_NAMES.has(norm(missing));
   return list.filter(c =>
-    (c.similarity_score ?? 0) >= MIN_SUBSTITUTE_SCORE
+    (c.similarity_score ?? 0) > MIN_SUBSTITUTE_SCORE
     && (missingIsBrand || !BRAND_NAMES.has(norm(c.ingredient_b))));
 }
 
-/** 레시피 제목에 이름이 나오는 재료는 그 요리의 주재료로 본다(공백 무시). 제목을 모르면 판단하지 않는다. */
+/**
+ * 레시피 제목에 나오는 재료는 그 요리의 주재료로 본다(공백 무시). 제목을 모르면 판단하지 않는다.
+ * 이름이 제목에 통째로 안 나와도 같은 재료일 수 있다 — 제목 「코스트코 **불고기**가 …」 에 재료 이름은 「양념 **소불고기**」(2026-11-07 화면 녹화).
+ * 그래서 ① 이름의 **마지막 낱말**(2글자↑)이 제목에 있거나 ② 이름에서 뗀 **3글자 이상 조각**이 제목에 있으면 주재료로 본다.
+ */
 export function isMainIngredient(name: string, title?: string): boolean {
   const t = (title || '').replace(/\s+/g, '');
   const n = (name || '').replace(/\s+/g, '');
-  return !!t && !!n && t.includes(n);
+  if (!t || !n) return false;
+  if (t.includes(n)) return true;
+  const last = (name || '').trim().split(/\s+/).pop() || '';
+  if (last.length >= 2 && t.includes(last)) return true;
+  for (let len = Math.min(n.length - 1, 5); len >= 3; len--) {
+    for (let i = 0; i + len <= n.length; i++) {
+      if (t.includes(n.slice(i, i + len))) return true;
+    }
+  }
+  return false;
 }
 
 /** 이 재료를 **냉장고의 다른 재료로 대신할 수 있는지** — 있으면 가장 점수 높은 후보. 목록의 개수·칩·레시피 창이 같은 기준을 쓴다. */

@@ -1,3 +1,4 @@
+import { takePendingCoachQuestion } from '../utils/substituteStore';
 import ChatText from './ui/ChatText';
 import React from 'react';
 import Portal from './Portal';
@@ -118,6 +119,16 @@ const CookCoach: React.FC<{
   // 다른 요리로 바뀌면 대화를 비운다(요리 한 건 전용이라 이어 갈 맥락이 없다).
   React.useEffect(() => {
     setMessages([]); setInput(''); setError(''); setOpen(false);
+  }, [recipeId]);
+
+  // 카드 바깥의 대체 칩을 눌러 들어왔으면 질문이 맡겨져 있다 — 카드를 열고 질문만 채운다(보내기는 사용자가). 위의 비우기 효과 **뒤**에 두어야 이긴다.
+  // 가져온 질문은 ref 에 기억해 둔다 — 개발 모드(StrictMode)는 효과를 두 번 돌려서 앞의 「비우기」가 두 번째에 채운 질문을 다시 지운다. 이미 가져간 질문은 두 번째엔 비어 있다.
+  const askedRef = React.useRef<{ id: number; q: string } | null>(null);
+  React.useEffect(() => {
+    const q = takePendingCoachQuestion(recipeId);
+    if (q) askedRef.current = { id: recipeId, q };
+    const a = askedRef.current;
+    if (a && a.id === recipeId) { setOpen(true); setInput(a.q.slice(0, 300)); }
   }, [recipeId]);
 
   React.useEffect(() => {

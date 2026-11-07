@@ -1,3 +1,4 @@
+import { askCoachOnOpen } from '../utils/substituteStore';
 import React from 'react';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -887,6 +888,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             // 쿠팡 파트너스 운영정책은 광고 클릭이 사용자의 의도일 때만 발생할 것을 요구한다.
             // → 시트로 광고를 보여주고, 쿠팡으로 나가는 클릭은 사용자가 직접 하게 한다.
             onMissingClick={(name) => setAdIngredient(name)}
+            // 대체 칩을 누르면 레시피 창이 열리고 쿡 코치가 「A 대신 B 써도 돼요?」를 채운 채로 뜬다(보내기는 사용자가)
+            onSubstituteClick={(from, to) => {
+              askCoachOnOpen(Number(recipe.id), `${from} 대신 ${to} 써도 돼요?`);
+              trackRecipeOpen(recipe.id);
+              openCookMode({ id: recipe.id, title: recipe.title, link: recipe.link, myIngredients });
+            }}
             compact={isHorizontal}
           />
         ) : (

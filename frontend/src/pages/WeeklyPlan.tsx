@@ -854,19 +854,28 @@ const WeeklyPlan: React.FC = () => {
         }
       />
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input
-          ref={wishInput}
-          value={wish}
-          onChange={e => setWish(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') runPlan(); }}
-          placeholder="예: 아이 먹을 것 위주로"
-          disabled={asking}
-          style={{
-            flex: 1, minWidth: 0, minHeight: 44, borderRadius: 12,
-            border: '1px solid var(--line-200)', padding: '0 12px', fontSize: 14,
-            boxSizing: 'border-box',
-          }}
-        />
+        {/* 입력창 안 왼쪽의 ✦ — 번쩍이는 효과 대신 **조용한 표시**로 「AI 가 읽는 칸」임을 알린다(2026-11-07 「연한 빛 애니메이션은 촌스럽다」). */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+          <span aria-hidden style={{
+            position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+            color: '#C99700', display: 'inline-flex', pointerEvents: 'none',
+          }}>
+            <Spark size={16} />
+          </span>
+          <input
+            ref={wishInput}
+            value={wish}
+            onChange={e => setWish(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') runPlan(); }}
+            placeholder="예: 아이 먹을 것 위주로"
+            disabled={asking}
+            style={{
+              width: '100%', minHeight: 44, borderRadius: 12,
+              border: '1px solid var(--line-200)', padding: '0 12px 0 36px', fontSize: 14,
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
         {/* 말로 입력. 입력칸에 채우기만 하고 짜기는 아래 버튼으로 직접 한다. */}
         <VoiceInputButton value={wish} onText={setWish} onError={setError} disabled={asking} size={44} />
       </div>
@@ -1163,7 +1172,7 @@ const WeeklyPlan: React.FC = () => {
                 예전엔 긴 목록 **맨 아래** 흰 바탕·얇은 테두리 한 줄이라 아무도 못 봤다(2026-11-07 「너무 안 보인다」). 다른 AI 입구(쿡 코치·식단 짜기)와
                 같은 검정 알약(`ai-fab-pill k`)으로 만들고 **목록 바로 위**로 올렸다. 누르면 접어 둔 조건 칸을 펼치고 입력창으로 데려간다
                 (크레딧은 거기서 짜기를 누를 때 나간다). */}
-            {!aiNote && (
+            {!aiNote && !editOpen && (
               <div style={{ marginBottom: 12 }}>
                 <button
                   type="button"
