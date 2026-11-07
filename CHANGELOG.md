@@ -14812,6 +14812,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
   - `FloatingScanLoader`(매칭 계산 로딩): 3x3 칸 차오르기 → **재료가 받침에 하나씩 앉았다 사라지는 루프(1.2초, 한 바퀴마다 다른 재료)**. AI 대기(`StepLoading` scan-frame·별 표시)와는 계속 다른 그림. 움직임 줄이기에서도 상태 표시라 이동 없이 밝기만 숨 쉼.
   - `RecipeList` 빈 화면 2종: 옛 `nodata.png` → 「등록된 재료가 없습니다」 = 받침 + 점선 재료 자리(`ingredient="slot"`), 「조건에 맞는 레시피가 없어요」 = 재료가 받침 옆으로 굴러 나간 모양(`rolledOut`, 「딱 맞지 않음」 예외). 문구는 그대로.
   - 스플래시 「앉는 순간」 프레임 6장: `store/logo_proposals/e9_final/p1_final/splash_frames/`.
+- **③ 웹 아이콘·PWA·링크 공유 이미지·옛 자산 정리 (3차 푸시)**
+  - 새 마스터(`frontend/assets/icon.png`)에서 `scripts/make_web_icons.py` 로 웹 아이콘 일체를 **새 파일명(_v2)** 으로 생성: `cookmatch_icon_v2.png`(512)·`_192_v2`·`_512_v2`·`cookmatch_maskable_512_v2.png`(마크 80% 로 줄여 안전영역 안)·`cookmatch_apple_touch_v2.png`(180, 알파 없음)·`cookmatch_favicon_32/48_v2.png`·`badge_white.png`(푸시 배지, 투명+흰 실루엣). 옛 `public/cookmatch_icon.png`·`src/assets/cookmatch_icon.png` 삭제.
+  - `index.html`: 파비콘·apple-touch-icon 을 새 파일로(개발 전용 `/src/assets/...` 경로 제거), **og:title/description/image/url·twitter:card 신설**(이전엔 og 메타가 한 줄도 없었음. 문구는 사실만: 「인기 레시피만 4만 개, 뭘 골라도 맛집」·네이버·유튜브 44,001개·매일 엄선 수집). `public/og_image.png`(1200x630, 노랑 바탕 + 마크 + 카피) 는 `scripts/make_og_image.py` 로 재생성(44,001 = 39,630 + 4,371 단언 포함). `download.html` 도 og:image·아이콘 교체.
+  - `manifest.json`: 아이콘 8항목(한 파일을 여러 크기로 속임, `any maskable` 동시 지정) → 192·512(any) + 512(maskable) 3항목, 없는 파일을 가리키던 숏컷 아이콘 3개 제거 + 숏컷 주소를 앱의 실제 경로로(`/my-fridge`·`/recipe-list`·`/popular`), 색은 #FFD600 유지.
+  - `sw.js`: `CACHE_NAME` v1.9.5 → v1.10.0(설치된 PWA 의 옛 아이콘 캐시 정리), 사전 캐시 목록을 개발 경로에서 실제 파일로, 푸시 알림 icon 새 아이콘 · badge 흰 단색 실루엣. `utils/pwa.ts` 알림 아이콘 경로도 새 파일로.
+  - 옛 로고 잔재 삭제(참조 grep 확인 후): 마운트 안 되던 PWA 설치 안내 컴포넌트 5개(`PWAInstallGuide/Prompt/Section/Button`·`PWATestPage`), 링크 없던 옛 페이지 `FridgeSelect`(+라우트 `/fridge-select`), 이미지 `냉털이 로고.png`(1.3MB)·`냉털로고블랙/화이트`·`냉털이로고및캐릭터`·`쿡매치어플아이콘`·`nodata`·`open_loading_page(_)`·`react.svg`. `냉털이 로고 white.png`(영문 워드마크)는 `store/logo_proposals/make_logo_proposals.py` 가 참조해서 **남김**(앱 코드에서는 미사용 import 만 정리). 이름 철자는 앱 안에서 이미 「쿡매치」·「CookMatch」 뿐이라 바꿀 곳 없음(「Cookmatch」는 백엔드 메일·카카오 콘솔, 영역 C·사용자 몫).
 
 ### 브랜드 적용 A — 앱 아이콘·스플래시·알림·스토어 아이콘·피처 그래픽 (2026-11-07)
 새 로고(P1 확정: 노랑 #FFD600 바탕 + 흰 재료 + 검정 받침 #1A1A1E + 진초록 잎 #1E9252)를 네이티브·스토어 자산에 실제로 적용했다. 사용자가 iOS 1.0.11/18·Android 1.0.14/15 빌드를 곧 할 예정이라 이번 빌드에 들어가도록 main 에 바로 반영(점검표가 권한 「다음 빌드로 미룸」 대신).

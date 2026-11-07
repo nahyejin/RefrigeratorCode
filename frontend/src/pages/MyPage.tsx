@@ -19,7 +19,6 @@ import PullToRefresh from '../components/PullToRefresh';
 import UsageGauge, { useIsAdmin, useUsage } from '../components/UsageMeter';
 import GuideOverlay from '../components/GuideOverlay';
 import { markUsageGuideFinished, requestUsageGuideReplay, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
-import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 이미지(없으면 대체)
 import 완료하기버튼 from '../assets/완료하기버튼.svg';

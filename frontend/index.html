@@ -2,7 +2,8 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/src/assets/cookmatch_icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/cookmatch_favicon_32_v2.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/cookmatch_favicon_48_v2.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#FFD600" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -12,6 +13,22 @@
     <meta name="description" content="냉장고에 있는 재료로 만들 수 있는 레시피를 추천해주는 스마트 요리 도우미" />
     <meta name="keywords" content="요리, 레시피, 냉장고, 재료, 쿡매치, cookmatch" />
     <meta name="author" content="쿡매치" />
+
+    <!-- 링크 공유(카톡·인스타·페이스북 등) 미리보기 — 이미지는 scripts/make_og_image.py 로 만든 public/og_image.png(1200x630).
+         레시피 단위 공유는 SPA 라 서버가 OG 를 내려 줄 수 없어 사이트 공통 이미지 하나만 쓴다. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="쿡매치" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:title" content="쿡매치 - 인기 레시피만 4만 개, 뭘 골라도 맛집" />
+    <meta property="og:description" content="냉장고 재료로 만들 수 있는 요리를 찾아 드려요. 네이버·유튜브 인기 레시피 44,001개를 매일 엄선해서 모아요." />
+    <meta property="og:url" content="https://refrigerator-code.vercel.app/" />
+    <meta property="og:image" content="https://refrigerator-code.vercel.app/og_image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="쿡매치 - 인기 레시피만 4만 개, 뭘 골라도 맛집" />
+    <meta name="twitter:description" content="냉장고 재료로 만들 수 있는 요리를 찾아 드려요. 네이버·유튜브 인기 레시피 44,001개를 매일 엄선해서 모아요." />
+    <meta name="twitter:image" content="https://refrigerator-code.vercel.app/og_image.png" />
     
     <!-- Pretendard 폰트 -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
@@ -28,13 +45,10 @@
     <link rel="manifest" href="/manifest.json" />
     
     <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="/src/assets/cookmatch_icon.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/src/assets/cookmatch_icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/src/assets/cookmatch_icon.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/src/assets/cookmatch_icon.png" />
+    <!-- 알파 없는 RGB 180x180 하나로 충분하다(기기가 알아서 줄인다). 파일명에 _v2 — 옛 아이콘 캐시를 피한다 -->
+    <link rel="apple-touch-icon" href="/cookmatch_apple_touch_v2.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/cookmatch_apple_touch_v2.png" />
     
-    <!-- Splash Screen Images for iOS -->
-    <!-- <link rel="apple-touch-startup-image" href="/src/assets/open_loading_page.png" /> -->
     
     <title>쿡매치 - 냉장고 재료로 맛있는 요리</title>
   </head>

@@ -27,7 +27,6 @@ import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import FindEmail from '../pages/FindEmail';
 import ResetPassword from '../pages/ResetPassword';
-import FridgeSelect from '../pages/FridgeSelect';
 import IngredientInput from '../pages/IngredientInput';
 import RecipeList from '../pages/RecipeList';
 import MyPage from '../pages/MyPage';
@@ -49,7 +48,6 @@ const ROUTES = {
   FIND_EMAIL: '/find-email',
   RESET_PASSWORD: '/reset-password',
   MY_FRIDGE: '/my-fridge',
-  FRIDGE_SELECT: '/fridge-select',
   INGREDIENT_INPUT: '/ingredient-input',
   RECIPE_LIST: '/recipe-list',
   RECIPE_DETAIL: '/recipe-detail/:id',
@@ -215,12 +213,6 @@ function AppContent() {
                 <MyFridge />
               </ErrorBoundary>
             } 
-          />
-          
-          {/* 냉장고 선택 페이지 */}
-          <Route 
-            path={ROUTES.FRIDGE_SELECT} 
-            element={<FridgeSelect />} 
           />
           
           {/* 재료 입력 페이지 */}
