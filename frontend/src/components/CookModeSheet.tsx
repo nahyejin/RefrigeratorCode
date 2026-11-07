@@ -911,19 +911,14 @@ const CookModeSheet: React.FC<Props> = ({
         open
         nested
         onClose={() => setLeaveAsk(false)}
-        title="쿡 코치 대화가 지워져요"
-        width={320}
+        title="닫으면 쿡 코치 대화가 지워져요"
+        width={300}
         showClose={false}
         actions={[
-          { label: '그래도 닫기', variant: 'outline', onClick: () => { setLeaveAsk(false); coachHasChatRef.current = false; closeNow(); } },
-          { label: '레시피로 돌아가기', onClick: () => setLeaveAsk(false) },
+          { label: '나가기', variant: 'outline', onClick: () => { setLeaveAsk(false); coachHasChatRef.current = false; closeNow(); } },
+          { label: '취소', onClick: () => setLeaveAsk(false) },
         ]}
-      >
-        <span style={{ wordBreak: 'keep-all' }}>
-          지금까지 나눈 대화는 저장되지 않아<br />
-          레시피 창을 닫으면 사라져요.
-        </span>
-      </Dialog>
+      />
     )}
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}
