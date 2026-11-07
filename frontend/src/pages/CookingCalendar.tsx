@@ -468,7 +468,8 @@ const CookingCalendar: React.FC = () => {
 
   // 월 보기 하나만 쓴다(2026-11-06 요청: 월 달력 + 아래 고른 날 카드면 충분하다 — 주·일 보기는 필요 없다).
   // 주·일 분기 코드는 아래에 남아 있지만 이 값이 늘 'month' 라 도달하지 않는다.
-  const viewMode: ViewMode = 'month';
+  // `as ViewMode` — 선언만 하면 TS 가 'month' 로 좁혀 아래 주·일 비교를 「겹치지 않는 비교」 오류로 막는다(동작은 같다)
+  const viewMode = 'month' as ViewMode;
   /**
    * 어느 탭으로 열지.
    *

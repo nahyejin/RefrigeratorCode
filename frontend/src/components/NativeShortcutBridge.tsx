@@ -42,7 +42,7 @@ const NativeShortcutBridge: React.FC = () => {
 
   React.useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const navigate: typeof navigateRef.current = (...args) => navigateRef.current(...args);
+    const navigate = (to: string) => navigateRef.current(to);
 
     const handle = (url: string | undefined) => {
       if (!url) return;

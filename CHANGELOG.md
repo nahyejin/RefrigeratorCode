@@ -14120,6 +14120,18 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ## 2026-11-06
 
+### 기존 타입 오류 정리 (2026-11-07)
+
+`cd frontend && npx tsc -p tsconfig.app.json --noEmit`(※ `npx tsc --noEmit` 은 tsconfig 가 `files: []` 라 아무것도 검사하지 않는다) 이 내던 기존 오류 21건 중 18건을 없앴다. 화면 동작은 그대로이고, 한 곳(`NeangteolButton`)만 의도한 동작이 새로 살아났다.
+
+- `components/NeangteolButton.tsx`: **`disabled?: boolean` 속성 추가 + 실제로 `<button disabled>` 로 전달**하고 비활성일 때 `opacity-60 cursor-not-allowed` 로 흐리게. 로그인·이메일 찾기·가입·비밀번호 재설정(3곳)이 `disabled={loading}` 등을 넘기고 있었는데 컴포넌트가 속성을 버려 왔다 = **「처리 중인데도 버튼이 눌리던」 진짜 버그**(이제 막힘: 로그인 중 연타 → 중복 요청 방지, 재설정은 이메일 형식이 아니거나 비밀번호가 비면 발송·변경 불가). 다른 호출처는 `disabled` 를 안 넘기므로 영향 없음.
+- `components/CustomCalendar.tsx`: `Utils.isValidDateRange` 의 `type` 인자 타입에 `'range'` 추가(컴포넌트 prop 에는 이미 있었고 분기에서는 「제한 없음」으로 처리되던 값 — 동작 동일).
+- `components/NativeShortcutBridge.tsx`: 오버로드된 `navigate` 를 `(...args)` 로 감싸던 것을 `(to: string) => navigateRef.current(to)` 로(호출은 문자열 경로 3곳뿐).
+- `components/RecipeSortBar.tsx`: `filterByChannel` 의 `platform` 을 `string` 으로 선언. DB 의 실제 값(`youtube(인플루언서)`, `naver(주제별보기)`, `naver(인플루언서핫토픽)`)은 `Platform` 타입(`'youtube'|'naver'`)보다 넓어 비교가 맞는데 타입만 틀렸던 것. (이 함수는 지금 어디서도 호출되지 않는다.)
+- `pages/CookingCalendar.tsx`: `const viewMode: ViewMode = 'month'` 를 `'month' as ViewMode` 로. 선언 타입이 `'month'` 로 좁혀져 주·일 분기(의도적으로 남겨 둔 도달 불가 코드)가 「겹치지 않는 비교」 오류가 났다. 동작 동일.
+- **건드리지 않음**: `pages/IngredientDetail.tsx`(367행)·`utils/ingredientPillUtils.ts`(42행)의 `ingredient_b` 오류 3건 — 다른 작업이 같은 파일을 만지는 중이라 남김(`similar_ingredients` 류 타입이 배열인데 객체처럼 접근).
+- 확인: `tsc -p tsconfig.app.json --noEmit` 남은 오류는 위 3건뿐, `vite build` 성공.
+
 ### 유튜브 조리 순서 자막 구제 결과 (2026-11-07)
 
 사용자 지시(「지금부터 백그라운드에서 진행」)로 `python scripts\rescue_youtube_steps.py --limit 20` 시험을 다시 시도했다. **결과: 유튜브가 아직 이 PC 의 접속을 막고 있다(IpBlocked).** 첫 요청(id 1384)에서 바로 `blocked` 가 나와 그 자리에서 멈췄다 — 11/6 15시경 막힌 뒤 하루가 지나지 않음.

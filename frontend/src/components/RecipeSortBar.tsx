@@ -557,7 +557,8 @@ const Utils = {
     if (selectedChannel.length === 0) return recipes;
     
     return recipes.filter(recipe => {
-      const platform = recipe.platform || '';
+      // DB 에는 'youtube(인플루언서)' 같은 세부 값이 들어 있어 Platform 타입('youtube'|'naver')보다 넓다
+      const platform: string = recipe.platform || '';
       return (
         (selectedChannel.includes('youtube') && platform === 'youtube(인플루언서)')
         ||

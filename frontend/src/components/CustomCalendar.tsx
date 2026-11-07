@@ -19,7 +19,7 @@ type CustomCalendarProps = {
 // 유틸리티 함수들
 const Utils = {
   // 날짜가 유효한 범위인지 검증
-  isValidDateRange: (date: Date, type?: 'expiry' | 'purchase' | 'range-start' | 'range-end', minDate?: Date, maxDate?: Date): boolean => {
+  isValidDateRange: (date: Date, type?: 'expiry' | 'purchase' | 'range-start' | 'range-end' | 'range', minDate?: Date, maxDate?: Date): boolean => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const checkDate = new Date(date);
