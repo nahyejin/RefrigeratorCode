@@ -1720,8 +1720,7 @@ const WeeklyPlan: React.FC = () => {
           </div>
 
           <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.6 }}>
-            쿠팡 파트너스 활동으로 일정 수수료를 받을 수 있어요. 체크하거나
-            사고 돌아오면 냉장고에 바로 담아 드려요.
+            쿠팡 파트너스 활동으로 수수료를 받을 수 있어요
           </div>
         </div>
       )}

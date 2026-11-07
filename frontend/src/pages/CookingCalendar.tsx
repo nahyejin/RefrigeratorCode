@@ -1919,7 +1919,7 @@ const CookingCalendar: React.FC = () => {
           />
         </div>
         <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
-          계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
+          쿠팡 파트너스 활동으로 수수료를 받을 수 있어요
         </div>
       </div>
     );
