@@ -300,31 +300,42 @@ const CookCoach: React.FC<{
             </button>
           </header>
 
-          {/* 이 대화가 다루는 요리 — 썸네일 + 이름 + 「재료 N개 · N단계」. 누르는 곳은 아니고, 어느 요리 얘기인지만 알려 준다. */}
+          {/* 이 대화가 다루는 요리 — 당근 채팅 위에 붙는 「물건 카드」처럼: 둥근 썸네일 + 이름 + 한 줄 정보(재료 수·단계 수 — 「내 재료 n/m」은 바깥 카드와 동의어 처리가 달라 숫자가 어긋날 수 있어 뺐다),
+              오른쪽 「레시피 ›」 를 누르면 카드를 접어 레시피로 돌아간다(2026-11-07 「쿡 코치 안에 뜨는 레시피 카드도 당근 디자이너면」). */}
           {recipe && (
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', flexShrink: 0,
-              borderBottom: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.04)',
+              display: 'flex', alignItems: 'center', gap: 10, margin: '10px 12px 0', padding: 8, flexShrink: 0,
+              borderRadius: 14, background: 'rgba(255,255,255,0.07)',
             }}>
               {recipe.thumbnail ? (
                 <img src={recipe.thumbnail} alt="" style={{
-                  width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: SURFACE2,
+                  width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: SURFACE2,
                 }} />
               ) : (
                 <span aria-hidden style={{
-                  width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: SURFACE2,
+                  width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: SURFACE2,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
                 }}>🍽</span>
               )}
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{
-                  display: 'block', fontSize: 13, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.35,
+                  display: 'block', fontSize: 13.5, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.35,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{shortRecipeTitle(recipe.title)}</span>
-                <span style={{ display: 'block', fontSize: 11.5, color: MUTED, marginTop: 1 }}>
-                  재료 {recipe.ingredientCount}개{steps.length > 0 ? ` · 조리 ${steps.length}단계` : ''}
+                <span style={{ display: 'block', fontSize: 12, color: MUTED, marginTop: 2 }}>
+                  재료 {recipe.ingredientCount}개{steps.length > 0 ? ` · ${steps.length}단계` : ''}
                 </span>
               </span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                style={{
+                  flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.8)', fontSize: 12, fontFamily: 'inherit', padding: '8px 4px 8px 8px',
+                }}
+              >
+                레시피 ›
+              </button>
             </div>
           )}
 
