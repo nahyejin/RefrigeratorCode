@@ -1,4 +1,5 @@
 import * as React from 'react';
+import BrandMark, { BrandIngredient } from './brand/BrandMark';
 
 interface LoadingIndicatorProps {
   /** 문구를 숨기고 점만 표시 */
@@ -7,6 +8,22 @@ interface LoadingIndicatorProps {
   fullscreen?: boolean;
   style?: React.CSSProperties;
 }
+
+/** 재료가 받침에 하나씩 앉았다 사라진다 — 한 바퀴마다 다른 재료(2026-11-08 「앱 처음 진입할 때 뜨는 로딩도 여러 재료가 바뀌는 그 애니메이션으로」) */
+const SEAT_ORDER: BrandIngredient[] = ['tomato', 'zucchini', 'strawberry', 'eggplant', 'mandarin', 'ball'];
+
+const SeatLoop: React.FC<{ size: number }> = ({ size }) => {
+  const [i, setI] = React.useState(0);
+  return (
+    <BrandMark
+      ingredient={SEAT_ORDER[i]}
+      tone="color"
+      size={size}
+      motion="loop"
+      onIteration={() => setI(v => (v + 1) % SEAT_ORDER.length)}
+    />
+  );
+};
 
 /**
  * 앱 공통 로딩 표시.
@@ -35,10 +52,8 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ dotsOnly, fullscree
       ...style,
     }}
   >
-    <span className="loading-dots" aria-hidden>
-      <span />
-      <span />
-      <span />
+    <span aria-hidden style={{ display: 'inline-flex' }}>
+      <SeatLoop size={fullscreen ? 72 : 44} />
     </span>
     {!dotsOnly && (
       <span

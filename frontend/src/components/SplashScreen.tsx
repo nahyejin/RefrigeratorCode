@@ -9,7 +9,7 @@ interface SplashScreenProps {
 
 // 상수 정의
 const CONSTANTS = {
-  ROULETTE_DURATION: 400,
+  COUNT_UP_DURATION: 1700,
   DIGIT_LENGTH: 4,
 } as const;
 
@@ -138,15 +138,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
       return;
     }
 
+    // 0 에서 최종 숫자까지 **천천히 올라간다**(처음에 빠르고 끝에 느려지는 ease-out, 1.7초) — 2026-11-08 「숫자가 천천히 올라가던 효과가 없어졌다」
     setStage('roulette');
     rouletteStartTime.current = Date.now();
 
     const animate = () => {
       const elapsed = Date.now() - rouletteStartTime.current;
-
-      if (elapsed < CONSTANTS.ROULETTE_DURATION) {
-        const randomDigits = Utils.generateRandomDigits(CONSTANTS.DIGIT_LENGTH);
-        setDisplayDigits(randomDigits);
+      const t = Math.min(1, elapsed / CONSTANTS.COUNT_UP_DURATION);
+      if (t < 1) {
+        const eased = 1 - Math.pow(1 - t, 3);
+        setDisplayDigits(String(Math.floor(recipeCount * eased)).split(''));
         animationRef.current = requestAnimationFrame(animate);
       } else {
         setStage('final');
