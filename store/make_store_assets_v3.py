@@ -370,13 +370,16 @@ def render_phone_slide(slide, W, H, hsize):
 # ---------------------------------------------------------------------------
 BRAND_VARIANT = "A"
 BRAND_DIR = os.path.join(STORE, "brand")  # 새 로고(P1 확정) 공용 자산 — store/make_brand_assets.py 가 만든다(마크를 여기서 다시 그리지 않는다)
+YELLOW_SHEET_TILE = "cookmatch_mark_1024.png"  # 노랑 장 락업 타일 — 옅은 판(정식). "cookmatch_mark_reverse_1024.png"(검정 바탕판)로 바꾸면 더 진하게 보인다
 CARD_FILES = ["card12_v3.png", "card9_v3.png", "card2_v3.png"]  # 냉장고요리 목록의 실제 카드 캡처(폰 화면 밖, 카드만)
 
 
 def lockup(height, dark):
-    """새 락업(P1 확정): 마크 타일 + 「쿡매치 CookMatch」 글자를 가로로 붙인 RGBA. dark=True 면 검정 장(노랑 정식 타일 + 노랑 글자),
-    False 면 노랑 장(검정 바탕판 타일 + 검정 글자). 타일은 모서리 없는 정사각 PNG 에 iOS 식 둥근 모서리(22.37%)를 씌운다."""
-    tile = Image.open(os.path.join(BRAND_DIR, "cookmatch_mark_1024.png" if dark else "cookmatch_mark_reverse_1024.png")).convert("RGBA")
+    """새 락업(P1 확정): 마크 타일 + 「쿡매치 CookMatch」 글자를 가로로 붙인 RGBA. dark=True 면 검정 장(타일 + 노랑 글자),
+    False 면 노랑 장(타일 + 검정 글자). 타일은 두 장 모두 메인 앱 아이콘(옅은 판: 흰 타일 + 노랑 재료, 2026-11-08) —
+    흰 타일이라 검정 위에서도 노랑 위에서도 사라지지 않는다(예전 노랑 타일은 노랑 장에서 사라져 검정 바탕판을 썼다).
+    타일은 모서리 없는 정사각 PNG 에 iOS 식 둥근 모서리(22.37%)를 씌운다."""
+    tile = Image.open(os.path.join(BRAND_DIR, YELLOW_SHEET_TILE if not dark else "cookmatch_mark_1024.png")).convert("RGBA")
     tile = tile.resize((height, height), Image.LANCZOS)
     m = Image.new("L", (height * 4, height * 4), 0)
     ImageDraw.Draw(m).rounded_rectangle([0, 0, height * 4 - 1, height * 4 - 1], radius=int(height * 4 * 0.2237), fill=255)

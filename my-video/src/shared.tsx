@@ -79,11 +79,14 @@ export const RevealText: React.FC<{
 };
 
 // 새 로고(P1 확정, 2026-11-07) — 앞으로 만드는 릴스부터 적용. 이미 올린 릴스는 옛 아이콘 그대로(못 바꿈).
+// 2026-11-08: 메인 앱 아이콘 = 옅은(흰 바탕) 판으로 확정 → 기본 variant 가 "light".
 // 마크 PNG(public/cookmatch_icon.png = store/brand/cookmatch_mark_1024.png)는 모서리 없는 정사각 1024 이므로 CSS radius 22.37% 로 둥글게.
-// variant: "yellow"(정식, 흰·검정 바탕 위) / "black"(검정 바탕판 — **노랑 바탕 위**에서 타일이 사라지지 않게).
-export const AppIcon: React.FC<{ size: number; variant?: "yellow" | "black" }> = ({ size, variant = "yellow" }) => (
+// variant: "light"(기본 = 앱 아이콘: 흰 타일 + 노랑 재료 — 검정·노랑·밝은 바탕 모두 OK. **흰 바탕 위에서는 타일 경계가 안 보이고 마크만 떠 보인다**)
+//          / "yellow"(옛 기본: 노랑 타일 + 흰 재료 — 흰·검정 바탕 위에서 타일 경계가 또렷하게 필요할 때. 노랑 바탕 위에서는 사라짐)
+//          / "black"(검정 바탕판 — 노랑 바탕 위에서 더 진한 타일이 필요할 때).
+export const AppIcon: React.FC<{ size: number; variant?: "light" | "yellow" | "black" }> = ({ size, variant = "light" }) => (
   <Img
-    src={staticFile(variant === "black" ? "cookmatch_mark_reverse.png" : "cookmatch_icon.png")}
+    src={staticFile(variant === "black" ? "cookmatch_mark_reverse.png" : variant === "yellow" ? "cookmatch_icon_yellow.png" : "cookmatch_icon.png")}
     style={{ width: size, height: size, borderRadius: size * 0.2237, display: "block" }}
   />
 );

@@ -4,14 +4,15 @@
 // 계속 받는다. 실제로 이것 때문에 여러 버그 수정을 배포해도 PWA로 설치했거나
 // 예전에 한 번 방문한 사용자에게는 반영되지 않는 문제가 있었다.
 // 2026-11-07 새 로고(아이콘·배지 파일명 교체)로 v1.10.0 — 값을 올려야 설치된 PWA 의 옛 아이콘 캐시가 정리된다.
-const CACHE_NAME = 'cookmatch-v1.10.0';
+// 2026-11-08 메인 아이콘을 옅은(흰 배경) 판으로 교체(파일명 _v2 → _v3)하면서 v1.10.1.
+const CACHE_NAME = 'cookmatch-v1.10.1';
 const urlsToCache = [
   '/',
   '/manifest.json',
   // 실제로 서빙되는 파일만 둔다(예전엔 `/src/assets/...` 개발 전용 경로라 빌드본에서는 index.html 이 대신 저장됐다).
   // addAll 은 하나라도 404 면 설치가 통째로 실패하므로 public/ 에 있는 것만.
-  '/cookmatch_icon_192_v2.png',
-  '/cookmatch_icon_v2.png'
+  '/cookmatch_icon_192_v3.png',
+  '/cookmatch_icon_v3.png'
 ];
 
 // Install event - 캐시에 리소스 저장
@@ -160,7 +161,7 @@ function doBackgroundSync() {
 // body 에 넣어서 화면에 `{"title":...}` 처럼 날것이 보였을 것이다 — 실제로
 // 한 번도 연결된 적 없는 미완성 코드였다(아이콘 경로도 `/src/assets/...`
 // 였는데, 그건 빌드 산출물에 없는 개발 전용 경로다. `public/` 바로 밑의
-// `/cookmatch_icon_v2.png` 가 실제로 서빙되는 경로).
+// `/cookmatch_icon_v3.png` 가 실제로 서빙되는 경로).
 self.addEventListener('push', (event) => {
   let payload = { title: '쿡매치', body: '새 소식이 있어요.', url: '/' };
   if (event.data) {
@@ -173,7 +174,7 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: payload.body,
-    icon: '/cookmatch_icon_v2.png',
+    icon: '/cookmatch_icon_v3.png',
     // 배지는 투명 + 흰 단색 실루엣이어야 한다(컬러 아이콘을 쓰면 안드로이드가 흰 네모로 그린다)
     badge: '/badge_white.png',
     vibrate: [100, 50, 100],

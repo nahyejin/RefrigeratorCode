@@ -7,17 +7,18 @@
     PYTHONIOENCODING=utf-8 python scripts/make_native_assets.py check      # 만들지 않고 검사만
 
 입력(마스터, 손으로 고치지 말 것):
-    frontend/assets/icon.png                       정식 1024 (정사각·RGB·알파 없음·모서리 안 깎음)
+    frontend/assets/icon.png                       정식 1024 = 옅은(흰 바탕) 판 (정사각·RGB·알파 없음·모서리 안 깎음) — 2026-11-08 메인 아이콘으로 확정
     frontend/assets/brand/icon_reverse_1024.png    검정 바탕판 → iOS 다크 아이콘
-    frontend/assets/brand/adaptive_foreground_1024.png   안드로이드 적응형 전경(안전영역 안으로 축소, 투명)
+    frontend/assets/brand/icon_yellow_1024.png     노랑 바탕판(흰 재료) → 스플래시 마크의 바탕(스플래시는 브랜드 노랑 화면 그대로)
+    frontend/assets/brand/adaptive_foreground_1024.png   안드로이드 적응형 전경(노랑 재료, 안전영역 안으로 축소, 투명)
     frontend/assets/brand/notification_silhouette_1024.png  알림용 흰 단색 실루엣(투명)
     (마스터 자체는 frontend/assets/brand/make_mark_svg.py 가 시안 코드에서 만든다)
 
 만드는 것:
-    iOS      AppIcon.appiconset 의 1024 3장(정식·다크·틴트)과 Contents.json, Splash.imageset 3장,
+    iOS      AppIcon.appiconset 의 1024 3장(정식=옅은 판·다크=검정 바탕판·틴트)과 Contents.json, Splash.imageset 3장(노랑),
              LaunchScreen.storyboard 배경색(노랑), frontend/assets/splash.png·splash-dark.png
     Android  mipmap-*: ic_launcher·ic_launcher_round(옛 런처), ic_launcher_foreground·ic_launcher_monochrome(적응형),
-             mipmap-anydpi-v26/ic_launcher*.xml, values/ic_launcher_background.xml(노랑 단색),
+             mipmap-anydpi-v26/ic_launcher*.xml, values/ic_launcher_background.xml(흰색 #FFFFFF 단색),
              drawable-*/ic_stat_cookmatch.png(알림, 24/36/48/72/96px 흰색+투명),
              drawable*/splash.png 26장(노랑 바탕 + 마크, 앱 안 스플래시와 같은 자리),
              values/styles.xml 의 Android 12+ 시스템 시작 화면 바탕을 노랑으로(앱 스플래시와 같은 색),
@@ -80,13 +81,18 @@ def load_master():
     return im
 
 
+def load_splash_master():
+    """스플래시용 마크 — 노랑 바탕판(흰 재료). 앱 아이콘이 옅은 판으로 바뀌어도 스플래시는 노랑 화면 + 흰 재료 마크 그대로."""
+    return Image.open(os.path.join(BRAND, "icon_yellow_1024.png")).convert("RGB")
+
+
 def save(im, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im.save(path, optimize=True)
 
 
 def mark_on_yellow(w, h, frac, master, cy=SPLASH_CENTER_Y):
-    """노랑 캔버스에 마스터(정사각 노랑 바탕 그림)를 붙인다 — 마스터 바탕이 같은 노랑이라 이음매가 없다.
+    """노랑 캔버스에 마스터(정사각 노랑 바탕 그림 — 스플래시는 icon_yellow_1024.png)를 붙인다 — 마스터 바탕이 같은 노랑이라 이음매가 없다.
     가로는 가운데, 세로는 마크 가운데가 높이의 cy 에 오게(마스터 안 마크의 세로 가운데는 한가운데보다 9/1024 위)."""
     canvas = Image.new("RGB", (w, h), YELLOW)
     s = max(1, int(round(min(w, h) * frac)))
@@ -99,12 +105,13 @@ def mark_on_yellow(w, h, frac, master, cy=SPLASH_CENTER_Y):
 # iOS
 # ---------------------------------------------------------------------------
 
-def make_ios(master):
+def make_ios(master, splash_master):
     icon_dir = os.path.join(IOS_CAT, "AppIcon.appiconset")
     save(master, os.path.join(icon_dir, "AppIcon-512@2x.png"))
     reverse = Image.open(os.path.join(BRAND, "icon_reverse_1024.png")).convert("RGB")
     save(reverse, os.path.join(icon_dir, "AppIcon-dark.png"))
-    # 틴트(iOS 18): 시스템이 회색조 명도를 틴트색으로 칠한다 → 검정 바탕판의 회색조(받침 노랑≈207·재료 흰≈255·잎≈157)
+    # 틴트(iOS 18): 시스템이 회색조 명도를 틴트색으로 칠한다 → 검정 바탕판의 회색조(받침 노랑≈207·재료 흰≈255·잎≈157).
+    # 재료 색(옅은 판의 노랑 / 검정 판의 흰색)과 무관하게 검정 바탕판 한 장에서만 만든다 — 메인이 옅은 판이어도 틴트는 그대로.
     save(reverse.convert("L").convert("RGB"), os.path.join(icon_dir, "AppIcon-tinted.png"))
     contents = {
         "images": [
@@ -121,7 +128,7 @@ def make_ios(master):
         f.write("\n")
 
     # 스플래시: 2732 정사각 한 장을 세 이름으로(Capacitor 관례). LaunchScreen 이 scaleAspectFill 로 깐다.
-    splash = mark_on_yellow(2732, 2732, IOS_SPLASH_MARK, master)
+    splash = mark_on_yellow(2732, 2732, IOS_SPLASH_MARK, splash_master)
     for n in ("splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"):
         save(splash, os.path.join(IOS_CAT, "Splash.imageset", n))
     save(splash, os.path.join(ASSETS, "splash.png"))
@@ -191,7 +198,7 @@ def make_android_launcher(master):
 
     adaptive = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
-        '<!-- scripts/make_native_assets.py 가 생성. 배경=브랜드 노랑 단색(values/ic_launcher_background.xml),\n'
+        '<!-- scripts/make_native_assets.py 가 생성. 배경=흰색 단색(values/ic_launcher_background.xml),\n'
         '     전경=마크(지름 66dp 안전영역 안), monochrome=Android 13 테마 아이콘용 같은 모양. -->\n'
         '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
         '    <background android:drawable="@color/ic_launcher_background" />\n'
@@ -204,8 +211,8 @@ def make_android_launcher(master):
             f.write(adaptive)
     with open(os.path.join(RES, "values", "ic_launcher_background.xml"), "w", encoding="utf-8", newline="\n") as f:
         f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-                '    <!-- 적응형 아이콘 배경 = 브랜드 노랑 #FFD600 -->\n'
-                '    <color name="ic_launcher_background">#FFD600</color>\n</resources>\n')
+                '    <!-- 적응형 아이콘 배경 = 흰색 #FFFFFF (옅은 판 메인 아이콘, 2026-11-08). 스플래시 노랑은 styles.xml -->\n'
+                '    <color name="ic_launcher_background">#FFFFFF</color>\n</resources>\n')
 
     # 안드로이드 스튜디오 기본 템플릿 잔재(어디서도 참조하지 않음)
     for rel in ("drawable/ic_launcher_background.xml", "drawable-v24/ic_launcher_foreground.xml"):
@@ -241,10 +248,10 @@ def make_android_notification():
     print("android notification icons ok")
 
 
-def make_android_splash(master):
+def make_android_splash(splash_master):
     for folder, (w, h) in SPLASH.items():
         frac = ANDROID_SPLASH_MARK_LAND if w > h else ANDROID_SPLASH_MARK
-        save(mark_on_yellow(w, h, frac, master), os.path.join(RES, folder, "splash.png"))
+        save(mark_on_yellow(w, h, frac, splash_master), os.path.join(RES, folder, "splash.png"))
     print("android splash ok (%d)" % len(SPLASH))
 
 
@@ -299,11 +306,11 @@ def make_widget_preview():
     print("widget preview ok")
 
 
-def make_android(master):
+def make_android(master, splash_master):
     make_android_launcher(master)
     make_android_launch_theme()
     make_android_notification()
-    make_android_splash(master)
+    make_android_splash(splash_master)
     make_widget_preview()
 
 
@@ -361,7 +368,7 @@ def check():
     xml = open(os.path.join(RES, "mipmap-anydpi-v26", "ic_launcher.xml"), encoding="utf-8").read()
     for ref in re.findall(r"@mipmap/(\w+)", xml):
         need(os.path.exists(os.path.join(RES, "mipmap-xxxhdpi", ref + ".png")), "참조 mipmap/" + ref)
-    need("@color/ic_launcher_background" in xml and "FFD600" in open(os.path.join(RES, "values", "ic_launcher_background.xml"), encoding="utf-8").read(), "적응형 배경색")
+    need("@color/ic_launcher_background" in xml and "FFFFFF" in open(os.path.join(RES, "values", "ic_launcher_background.xml"), encoding="utf-8").read(), "적응형 배경색(흰색 #FFFFFF)")
     # 안 쓰는 템플릿이 남지 않았는지
     for rel in ("drawable/ic_launcher_background.xml", "drawable-v24/ic_launcher_foreground.xml"):
         need(not os.path.exists(os.path.join(RES, *rel.split("/"))), rel + " 아직 있음")
@@ -382,9 +389,10 @@ if __name__ == "__main__":
     what = sys.argv[1:] or ["ios", "android", "check"]
     if "ios" in what or "android" in what:
         m = load_master()
+        sm = load_splash_master()
         if "ios" in what:
-            make_ios(m)
+            make_ios(m, sm)
         if "android" in what:
-            make_android(m)
+            make_android(m, sm)
     if "check" in what:
         check()

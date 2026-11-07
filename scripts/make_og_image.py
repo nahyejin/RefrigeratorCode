@@ -3,7 +3,9 @@
 
     PYTHONIOENCODING=utf-8 python scripts/make_og_image.py
 
-마크는 새 로고 마스터(frontend/assets/icon.png)를 그대로 쓴다(바탕이 같은 노랑이라 이음매가 없다).
+마크는 메인 앱 아이콘(frontend/assets/icon.png = 옅은 판: 흰 타일 + 노랑 재료, 2026-11-08 확정)을 앱 아이콘처럼
+둥근 모서리(22.37%) 타일로 노랑 바탕 위에 얹는다 — 스토어 목록·홈 화면에서 보는 아이콘과 같은 그림이라 링크 미리보기에서 곧바로 이어진다.
+(예전에는 노랑 바탕판을 바탕에 이음매 없이 붙여 마크만 크게 보이게 했다 — 스플래시와 같은 모습. 아이콘이 옅은 판으로 바뀌어 어긋나 보여 바꿨다.)
 문구는 사실 확인된 것만: 레시피 44,001건 = 네이버 39,630 + 유튜브 4,371, 매일 엄선 수집.
 글꼴은 시안과 같은 Noto Sans KR(없으면 맑은 고딕 굵게).
 """
@@ -40,8 +42,11 @@ def main():
     assert 39630 + 4371 == 44001
     im = Image.new("RGB", (W, H), BRAND)
     d = ImageDraw.Draw(im)
-    icon = Image.open(ICON).convert("RGB").resize((470, 470), Image.LANCZOS)
-    im.paste(icon, (60, 80))
+    S = 440
+    icon = Image.open(ICON).convert("RGB").resize((S, S), Image.LANCZOS)
+    m = Image.new("L", (S * 4, S * 4), 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, S * 4 - 1, S * 4 - 1], radius=int(S * 4 * 0.2237), fill=255)
+    im.paste(icon, (80, (H - S) // 2), m.resize((S, S), Image.LANCZOS))
     x = 580
     f1 = font(60, 900)
     d.text((x, 150), "인기 레시피만 4만 개,", font=f1, fill=INK)

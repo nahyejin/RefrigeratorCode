@@ -18,7 +18,7 @@
     store/feature_options/feature_{A,B}.png  피처 그래픽 시안 2종(A=검정 바탕이 play_feature_graphic.png)
     + 앱 프로젝트 안 아이콘·스플래시·알림 아이콘: scripts/make_native_assets.py 를 이어서 실행
 
-아이콘 원본(frontend/assets/icon.png)은 새 로고(P1 확정)의 정식 1024 — 모서리를 깎지 않은 정사각형,
+아이콘 원본(frontend/assets/icon.png)은 새 로고(P1 확정)의 메인 앱 아이콘 = 옅은(흰 바탕) 판 1024(2026-11-08) — 모서리를 깎지 않은 정사각형,
 알파(투명) 없음 RGB 한 장이다(애플은 알파가 있으면 거절하고 모서리는 시스템이 깎는다).
 여기서는 그 한 장으로 스토어용 아이콘 2종과 피처 그래픽을 만든다. 앱 프로젝트 안의 아이콘·스플래시·알림 아이콘은
 `scripts/make_native_assets.py` 가 같은 원본으로 만들고, `icons` 를 돌리면 그 스크립트도 이어서 실행한다.
@@ -125,7 +125,8 @@ def _paste_card(base, card, x, y, angle, shadow_alpha):
 
 def _feature_graphic(icon, variant):
     """Google Play 피처 그래픽 1024x500. 왼쪽 브랜드(새 마크)·카피, 오른쪽 실제 앱 화면 두 장.
-    A(검정 바탕)는 정식 노랑 아이콘, B(노랑 바탕)는 노랑 위에서 타일이 사라지지 않게 검정 바탕판을 쓴다."""
+    브랜드 줄 타일은 두 시안 모두 메인 앱 아이콘(옅은 판 = 흰 타일 + 노랑 재료, 2026-11-08 확정) — 검정 위에서도, 노랑 위에서도
+    흰 타일이라 사라지지 않는다(예전에는 노랑 아이콘이 노랑 위에서 사라져 B 시안에만 검정 바탕판을 썼다)."""
     W, H = 1024, 500
     dark = variant == "A"
     img = Image.new("RGBA", (W, H), INK + (255,) if dark else (0, 0, 0, 255))
@@ -150,8 +151,7 @@ def _feature_graphic(icon, variant):
     sub_c = (196, 196, 204) if dark else (74, 60, 0)
 
     # 브랜드 줄: 새 마크(앱 아이콘) + 쿡매치
-    tile = icon if dark else Image.open(os.path.join(FRONT, "assets", "brand", "icon_reverse_1024.png")).convert("RGB")
-    ic = tile.resize((80, 80), Image.LANCZOS).convert("RGBA")
+    ic = icon.resize((80, 80), Image.LANCZOS).convert("RGBA")
     ic.putalpha(rounded_mask(80, 0.22))
     img.alpha_composite(ic, (60, 56))
     d.text((158, 97), "쿡매치", font=font(36, 800), fill=head_c, anchor="lm")

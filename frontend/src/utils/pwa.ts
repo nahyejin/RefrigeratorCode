@@ -94,7 +94,7 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 export const sendNotification = (title: string, options?: NotificationOptions): void => {
   if (Notification.permission === 'granted') {
     new Notification(title, {
-      icon: '/cookmatch_icon_v2.png',
+      icon: '/cookmatch_icon_v3.png',
       badge: '/badge_white.png',
       ...options
     });

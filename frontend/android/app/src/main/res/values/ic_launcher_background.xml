@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 적응형 아이콘 배경 = 브랜드 노랑 #FFD600 -->
-    <color name="ic_launcher_background">#FFD600</color>
+    <!-- 적응형 아이콘 배경 = 흰색 #FFFFFF (옅은 판 메인 아이콘, 2026-11-08). 스플래시 노랑은 styles.xml -->
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

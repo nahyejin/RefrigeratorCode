@@ -3,11 +3,12 @@
 
     PYTHONIOENCODING=utf-8 python store/make_brand_assets.py
 
-입력: store/logo_proposals/e9_final/p1_final/fullset/ 의 확정 아이콘(정식·검정 바탕판) + make_logo_proposals.py 의 워드마크 글꼴 처리
+입력: store/logo_proposals/e9_final/p1_final/fullset/ 의 확정 아이콘(옅은 판=메인·노랑 바탕판·검정 바탕판) + make_logo_proposals.py 의 워드마크 글꼴 처리
       (「쿡매치」 굵은 한글 + 「CookMatch」 보조, 둥글게 다듬은 모서리 0.012 — 락업 3종 시안과 같은 값).
 출력: store/brand/  (투명 배경 PNG — 다른 코드가 그대로 읽어 쓴다. 마크를 다시 그리지 않는다.)
-    cookmatch_mark_1024.png          정식 마크(노랑 바탕 #FFD600, 모서리 없는 정사각 1024) = 앱 아이콘과 같은 그림
-    cookmatch_mark_reverse_1024.png  검정 바탕판(노랑 장 위에서 타일이 사라지지 않게)
+    cookmatch_mark_1024.png          정식 마크 = **메인 앱 아이콘(옅은 판: 흰 바탕 #FFFFFF + 노랑 재료, 2026-11-08 확정)**, 모서리 없는 정사각 1024
+    cookmatch_mark_yellow_1024.png   노랑 바탕판(옛 기본: 노랑 바탕 + 흰 재료) — 노랑 화면 자체에 마크를 직접 얹을 때(바탕 이음매 없음)
+    cookmatch_mark_reverse_1024.png  검정 바탕판(노랑 장 위에서 타일을 더 진하게 쓰고 싶을 때 / iOS 다크)
     cookmatch_mark_512.png / _120.png  소셜 로그인 콘솔(카카오·구글·네이버) 같은 작은 로고 칸용 축소본(정사각 RGB, 모서리 없음 — 콘솔이 알아서 마스크)
     wordmark_on_white.png / _on_yellow.png / _on_black.png   「쿡매치 CookMatch」 가로형 글자(투명), 바탕에 맞춘 색
 """
@@ -45,7 +46,8 @@ def wordmark_rgba(ko_c, en_c, ss=3, height=360):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    shutil.copy(os.path.join(FULL, "app_icon_1024.png"), os.path.join(OUT, "cookmatch_mark_1024.png"))
+    shutil.copy(os.path.join(FULL, "app_icon_light_1024.png"), os.path.join(OUT, "cookmatch_mark_1024.png"))
+    shutil.copy(os.path.join(FULL, "app_icon_1024.png"), os.path.join(OUT, "cookmatch_mark_yellow_1024.png"))
     shutil.copy(os.path.join(FULL, "app_icon_reverse_1024.png"), os.path.join(OUT, "cookmatch_mark_reverse_1024.png"))
     big = Image.open(os.path.join(OUT, "cookmatch_mark_1024.png")).convert("RGB")
     for n in (512, 120):

@@ -4,9 +4,14 @@
     PYTHONIOENCODING=utf-8 python frontend/assets/brand/make_mark_svg.py
 
 만드는 것(이 폴더):
-    mark_p1.svg                  노랑 바탕 #FFD600 + 마크 (앱 아이콘 정식과 같은 그림, viewBox 1024)
-    mark_p1_symbol.svg           바탕 없는 마크만(투명) — 워드마크·락업·배너에 얹을 때
-    adaptive_foreground_1024.png 안드로이드 적응형 전경(투명). 원형 안전영역(지름 66/108)에 마크 전체가 들어가게
+    ../icon.png                  **메인 앱 아이콘 = 옅은(흰 바탕) 판**(2026-11-08 확정) — fullset/app_icon_light_1024.png 의 사본
+    icon_yellow_1024.png         노랑 바탕판(옛 기본). 스플래시·OG·노랑 장 위 마크의 바탕으로 쓴다
+    icon_reverse_1024.png        검정 바탕판. iOS 다크 아이콘 · 노랑 장 위 타일
+    mark_p1.svg                  [흰 재료 마크 · 노랑 바탕 위] 노랑 바탕 #FFD600 + 마크 (viewBox 1024) — 스플래시·노랑 화면용
+    mark_p1_symbol.svg           [흰 재료 마크 · 바탕 없음(투명)] — 노랑·검정 바탕 위 워드마크·락업·배너에 얹을 때
+    mark_light.svg               [노랑 재료 마크 · 흰 바탕] 앱 아이콘(옅은 판)과 같은 그림, 바탕 #FFFFFF 포함
+    mark_light_symbol.svg        [노랑 재료 마크 · 바탕 없음(투명)] — 흰·밝은 바탕 위에 얹을 때
+    adaptive_foreground_1024.png 안드로이드 적응형 전경(노랑 재료 · 투명). 배경은 흰색 단색(#FFFFFF). 원형 안전영역(지름 66/108)에 마크 전체가 들어가게
                                  배율 0.84 — 시안의 전경(배율 0.92)은 큰 잎 끝이 안전영역 밖(반지름 333 > 313)이라 다시 만들었다
     notification_silhouette_1024.png 알림 작은 아이콘용 흰 단색 실루엣(투명). 24dp 에서도 재료·받침·잎이 한 덩어리로
                                  뭉치지 않게 받침 틈(18→34)과 잎 틈(12→30)을 넓힌 별도 도면
@@ -53,12 +58,15 @@ def mask_path(mask, eps=1.0):
     return " ".join(d)
 
 
-def build(with_bg):
-    layers = P.FIN.layers(P.SHAPE, P.P1_PAL)
+def build(with_bg, pal=None, bg=None):
+    """pal: 팔레트(기본 P1_PAL=노랑 바탕·흰 재료), bg: 바탕색(기본 브랜드 노랑)."""
+    pal = pal or P.P1_PAL
+    bg = bg or P.BRAND
+    layers = P.FIN.layers(P.SHAPE, pal)
     out = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">']
     out.append("<!-- 쿡매치 마크 P1 확정(재료·받침·잎). make_mark_svg.py 가 만든 파일 — 손으로 고치지 말 것. -->")
     if with_bg:
-        out.append('<rect width="1024" height="1024" fill="%s"/>' % hexc(P.BRAND))
+        out.append('<rect width="1024" height="1024" fill="%s"/>' % hexc(bg))
     for mask, col, tag in layers:
         if tag == "ball":
             cx, cy = to_canvas(512 * SS, P.E9G["rim"] * SS)
@@ -71,18 +79,19 @@ def build(with_bg):
     return "\n".join(out) + "\n"
 
 
-def render_png(shape, pal, k, ycenter, name, white=False):
+def render_png(shape, pal, k, ycenter, name, white=False, bg=None):
     """투명 배경 PNG. place() 는 투명 캔버스에 바로 합성해서 가장자리 색이 검정으로 어두워지므로(알파만 맞고 색이 눌림),
-    같은 도면을 노랑 바탕에도 한 번 그려 거기서 원래 색을 되살린다(straight alpha)."""
+    같은 도면을 bg(기본 노랑) 바탕에도 한 번 그려 거기서 원래 색을 되살린다(straight alpha)."""
+    bg = bg or P.BRAND
     layers = P.FIN.layers(shape, pal)
     alpha = np.array(P.F.place(layers, k, bg=None, size=1024, ycenter=ycenter))[:, :, 3].astype(np.float64)
     alpha[alpha < 6] = 0  # 거의 투명한 먼지 제거
     if white:
         rgb = np.full((1024, 1024, 3), 255.0)
     else:
-        on_y = np.array(P.F.place(layers, k, bg=P.BRAND, size=1024, ycenter=ycenter).convert("RGB")).astype(np.float64)
+        on_y = np.array(P.F.place(layers, k, bg=bg, size=1024, ycenter=ycenter).convert("RGB")).astype(np.float64)
         a = np.maximum(alpha, 1.0)[:, :, None] / 255.0
-        rgb = np.clip((on_y - (1 - a) * np.array(P.BRAND, dtype=np.float64)) / a, 0, 255)
+        rgb = np.clip((on_y - (1 - a) * np.array(bg, dtype=np.float64)) / a, 0, 255)
     out = np.dstack([rgb, alpha]).astype(np.uint8)
     im = Image.fromarray(out, "RGBA")
     im.save(os.path.join(HERE, name), optimize=True)
@@ -90,8 +99,8 @@ def render_png(shape, pal, k, ycenter, name, white=False):
 
 
 def build_pngs():
-    # 적응형 전경: 원래 색 그대로, 안전영역 안으로 축소
-    fg = render_png(P.SHAPE, P.P1_PAL, 0.84, 410, "adaptive_foreground_1024.png")
+    # 적응형 전경: 옅은 판 색(노랑 재료·검정 받침·진초록 잎) 그대로, 안전영역 안으로 축소. 배경은 흰색 단색 리소스
+    fg = render_png(P.SHAPE, P.P1_LIGHT, 0.84, 410, "adaptive_foreground_1024.png", bg=P.WHITE)
     a = np.array(fg)[:, :, 3]
     ys, xs = np.where(a > 8)
     print("adaptive fg max radius %.1f (안전 반지름 %.1f)" % (np.sqrt((xs - 512.0) ** 2 + (ys - 512.0) ** 2).max(), 66 / 108 * 512))
@@ -101,9 +110,22 @@ def build_pngs():
     render_png(shape, white, 1.34, 413, "notification_silhouette_1024.png", white=True)
 
 
+def copy_masters():
+    """확정 시안의 풀세트(fullset)에서 앱 아이콘 마스터 3종을 가져온다 — 메인 = 옅은 판."""
+    import shutil
+    full = os.path.join(ROOT, "store", "logo_proposals", "e9_final", "p1_final", "fullset")
+    for src, dst in (("app_icon_light_1024.png", os.path.join(HERE, "..", "icon.png")),
+                     ("app_icon_1024.png", os.path.join(HERE, "icon_yellow_1024.png")),
+                     ("app_icon_reverse_1024.png", os.path.join(HERE, "icon_reverse_1024.png"))):
+        shutil.copyfile(os.path.join(full, src), dst)
+        print("master", os.path.basename(dst), "<-", src)
+
+
 if __name__ == "__main__":
+    copy_masters()
     build_pngs()
-    for name, bg in (("mark_p1.svg", True), ("mark_p1_symbol.svg", False)):
+    for name, bg, pal, bgc in (("mark_p1.svg", True, None, None), ("mark_p1_symbol.svg", False, None, None),
+                               ("mark_light.svg", True, P.P1_LIGHT, P.WHITE), ("mark_light_symbol.svg", False, P.P1_LIGHT, P.WHITE)):
         with open(os.path.join(HERE, name), "w", encoding="utf-8", newline="\n") as f:
-            f.write(build(bg))
+            f.write(build(bg, pal, bgc))
         print(name, os.path.getsize(os.path.join(HERE, name)), "bytes")

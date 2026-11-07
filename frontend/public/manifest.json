@@ -17,19 +17,19 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "/cookmatch_icon_192_v2.png",
+      "src": "/cookmatch_icon_192_v3.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/cookmatch_icon_512_v2.png",
+      "src": "/cookmatch_icon_512_v3.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/cookmatch_maskable_512_v2.png",
+      "src": "/cookmatch_maskable_512_v3.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
