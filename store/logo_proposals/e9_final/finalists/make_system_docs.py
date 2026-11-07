@@ -18,6 +18,14 @@ INK, BRAND, WHITE, LIGHT = FIN.INK, FIN.BRAND, FIN.WHITE, FIN.LIGHT
 AMBER2 = FIN.AMBER2
 
 
+WHY_PAL = None
+CONTRAST_LABEL = "29px 가독성(재료↔검정 바탕 대비)"
+BOWL_NOTE = "받침 #E8AC00(고정)"
+BG_NOTE = "바탕 #1A1A1E(고정)"
+BOWL_CSV = "받침 고정(앰버 #E8AC00)"
+COMP_NOTE = "색 토큰: 바탕 --ink-900 #1A1A1E · 재료 --brand #FFD600(밝은 배경 위 color) · 받침 제안 토큰 --brand-bowl #E8AC00 · 잎 제안 --brand-leaf #1E9252 · 한 색은 currentColor.  1순위 3곳, 2순위, 3순위, 쓰지 않음(회색)"
+
+
 def cr(a, b):
     return M.cr(a, b)
 
@@ -82,10 +90,10 @@ def seasonal_csv():
     rows = []
     for nm, kind, ball, leaf, months, apple, use, alt, note in SEASON_ITEMS:
         g, c = contrast_29(nm)
-        rows.append([nm, "받침 고정(앰버 #E8AC00)", HEX(ball), HEX(leaf), months, apple, f"{g} ({c:.1f}:1)", use, "후보" if alt else "아님", alt, note])
+        rows.append([nm, BOWL_CSV, HEX(ball), HEX(leaf), months, apple, f"{g} ({c:.1f}:1)", use, "후보" if alt else "아님", alt, note])
     with open(os.path.join(HERE, "seasonal_list.csv"), "w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["재료", "받침", "재료 색", "잎 색", "적용 기간", "애플 연상 위험(⚠=빨강 둥근 과일)", "29px 가독성(재료↔검정 바탕 대비)", "앱 안 용도", "대체 앱 아이콘", "계절", "비고"])
+        w.writerow(["재료", "받침", "재료 색", "잎 색", "적용 기간", "애플 연상 위험(⚠=빨강 둥근 과일)", CONTRAST_LABEL, "앱 안 용도", "대체 앱 아이콘", "계절", "비고"])
         w.writerows(rows)
         w.writerow([])
         w.writerow(["텍스트 칩만(마크 변형 안 만듦)"] + TEXT_ONLY)
@@ -141,7 +149,7 @@ def seasonal_list():
             L.label(sheet, f"대체 앱 아이콘 후보 — {nm}", (x + 34, 1748), 26, INK, 900)
             sheet.paste(big.convert("RGB"), (x + 34, 1800), big.split()[3])
             hx = x + 360
-            for k_, ln in enumerate([f"재료 {HEX(alt[0][2])}", f"잎 {HEX(alt[0][3])}", "받침 #E8AC00(고정)", "바탕 #1A1A1E(고정)", f"기간 {SEASON_RANGE[sn]}"]):
+            for k_, ln in enumerate([f"재료 {HEX(alt[0][2])}", f"잎 {HEX(alt[0][3])}", BOWL_NOTE, BG_NOTE, f"기간 {SEASON_RANGE[sn]}"]):
                 L.label(sheet, ln, (hx, 1830 + k_ * 42), 22, (50, 50, 56), 700)
     # 표(요약)
     ty = 2360
@@ -168,7 +176,7 @@ def why_snug():
     d = ImageDraw.Draw(sheet)
     L.label(sheet, "왜 이 모양인가 — 재료가 받침에 「딱」 앉는다 = 재료와 레시피가 맞는다 (Cook + Match)", (30, 24), 42, INK, 900)
     base = dict(M.BASE, leaves=FIN.E9G["leaves"])
-    pal = FIN.CANDS["P12"][1][2]
+    pal = WHY_PAL if WHY_PAL else FIN.CANDS["P12"][1][2]
 
     def tile(p, lift=0, pl=pal):
         pp = dict(p)
@@ -230,6 +238,7 @@ def why_snug():
 
 PAL_COLOR = dict(bg=WHITE, bowl=INK, ball=BRAND, leaf=(30, 146, 82), hi=None)
 PAL_REV = dict(bg=INK, bowl=AMBER2, ball=WHITE, leaf=BRAND, hi=None)
+PAL_ON_YELLOW = dict(bg=BRAND, bowl=INK, ball=WHITE, leaf=(30, 146, 82), hi=None)
 PAL_MONO_W = dict(bg=INK, bowl=WHITE, ball=WHITE, leaf=WHITE, hi=None)
 PAL_MONO_K = dict(bg=WHITE, bowl=INK, ball=INK, leaf=INK, hi=None)
 SHAPE = FIN.E9G
@@ -241,7 +250,7 @@ def mark_preview(tone, size, ingredient=None):
         ls, cy, top = F.member_raw(**kw)
         ls.append((D.lens(504 - 0.6691 * 76, top - 14 - 0.7431 * 76, 152, 80, 132), (30, 146, 82), "leaf"))
         return F.place(ls, 1.0, bg=None, size=size, ycenter=420)
-    pal = {"color": PAL_COLOR, "reverse": PAL_REV, "mono_w": PAL_MONO_W, "mono_k": PAL_MONO_K}[tone]
+    pal = {"color": PAL_COLOR, "reverse": PAL_REV, "mono_w": PAL_MONO_W, "mono_k": PAL_MONO_K, "on_yellow": PAL_ON_YELLOW}[tone]
     return F.place(FIN.layers(SHAPE, pal), 1.0, bg=None, size=size, ycenter=420)
 
 
@@ -272,7 +281,7 @@ def component_map():
     sheet = Image.new("RGB", (W, 200 + rows * (chh + 24) + 40), (246, 246, 244))
     d = ImageDraw.Draw(sheet)
     L.label(sheet, "앱 전반 컴포넌트 지도 — 어디에 마크를 쓰고 어디에 쓰지 않나 (쿡매치 E9g, 제안)", (24, 24), 44, INK, 900)
-    L.label(sheet, "색 토큰: 바탕 --ink-900 #1A1A1E · 재료 --brand #FFD600(밝은 배경 위 color) · 받침 제안 토큰 --brand-bowl #E8AC00 · 잎 제안 --brand-leaf #1E9252 · 한 색은 currentColor.  1순위 3곳, 2순위, 3순위, 쓰지 않음(회색)", (24, 100), 22, (80, 80, 88), 600)
+    L.label(sheet, COMP_NOTE, (24, 100), 22, (80, 80, 88), 600)
     pri_col = {1: (30, 140, 70), 2: (230, 160, 0), 3: (120, 120, 130), 0: (200, 50, 50)}
     pri_txt = {1: "1순위", 2: "2순위", 3: "3순위", 0: "쓰지 않음"}
     for i, (pri, title, path, tone, size, bgname, spec, rule) in enumerate(CARDS):
@@ -287,7 +296,7 @@ def component_map():
         pv = Image.new("RGBA", (260, 260), (0, 0, 0, 0))
         if tone:
             dark = tone in ("reverse", "mono_w")
-            bg = INK if dark else WHITE
+            bg = BRAND if tone == "on_yellow" else (INK if dark else WHITE)
             if tone == "mono_k":
                 bg = (245, 245, 247)
             tile = Image.new("RGBA", (260, 260), bg + (255,))

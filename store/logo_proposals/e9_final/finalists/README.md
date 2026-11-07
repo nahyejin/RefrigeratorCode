@@ -1,5 +1,7 @@
 # 최종 후보 3안 (P1 · P12 · P14) — 다듬기·비교·풀세트 (2026-11-07, 제안만 — 적용 안 함)
 
+> **ARCHIVE** — 사용자 선택(2026-11-07): **P1(앰버 띠 제외)**. 아래 추천·순위는 선택 이전 단계의 기록이다. 최신은 `p1_final/README.md`. 이전 후보 이미지는 지우지 않고 그대로 둔다.
+
 사용자 취향: P15 의 회색이 싫고, **탁한 회색·애매한 중간색 없이 노랑·검정·흰(+초록 잎)의 선명한 대비**를 원한다. 형태는 E9g(큰 잎 + 작은 잎)가 기본.
 운영 자산은 안 바꿨다. 재생성: `python store/logo_proposals/e9_final/finalists/make_finalists.py [refine|compare|full|all]`, `make_system_docs.py`.
 

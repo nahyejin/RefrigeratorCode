@@ -358,7 +358,7 @@ def full(pal_main, pal_rev, pal_light, shape=BASE, tag="최종", outdir=None, la
     wm_v = "ink" if pal_main["bg"] == INK else "yellow"
     sheet = Image.new("RGB", (1500, 1020), (255, 255, 255))
     L.label(sheet, f"락업 3종 — 가로형 · 세로형 · 아이콘 단독 ({tag})", (30, 20), 32, (20, 20, 24), 800)
-    cases = [(INK, main, "ink"), (LIGHT, lig, "light"), (BRAND, main, "yellow")]
+    cases = [(INK, main, "ink"), (LIGHT, lig, "light"), (BRAND, rev if pal_main["bg"] == BRAND else main, "yellow")]
     for r_, (bgc, icn, wv) in enumerate(cases):
         y = 90 + r_ * 310
         sheet.paste(Image.new("RGB", (1440, 290), bgc), (30, y))
