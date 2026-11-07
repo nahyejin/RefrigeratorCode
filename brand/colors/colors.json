@@ -1,0 +1,13 @@
+{
+  "brand_yellow": "#FFD600",
+  "brand_black": "#1A1A1E",
+  "white": "#FFFFFF",
+  "leaf_green": "#1E9252",
+  "leaf_green_on_dark": "#3CBE6E",
+  "brand_light": "#FFE45C",
+  "brand_strong": "#F2C200",
+  "brand_soft": "#FFF6C2",
+  "brand_on_soft": "#6B5200",
+  "notification_accent": "#E0A800",
+  "_note": "마크의 재료=#FFFFFF, 받침=#1A1A1E, 잎=#1E9252(검정 바탕 위는 #3CBE6E), 바탕=#FFD600. 앰버·주황 띠/테두리는 쓰지 않는다. notification_accent 는 흰 알림 바탕 위에서 보이도록 한 알림 강조색 전용(로고에는 쓰지 않음)."
+}

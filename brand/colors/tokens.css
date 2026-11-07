@@ -1,0 +1,13 @@
+/* 앱의 frontend/src/index.css 에 이미 있는 변수(--brand-leaf 등)와 같은 값 */
+:root {
+  --brand-yellow: #FFD600;
+  --brand-black: #1A1A1E;
+  --white: #FFFFFF;
+  --leaf-green: #1E9252;
+  --leaf-green-on-dark: #3CBE6E;
+  --brand-light: #FFE45C;
+  --brand-strong: #F2C200;
+  --brand-soft: #FFF6C2;
+  --brand-on-soft: #6B5200;
+  --notification-accent: #E0A800;
+}
