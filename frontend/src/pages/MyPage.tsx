@@ -1480,7 +1480,10 @@ const MyPage: React.FC = () => {
         {/* 제목 위, 고르개 아래 **두 줄**(2026-11-06 지적: 고르개가 3칸이 되면서 폭이 길어져 오른쪽에 놓으면 「내 레시피」 제목이 줄바꿈됐다).
             고르개는 카드 폭을 3등분해 꽉 채운다 — 손가락으로 누르기도 더 쉽다. */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 10, padding: '14px 14px 4px' }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>내 레시피</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap' }}>
+            {/* 고르개 상태에 맞춰 제목을 바꾼다 — 식구 것이 섞이면 「내 레시피」가 아니다(2026-11-07) */}
+            {!isInHousehold || householdViewMode === 'mine' ? '내 레시피' : hideMine ? '식구 레시피' : '우리 식구 레시피'}
+          </h2>
           {isInHousehold && (
             <SegmentedToggle
               style={{ width: '100%' }}
@@ -1500,7 +1503,9 @@ const MyPage: React.FC = () => {
             />
           )}
         </div>
-        <nav style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', padding: '10px 6px 14px' }}>
+        {/* 「최근 본」은 **이 기기에서 연 레시피**라 사람별로 나눌 수 없다 → 식구 것이 섞인 보기(우리 식구 모두·식구 것만)에서는 빼고
+            즐겨찾기·기록·완료 세 칸만 둔다(2026-11-07 「식구 쪽에는 최근 본까지 필요한가」). */}
+        <nav style={{ display: 'grid', gridTemplateColumns: `repeat(${showAllHousehold ? 3 : 4}, minmax(0, 1fr))`, padding: '10px 6px 14px' }}>
           {[
             // 목록을 보러 가는 입구. 전용 목록 화면은 그대로 두되(여기서 온 것을 그대로 그린다).
             { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite', recipes: displayFavoriteRecipes,
@@ -1512,7 +1517,7 @@ const MyPage: React.FC = () => {
             // 최근 본(2026-11-05) — 이 기기에서 2개월 안에 연 레시피. 다른 칸처럼 화면(`/mypage/recent`)으로 가고 숫자 배지도 단다(2026-11-06 지적).
             { label: '최근 본', count: recentCount, to: '/mypage/recent', recipes: [] as any[],
               icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
-          ].map(({ label, count, to, recipes, icon }) => (
+          ].filter(it => !(showAllHousehold && it.label === '최근 본')).map(({ label, count, to, recipes, icon }) => (
             <button
               key={label}
               type="button"

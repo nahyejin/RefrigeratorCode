@@ -1,3 +1,4 @@
+import { shortRecipeTitle } from '../utils/recipeTitle';
 import React from 'react';
 import { saveFridgeChange } from '../utils/fridgeServer';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -1078,10 +1079,11 @@ const WeeklyPlan: React.FC = () => {
             style={{ flex: 1, minWidth: 0, textAlign: 'left', border: 'none', background: 'transparent',
                      padding: 0, cursor: 'pointer' }}
           >
-            <span style={{
+            {/* 제목은 **요리 이름만 한 줄로**(2026-11-07 「제목을 최대한 줄여 달라」) — 원문 제목은 눌러 연 레시피 창에 있다 */}
+            <span title={meal.recipe.title} style={{
               display: '-webkit-box', fontSize: 14, fontWeight: 700, color: 'var(--ink-900)',
-              lineHeight: 1.4, overflow: 'hidden', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-            }}>{meal.recipe.title}</span>
+              lineHeight: 1.4, overflow: 'hidden', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
+            }}>{shortRecipeTitle(meal.recipe.title)}</span>
             {meal.recipe.why ? (
               <span style={{ display: 'block', fontSize: 12, color: '#7A5C00', marginTop: 3 }}>{meal.recipe.why}</span>
             ) : typeof meal.recipe.match_rate === 'number' ? (
