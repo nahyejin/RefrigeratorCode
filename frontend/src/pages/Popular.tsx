@@ -1,4 +1,5 @@
 import { shareSubstituteTable } from '../utils/substituteStore';
+import { loadSubstituteTable } from '../utils/substituteTableLoader';
 import React, { useState, useEffect, useMemo } from 'react';
 import { setPageContext } from '../utils/pageContext';
 import { fetchCsvOnce } from '../utils/csvOnce';
@@ -735,132 +736,13 @@ const Popular = () => {
       });
   }, []);
 
-  // 대체재료 테이블 로드
+  // 대체재료 테이블 로드 — 화면이 쓰는 쌍만 추린 작은 파일(약 0.85MB). 받고 저장하는 일은 utils/substituteTableLoader.ts 가 한다(2026-11-07)
   useEffect(() => {
-    const loadSubstituteTable = async () => {
-      const CACHE_KEY = 'substitute_table_cache';
-      const CACHE_VERSION = '2.4'; // 수동 지정 대체 쌍(보리새우↔건새우, 2026-10-08) 반영 — RecipeList 와 같은 캐시라 같이 올린다
-      // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 대체재 표는
-      // 사전이 바뀌든 말든 매일 재생성되므로(06:30 배치) 하루 지나면 다시 받는다.
-      const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-
-      try {
-        // 캐시 확인
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const cached = localStorage.getItem(CACHE_KEY);
-          if (cached) {
-            try {
-              const parsedCache = JSON.parse(cached);
-              const fresh = typeof parsedCache.savedAt === 'number'
-                && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
-              if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
-                console.log('[Popular] 캐시된 대체재료 테이블 사용', Object.keys(parsedCache.data).length, '개 재료');
-                setSubstituteTable(parsedCache.data);
-                shareSubstituteTable(parsedCache.data);
-                return;
-              } else {
-                console.log('[Popular] 캐시 버전 불일치, 새로 로드합니다. (기존:', parsedCache.version, ', 새:', CACHE_VERSION, ')');
-              }
-            } catch (e) {
-              console.warn('[Popular] 캐시 파싱 실패:', e);
-            }
-          }
-        }
-        
-        // 캐시가 없으면 새로 로드
-        // 12MB 짜리다. 여러 화면이 동시에 부르면 그만큼 두 번 받는다.
-        const csv = await fetchCsvOnce('/ingredient_substitute_table.csv');
-        
-        const lines = csv.split('\n').filter(line => line.trim());
-        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const aIdx = header.indexOf('ingredient_a');
-        const bIdx = header.indexOf('ingredient_b');
-        const scoreIdx = header.indexOf('similarity_score');
-        
-        if (aIdx === -1 || bIdx === -1) {
-          console.warn('[Popular] CSV 헤더에서 필요한 컬럼을 찾을 수 없습니다.');
-          return;
-        }
-        
-        // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
-        const parseCSVLine = (line: string): string[] => {
-          const result: string[] = [];
-          let current = '';
-          let inQuotes = false;
-          
-          for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') {
-              inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              result.push(current.trim());
-              current = '';
-            } else {
-              current += char;
-            }
-          }
-          result.push(current.trim());
-          return result;
-        };
-        
-        const table: { [key: string]: { ingredient_b: string; similarity_score?: number }[] } = {};
-        lines.slice(1).forEach(line => {
-          const cols = parseCSVLine(line);
-          const a = cols[aIdx]?.trim();
-          const b = cols[bIdx]?.trim();
-          const scoreStr = scoreIdx >= 0 ? cols[scoreIdx]?.trim() : undefined;
-          
-          if (a && b) {
-            const score = scoreStr ? parseFloat(scoreStr) : undefined;
-            
-            if (!table[a]) {
-              table[a] = [];
-            }
-            table[a].push({
-              ingredient_b: b,
-              similarity_score: isNaN(score as number) ? undefined : score
-            });
-          }
-        });
-        
-        // 각 재료별로 유사도 점수 순으로 정렬 (높은 순)
-        Object.keys(table).forEach(key => {
-          table[key].sort((a, b) => {
-            const scoreA = a.similarity_score ?? 0;
-            const scoreB = b.similarity_score ?? 0;
-            return scoreB - scoreA;
-          });
-        });
-        
-        console.log('[Popular] 대체재료 테이블 로드 완료', Object.keys(table).length, '개 재료');
-        // 샘플 데이터 확인
-        const sampleKeys = Object.keys(table).slice(0, 3);
-        sampleKeys.forEach(key => {
-          console.log(`[Popular] 샘플: "${key}" → ${table[key].length}개 대체제`, table[key]);
-        });
-        
-        // 캐시에 저장
-        if (typeof window !== 'undefined' && window.localStorage) {
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-              version: CACHE_VERSION,
-              data: table,
-              savedAt: Date.now()
-            }));
-            console.log('[Popular] 대체재료 테이블 캐시 저장 완료');
-          } catch (e) {
-            console.warn('[Popular] 캐시 저장 실패:', e);
-          }
-        }
-        
-        setSubstituteTable(table);
-        shareSubstituteTable(table);
-      } catch (error) {
-        console.error('[Popular] 대체재료 테이블 로드 실패:', error);
-      }
-    };
-    
-    loadSubstituteTable();
+    loadSubstituteTable().then(table => {
+      if (Object.keys(table).length === 0) return;
+      setSubstituteTable(table);
+      shareSubstituteTable(table);
+    });
   }, []);
 
   // 기간 드롭다운 핸들러

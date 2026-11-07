@@ -575,6 +575,60 @@ def save_similar_pairs_for_backend(substitutes: List[Dict]) -> None:
     print(f"[OK] 서버용 비슷한 재료 쌍 {len(rows)}개 저장: {SIMILAR_PAIRS_CSV}")
 
 
+LITE_JSON = os.path.join(BASE_DIR, 'frontend', 'public', 'ingredient_substitute_table_lite.json')
+# 화면이 쓰는 하한 — frontend/src/utils/substituteRules.ts 의 MIN_SUBSTITUTE_SCORE(0.60, 「초과」만 쓴다)와 같게 둔다.
+LITE_MIN_SCORE = 0.60
+# 같은 파일의 BRAND_NAMES 사본. 화면은 어차피 한 번 더 거르므로(usableSubstitutes) 여기가 뒤처져도 화면 결과는 같다 — 파일이 조금 커질 뿐.
+LITE_BRAND_NAMES = {
+    '신라면', '진라면', '짜파게티', '사리곰탕면', '빽라면', '불닭볶음면', '너구리', '육개장 사발면', '육개장사발면',
+    '죠리퐁', '도리토스', '오레오', '다이제', '위트빅스', '초코파이', '닥터페퍼', '환타',
+    '크라비아', '요플레', '필라델피아', '에쉬레', '버터랑', '라꽁비에뜨',
+    '햇반', '미원', '다시다', '연두', '홍초', '불닭소스', '불닭마요소스', '라오간마', '라칸토 감미료', '말돈 소금', '올드베이',
+}
+
+
+def build_lite_table(pairs) -> Dict[str, list]:
+    """(ingredient_a, ingredient_b, score) 들 → 화면이 실제로 쓰는 쌍만 모은 {a: [[b, score], ...]} (점수 높은 순).
+
+    화면(utils/substituteRules.ts `usableSubstitutes`)은 ① 유사도 0.60 **초과**만, ② 브랜드·제품명 b 는 뺀다
+    (없는 재료 a 쪽이 브랜드일 때만 허용). 여기서 같은 규칙으로 미리 거르면 나머지는 어떤 화면에서도 안 쓰인다.
+    점수가 같으면 표(CSV) 순서를 그대로 둔다 — 화면은 「냉장고에 있는 첫 후보」를 점수순으로 고르기 때문에 순서가 결과를 정한다.
+    """
+    brands = {x.lower() for x in LITE_BRAND_NAMES}
+    table: Dict[str, list] = {}
+    for a, b, score in pairs:
+        a, b = str(a).strip(), str(b).strip()
+        if not a or not b or score is None or not score > LITE_MIN_SCORE:
+            continue
+        if b.lower() in brands and a.lower() not in brands:
+            continue
+        table.setdefault(a, []).append([b, float(score)])
+    for lst in table.values():
+        lst.sort(key=lambda x: -x[1])   # 파이썬 정렬은 안정 정렬 — 같은 점수는 CSV 순서
+    return table
+
+
+def save_lite_table(pairs) -> None:
+    """화면용 **작은 대체표**(`ingredient_substitute_table_lite.json`)를 쓴다.
+
+    29MB `ingredient_substitute_table.csv` 를 휴대폰이 매번 통째로 받아 파싱했고 저장소(5MB)에는 안 들어가 저장도 조용히 실패했다
+    (2026-11-07). 화면이 쓰는 쌍(0.60 초과·브랜드 제외)만 추리면 1MB 이하다. 모양: {"v":1,"min_score":0.6,"t":{"재료":[["대체",0.72],...]}}.
+    날짜 같은 매번 바뀌는 값은 넣지 않는다 — 내용이 같으면 파일도 같아야 배치가 불필요한 커밋을 안 만든다.
+    """
+    import json
+    table = build_lite_table(pairs)
+    if not table:
+        print("[WARN] 화면용 작은 대체표가 비어 있어 저장하지 않습니다.")
+        return
+    payload = {'v': 1, 'min_score': LITE_MIN_SCORE, 't': table}
+    tmp = LITE_JSON + '.tmp'
+    with open(tmp, 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(payload, f, ensure_ascii=False, separators=(',', ':'))
+    os.replace(tmp, LITE_JSON)
+    n_pairs = sum(len(v) for v in table.values())
+    print(f"[OK] 화면용 작은 대체표 {len(table)}개 재료 / {n_pairs}쌍 저장 ({os.path.getsize(LITE_JSON) // 1024}KB): {LITE_JSON}")
+
+
 def apply_manual_substitutes(substitutes: List[Dict]) -> List[Dict]:
     """`manual_substitutes.csv`(사람이 정한 대체 쌍)를 자동 생성 결과에 합친다. 같은 (a, b) 쌍은 손 지정으로 바꾼다.
 
@@ -624,6 +678,7 @@ def main():
         # 저장 (기존 데이터 무시하고 새로 생성)
         save_substitutes(substitutes, overwrite=True)
         save_similar_pairs_for_backend(substitutes)
+        save_lite_table((s['ingredient_a'], s['ingredient_b'], s.get('similarity_score')) for s in substitutes)
         
         print("\n" + "=" * 60)
         print("[OK] 완료!")
@@ -635,6 +690,16 @@ def main():
         traceback.print_exc()
 
 
+def lite_only():
+    """29MB 표를 다시 만들지 않고, 이미 있는 `ingredient_substitute_table.csv` 에서 작은 표만 만든다(`--lite-only`)."""
+    df = pd.read_csv(OUTPUT_CSV, encoding='utf-8-sig')
+    save_lite_table(zip(df['ingredient_a'], df['ingredient_b'], df['similarity_score']))
+
+
 if __name__ == '__main__':
-    main()
+    import sys
+    if '--lite-only' in sys.argv:
+        lite_only()
+    else:
+        main()
 

@@ -87,7 +87,6 @@ import doneIcon from '../assets/done.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
-import { fetchCsvOnce } from '../utils/csvOnce';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -116,7 +115,6 @@ import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 // =====================
 
 const TOAST_DURATION = 1500;
-const CSV_SUBSTITUTE_URL = '/ingredient_substitute_table.csv';
 const STORAGE_KEY_MYFRIDGE = 'myfridge_ingredients';
 const STORAGE_KEY_RECORDED = 'my_recorded_recipes';
 const STORAGE_KEY_COMPLETED = 'my_completed_recipes';
@@ -263,79 +261,6 @@ function getPlatformLogo(platform: string | undefined): string {
   if (lower.includes('naver') || lower.includes('네이버')) return naverLogo;
   if (lower.includes('youtube') || lower.includes('유튜브')) return youtubeLogo;
   return naverLogo;
-}
-
-/**
- * 대체재료 테이블을 로드한다
- */
-async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }> {
-  try {
-    // 12MB 짜리다. 여러 화면이 동시에 부르면 그만큼 두 번 받는다.
-    const csv = await fetchCsvOnce(CSV_SUBSTITUTE_URL);
-    
-    const lines = csv.split('\n').filter(line => line.trim()); // 빈 행 제거
-    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const aIdx = header.indexOf('ingredient_a');
-    const bIdx = header.indexOf('ingredient_b');
-    const scoreIdx = header.indexOf('similarity_score');
-    
-    if (aIdx === -1 || bIdx === -1) return {};
-    
-    // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
-    const parseCSVLine = (line: string): string[] => {
-      const result: string[] = [];
-      let current = '';
-      let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      result.push(current.trim());
-      return result;
-    };
-    
-    const table: { [key: string]: { ingredient_b: string; similarity_score?: number }[] } = {};
-    lines.slice(1).forEach(line => {
-      const cols = parseCSVLine(line);
-      const a = cols[aIdx]?.trim();
-      const b = cols[bIdx]?.trim();
-      const scoreStr = scoreIdx >= 0 ? cols[scoreIdx]?.trim() : undefined;
-      
-      if (a && b) {
-        const score = scoreStr ? parseFloat(scoreStr) : undefined;
-        
-        if (!table[a]) {
-          table[a] = [];
-        }
-        table[a].push({
-          ingredient_b: b,
-          similarity_score: isNaN(score as number) ? undefined : score
-        });
-      }
-    });
-    
-    // 각 재료별로 유사도 점수 순으로 정렬 (높은 순)
-    Object.keys(table).forEach(key => {
-      table[key].sort((a, b) => {
-        const scoreA = a.similarity_score ?? 0;
-        const scoreB = b.similarity_score ?? 0;
-        return scoreB - scoreA;
-      });
-    });
-    
-    return table;
-  } catch (error) {
-    console.warn('[MyPage] 대체재료 테이블 로드 실패:', error);
-    return {};
-  }
 }
 
 // =====================
@@ -701,7 +626,6 @@ const MyPage: React.FC = () => {
   }, [toast]);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [myIngredients, setMyIngredients] = React.useState<string[]>(getMyIngredientsSafe());
-  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showPassword2, setShowPassword2] = useState(false);
   const [checkingNickname, setCheckingNickname] = useState(false);
@@ -1357,11 +1281,6 @@ const MyPage: React.FC = () => {
   // =====================
   // 사이드 이펙트
   // =====================
-
-  // 대체재료 테이블 로드
-  useEffect(() => {
-    loadSubstituteTable().then(setSubstituteTable);
-  }, []);
 
   // 내 냉장고 재료 업데이트 (페이지 포커스, visibility 변경, 경로 변경 시)
   useEffect(() => {

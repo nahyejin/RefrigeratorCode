@@ -39,7 +39,8 @@ function createNormalizedSubstituteTable(substituteTable: SubstituteTable): Subs
   const normalizedSubTable: SubstituteTable = {};
   Object.keys(substituteTable).forEach(key => {
     const normKey = normalize(key);
-    normalizedSubTable[normKey] = { ingredient_b: normalize(substituteTable[key].ingredient_b) };
+    // 값은 후보 **배열**이다(SubstituteTable 타입). 예전엔 객체처럼 접근해 타입 오류였다 — 이 함수는 지금 어디서도 부르지 않는다.
+    normalizedSubTable[normKey] = (substituteTable[key] || []).map(c => ({ ...c, ingredient_b: normalize(c.ingredient_b) }));
   });
   return normalizedSubTable;
 }

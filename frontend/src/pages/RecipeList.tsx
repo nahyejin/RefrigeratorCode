@@ -1,4 +1,5 @@
 import { shareSubstituteTable } from '../utils/substituteStore';
+import { loadSubstituteTable } from '../utils/substituteTableLoader';
 import axios, { AxiosResponse } from 'axios';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import FloatingScanLoader from '../components/FloatingScanLoader';
@@ -87,7 +88,6 @@ const GuideActionIcon: React.FC<{ src: string; alt: string }> = ({ src, alt }) =
 
 const TOAST_DURATION = 1500;
 const CSV_INGREDIENT_URL = '/ingredient_profile_dict_with_substitutes.csv';
-const CSV_SUBSTITUTE_URL = '/ingredient_substitute_table.csv';
 const STORAGE_KEY = 'recipe_sortbar_state_fridge';
 const STORAGE_KEY_MYFRIDGE = 'myfridge_ingredients';
 
@@ -272,161 +272,6 @@ function normalizeRecipe(recipe: any) {
     hits: recipe.hits || 0,
     action: recipe.action,
   };
-}
-
-/**
- * 대체재료 테이블을 로드한다 (캐싱 적용)
- */
-async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }> {
-  const CACHE_KEY = 'substitute_table_cache';
-  const CACHE_VERSION = '2.4'; // 수동 지정 대체 쌍(보리새우↔건새우, 2026-10-08) 반영
-  // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 대체재 표는
-  // 사전이 바뀌든 말든 매일 재생성되므로(06:30 배치) 하루 지나면 다시 받는다.
-  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-
-  try {
-    // 캐시 확인
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        try {
-          const parsedCache = JSON.parse(cached);
-          const fresh = typeof parsedCache.savedAt === 'number'
-            && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
-          if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
-            console.log('[RecipeList] 캐시된 대체재료 테이블 사용');
-            return parsedCache.data;
-          }
-        } catch (e) {
-          // 캐시 파싱 실패 시 무시하고 새로 로드
-        }
-      }
-    }
-    
-    // 캐시가 없으면 새로 로드
-    // 12MB 짜리다. 여러 곳이 동시에 부르면 그만큼 두 번 받는다 — 한 번만 받는다.
-    const csv = await fetchCsvOnce(CSV_SUBSTITUTE_URL);
-    
-    const lines = csv.split('\n').filter(line => line.trim()); // 빈 행 제거
-    if (lines.length === 0) {
-      console.warn('[RecipeList] CSV 파일이 비어있습니다.');
-      return {};
-    }
-    
-    // 헤더 파싱 (따옴표 처리)
-    const parseCSVLine = (line: string): string[] => {
-      const result: string[] = [];
-      let current = '';
-      let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      result.push(current.trim()); // 마지막 필드
-      return result;
-    };
-    
-    const header = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
-    const aIdx = header.indexOf('ingredient_a');
-    const bIdx = header.indexOf('ingredient_b');
-    const scoreIdx = header.indexOf('similarity_score');
-    
-    console.log('[RecipeList] CSV 헤더 파싱:', {
-      headerLength: header.length,
-      header: header,
-      aIdx: aIdx,
-      bIdx: bIdx,
-      scoreIdx: scoreIdx
-    });
-    
-    if (aIdx === -1 || bIdx === -1) {
-      console.error('[RecipeList] 필요한 컬럼을 찾을 수 없습니다. ingredient_a:', aIdx, 'ingredient_b:', bIdx);
-      return {};
-    }
-    
-    const table: { [key: string]: { ingredient_b: string; similarity_score?: number }[] } = {};
-    let processedCount = 0;
-    let skippedCount = 0;
-    
-    lines.slice(1).forEach((line, lineIdx) => {
-      const cols = parseCSVLine(line);
-      if (cols.length < Math.max(aIdx, bIdx) + 1) {
-        skippedCount++;
-        if (lineIdx < 5) {
-          console.warn(`[RecipeList] 행 ${lineIdx + 2} 컬럼 수 부족:`, cols.length, '컬럼, 필요:', Math.max(aIdx, bIdx) + 1);
-        }
-        return;
-      }
-      
-      const a = cols[aIdx]?.trim();
-      const b = cols[bIdx]?.trim();
-      const scoreStr = scoreIdx >= 0 && cols[scoreIdx] ? cols[scoreIdx]?.trim() : undefined;
-      
-      if (a && b) {
-        const score = scoreStr ? parseFloat(scoreStr) : undefined;
-        
-        // 하나의 재료에 대해 여러 대체제가 있을 수 있으므로 배열로 저장
-        if (!table[a]) {
-          table[a] = [];
-        }
-        table[a].push({
-          ingredient_b: b,
-          similarity_score: isNaN(score as number) ? undefined : score
-        });
-        processedCount++;
-        
-        // 디버깅: 처음 몇 개만 로그
-        if (processedCount <= 5) {
-          console.log(`[RecipeList] 대체제 추가: "${a}" → "${b}" (유사도: ${score ?? 'N/A'})`);
-        }
-      } else {
-        skippedCount++;
-      }
-    });
-    
-    console.log(`[RecipeList] 대체제 테이블 파싱 완료: 처리 ${processedCount}개, 스킵 ${skippedCount}개`);
-    
-    // 각 재료별로 유사도 점수 순으로 정렬 (높은 순)
-    Object.keys(table).forEach(key => {
-      table[key].sort((a, b) => {
-        const scoreA = a.similarity_score ?? 0;
-        const scoreB = b.similarity_score ?? 0;
-        return scoreB - scoreA;
-      });
-    });
-    
-    // 캐시에 저장
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-          version: CACHE_VERSION,
-          data: table,
-          savedAt: Date.now()
-        }));
-        console.log('[RecipeList] 대체재료 테이블 캐시 저장 완료', Object.keys(table).length, '개 재료');
-        // 디버깅: 샘플 데이터 확인
-        const sampleKeys = Object.keys(table).slice(0, 3);
-        sampleKeys.forEach(key => {
-          console.log(`[RecipeList] 샘플: "${key}" → ${table[key].length}개 대체제`, table[key]);
-        });
-      } catch (e) {
-        console.warn('[RecipeList] 캐시 저장 실패:', e);
-      }
-    }
-    
-    return table;
-  } catch (error) {
-    console.warn('[RecipeList] 대체재료 테이블 로드 실패:', error);
-    return {};
-  }
 }
 
 /**

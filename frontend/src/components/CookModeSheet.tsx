@@ -1,4 +1,5 @@
 import { getSharedSubstituteTable } from '../utils/substituteStore';
+import { readCachedSubstituteTable } from '../utils/substituteTableLoader';
 import React from 'react';
 import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
@@ -109,20 +110,12 @@ interface Props {
  * 12MB CSV 를 레시피 창이 또 받거나 파싱하지 않는다 — 저장분이 없으면(목록을 거치지 않고 열린 경우) 대체 표시만 못 보여 줄 뿐이다.
  */
 type SubstituteTable = { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
-let substituteTableMemo: SubstituteTable | null = null;
 function readSubstituteTable(): SubstituteTable | null {
-  // 목록이 받아 둔 표를 **메모리에서** 먼저 — 휴대폰 저장소(5MB)엔 29MB 표가 안 들어가 저장이 실패한다(utils/substituteStore.ts)
+  // 목록이 받아 둔 표를 **메모리에서** 먼저(utils/substituteStore.ts). 목록을 거치지 않고 열렸으면 하루 안에 저장해 둔 작은 표(utils/substituteTableLoader.ts)를 쓴다.
+  // 예전 29MB 표는 휴대폰 저장소(5MB)에 안 들어가 저장이 실패했지만, 지금 표는 약 0.85MB 라 들어간다(2026-11-07).
   const sharedTable = getSharedSubstituteTable();
   if (sharedTable) return sharedTable as SubstituteTable;
-  if (substituteTableMemo) return substituteTableMemo;
-  try {
-    const c = JSON.parse(localStorage.getItem('substitute_table_cache') || 'null');
-    if (c && c.data && typeof c.data === 'object') {
-      substituteTableMemo = c.data as SubstituteTable;
-      return substituteTableMemo;
-    }
-  } catch { /* 저장분이 깨졌거나 막혀 있으면 대체 표시 없이 간다 */ }
-  return null;
+  return readCachedSubstituteTable() as SubstituteTable | null;
 }
 
 const CookModeSheet: React.FC<Props> = ({

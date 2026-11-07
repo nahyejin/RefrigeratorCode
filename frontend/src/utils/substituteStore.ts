@@ -4,6 +4,7 @@
  * 왜 필요한가 — 표(`ingredient_substitute_table.csv`)는 **29MB** 다. 목록 화면들은 이것을 파싱해 브라우저 저장소(localStorage)에 넣으려 하지만
  * 휴대폰은 한도가 5MB 안팎이라 **저장이 조용히 실패한다**(실패를 경고로만 넘긴다). 그래서 목록 카드에는 「양념 소불고기 → 만두」 칩이 뜨는데,
  * 레시피 창은 저장소에서 표를 못 찾아 **칩이 하나도 안 떴다**(실사용 화면 녹화로 확인). 목록이 받은 표를 여기 메모리에 올려 두고 레시피 창이 읽는다.
+ * (같은 날 이후: 화면은 29MB 대신 추린 작은 표 `ingredient_substitute_table_lite.json`(약 0.85MB)을 받는다 — `substituteTableLoader.ts`. 메모리 공유는 그대로.)
  */
 export type SharedSubstituteTable = { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
 
