@@ -2561,6 +2561,37 @@ const MyFridge: React.FC = () => {
               담긴다" 가 안 읽혔다(제목을 빼 봐도 마찬가지였다). 입력칸이
               자기가 채우는 목록과 **같은 박스 안에** 있으면 설명이 필요 없다.
               사진 찍기(카메라)도 같은 줄이라 함께 내려온다. */}
+          {/* 알약 + 입력줄 한 묶음 — 가이드(`ingredient-add-row`)가 「입력창 + 카메라」를 함께 가리키고, 아래 보관함과의 간격(24px)도 이 묶음이 갖는다. */}
+          <div data-guide-target="ingredient-add-row" style={{ width: '100%', maxWidth: 400, margin: '0 auto 24px' }}>
+          {/* 사진으로 재료 담기 — 40px 동그라미(아이콘만)로는 「AI 사진 인식」인지 알 수 없다는 지적(2026-11-07)으로, 식단 짜기·쿡 코치 입구와
+              **같은 검정 알약**(`ai-fab-pill k`: 숨 쉬듯 움직임 + 스쳐 가는 빛줄기) + 이름 옆 「✦AI」 + 한 줄 설명으로 입력창 **바로 위**에 붙여 둔다(2026-11-07 「검색창 상단으로, 너무 떨어져 있지 않게」). */}
+          <button
+            type="button"
+            className="ai-fab-pill k"
+            onClick={() => {
+              // 비회원도 **체험분이 남아 있으면** 쓸 수 있다.
+              // 무엇이 좋은지 본 적 없는 사람에게 가입하라고 하면 안 한다.
+              if (usage && !usage.can_use_ai) {
+                // 비회원: 같은 로그인 확인창(「AI 체험을 다 쓰셨어요 / 가입하면 30크레딧…」). 회원: 기존 안내.
+                if (usage.is_guest) openLoginGate('ai', { credits: usage.signup_credits });
+                else showPrepNotice('크레딧을 다 쓰셨어요.');
+                return;
+              }
+              setCameraSheetOpen(true);
+            }}
+            title="사진으로 재료 담기"
+            aria-label="사진으로 재료 담기"
+            style={{ width: '100%', justifyContent: 'center', gap: 8, marginBottom: 8, fontSize: 14, fontWeight: 700 }}
+          >
+            <CameraIcon size={18} />
+            <span>사진으로 재료 담기</span>
+            <span className="ai-tag" style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
+              background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
+            }}>AI</span>
+            <span style={{ fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.78)', whiteSpace: 'nowrap' }}>영수증·음식 사진</span>
+          </button>
+
           <div
             className="flex gap-2"
             /* 가이드가 이 줄 전체(입력창 + 입력 + 카메라)를 가리킨다.
@@ -2572,13 +2603,12 @@ const MyFridge: React.FC = () => {
                   (2026-10-08 문구를 "추가할 재료명을 입력하세요" 로 되돌렸다 —
                    `재료명을 입력하세요` 만으로는 **내 냉장고를 검색하는 칸**처럼
                    읽혔다. 선택자는 이제 이 속성이라 문구를 바꿔도 안전하다) */
-            data-guide-target="ingredient-add-row"
             style={{
               width: '100%',
               maxWidth: 400,
               // 아래 첫 보관함(냉동)과 **24px**. 16px(mb-4)이라 붙어 보였다 —
               // 냉장고요리의 검색창→정렬 줄 간격(24px)과 맞춘다(2026-10-09 지적).
-              margin: '0 auto 24px',
+              margin: '0 auto',
               justifyContent: 'center',
               alignItems: 'flex-start',
             }}
@@ -2746,35 +2776,7 @@ const MyFridge: React.FC = () => {
                 버튼 하나로 모으고, 눌렀을 때 "뭘 찍을지" 먼저 고르게 한다
                 (CameraCaptureSheet). */}
           </div>
-
-          {/* 사진으로 재료 담기 — 40px 동그라미(아이콘만)로는 「AI 사진 인식」인지 알 수 없다는 지적(2026-11-07)으로, 식단 짜기·쿡 코치 입구와
-              **같은 검정 알약**(`ai-fab-pill k`: 숨 쉬듯 움직임 + 스쳐 가는 빛줄기) + 이름 옆 「✦AI」 + 한 줄 설명으로 입력창 아래에 둔다. */}
-          <button
-            type="button"
-            className="ai-fab-pill k"
-            onClick={() => {
-              // 비회원도 **체험분이 남아 있으면** 쓸 수 있다.
-              // 무엇이 좋은지 본 적 없는 사람에게 가입하라고 하면 안 한다.
-              if (usage && !usage.can_use_ai) {
-                // 비회원: 같은 로그인 확인창(「AI 체험을 다 쓰셨어요 / 가입하면 30크레딧…」). 회원: 기존 안내.
-                if (usage.is_guest) openLoginGate('ai', { credits: usage.signup_credits });
-                else showPrepNotice('크레딧을 다 쓰셨어요.');
-                return;
-              }
-              setCameraSheetOpen(true);
-            }}
-            title="사진으로 재료 담기"
-            aria-label="사진으로 재료 담기"
-            style={{ width: '100%', justifyContent: 'center', gap: 8, marginTop: 10, marginBottom: 12, fontSize: 14, fontWeight: 700 }}
-          >
-            <CameraIcon size={18} />
-            <span>사진으로 재료 담기</span>
-            <span className="ai-tag" style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: '.04em', padding: '1.5px 6px', borderRadius: 6,
-              background: 'rgba(255,255,255,0.16)', color: '#FFFFFF', flexShrink: 0,
-            }}>AI</span>
-            <span style={{ fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.78)', whiteSpace: 'nowrap' }}>영수증·음식 사진</span>
-          </button>
+          </div>
 
           {/* 곧 상하는 재료 알림은 **요리 캘린더**로 옮겼다.
               여기 두면 같은 말을 두 번 한다 — 아래 재고 목록이 이미 재료마다

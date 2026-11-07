@@ -505,6 +505,18 @@ const RecipeChatWidget: React.FC = () => {
     void sendMessage(input);
   };
 
+  // 떠 있는 버튼의 이름(「쿡 픽」)은 이 기기에서 **처음 한 번만** 잠깐 보여 주고 동그라미로 접는다.
+  const [fabLabel, setFabLabel] = useState(() => {
+    try { return sessionStorage.getItem('cookpick_fab_seen') !== '1'; } catch { return true; }
+  });
+  useEffect(() => {
+    if (!fabLabel) return;
+    const t = window.setTimeout(() => {
+      setFabLabel(false);
+      try { sessionStorage.setItem('cookpick_fab_seen', '1'); } catch { /* 저장이 막혀도 접히기만 하면 된다 */ }
+    }, 4500);
+    return () => window.clearTimeout(t);
+  }, [fabLabel]);
   const keyboardOpen = !!viewportInfo && viewportInfo.keyboardInset > 60;
   // 거의 전체 높이(2026-11-06 「창이 너무 작다, 핸드폰으로 본다」): 아래는 하단 메뉴 자리까지 내려오고 위·아래 여백만 남긴다.
   // 열려 있는 동안 떠 있는 알약은 숨고, 접는 길은 머리줄의 ⌄ · 바깥 어두운 곳 · 휴대폰 뒤로가기다.
@@ -929,14 +941,20 @@ const RecipeChatWidget: React.FC = () => {
             aria-label="쿡 픽 열기"
             className="ai-fab-pill y"
             onClick={openWidget}
+            style={{
+              height: 48, borderRadius: 24,
+              padding: fabLabel ? '0 16px 0 13px' : '0 13px',
+              transition: 'padding .45s ease',
+            }}
           >
-            {/* 글자가 붙은 알약(2026-11-06 「쿡 픽 A」): 포크·나이프 선 아이콘 + 이름. 오른쪽 위 AI 배지는 아래 형제. */}
-            <UtensilsIcon size={20} />
-            {/* 이름 아래 작은 설명 한 줄(2026-11-07 「쿡 픽·카메라도 설명이 들어가게」) — 떠 있는 버튼이라 폭을 많이 늘리지 않게 짧게 */}
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2, textAlign: 'left' }}>
-              <span>쿡 픽</span>
-              <span style={{ fontSize: 10.5, fontWeight: 500, opacity: 0.68 }}>레시피를 골라 드려요</span>
-            </span>
+            {/* 동그라미가 기본이다(2026-11-07 「버튼이 너무 주절주절하다 — 당근 디자이너라면?」). 떠 있는 버튼에 글이 늘 붙어 있으면 화면 위에서
+                시끄럽다. 그래서 **처음 한 번만 이름을 잠깐 보여 주고 접는다**(확장 → 동그라미). 이름은 그동안 익히고, 열면 머리줄이 다시 말한다. */}
+            <UtensilsIcon size={22} />
+            <span aria-hidden={!fabLabel} style={{
+              display: 'inline-block', overflow: 'hidden', whiteSpace: 'nowrap',
+              maxWidth: fabLabel ? 48 : 0, opacity: fabLabel ? 1 : 0, marginLeft: fabLabel ? 0 : -7,
+              transition: 'max-width .45s ease, opacity .3s ease, margin-left .45s ease',
+            }}>쿡 픽</span>
           </button>
           {/* AI 가 붙은 자리는 어디서나 같은 「AI」 배지(2026-11-06 사용자: 배지를 왜 없앴나 — AI 가 붙은 건 다 붙이기로 했다). */}
           <span className="ai-fab-badge">AI</span>

@@ -833,6 +833,7 @@ const WeeklyPlan: React.FC = () => {
   const conditionSection = (
     <section
       ref={aiBox}
+      className="ai-card"
       style={{
         background: 'var(--surface)', border: '1px solid var(--line-200)',
         borderRadius: 14, padding: '14px 16px', marginBottom: 10,

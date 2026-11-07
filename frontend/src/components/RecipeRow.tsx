@@ -148,8 +148,8 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
         }}>
           {recipe.title}
         </span>
-        {/* 정보 한 줄 + 오른쪽 별. 예전엔 「대체 가능 N」 노란 알약이 별과 함께 **따로 한 줄**을 차지해 목록이 길어졌다(2026-11-07 「칩이 한 행을
-            다 차지할 필요가 있나」). 대체 재료는 레시피 창 안에서 무엇을 무엇으로 바꾸는지 보이므로, 여기서는 글자 한 마디로만 알린다. */}
+        {/* 정보 한 줄 + 오른쪽 별. 「대체 가능 N」은 목록 **바깥에 내놓지 않는다**(2026-11-07 「줄바꿈이 애매해지고, 눌러서 들어가도 내가 본 내용과
+            다르다」) — 대체 재료는 레시피 창 안에서 칩(A → B)으로만 보인다. 예전엔 노란 알약이 별과 함께 따로 한 줄을 차지했다. */}
         <span style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, minHeight: 30 }}>
           {/* 별 때문에 폭이 좁아 한 줄에 다 안 들어간다 — 잘라 내지 말고 두 줄까지 줄바꿈을 허용한다 */}
           <span style={{
@@ -161,8 +161,7 @@ const RecipeRow: React.FC<RecipeRowProps> = ({
                 내 재료 {have}/{used.length}
               </b>
             )}
-            {substituted > 0 ? `${used.length > 0 ? ' · ' : ''}대체 가능 ${substituted}` : ''}
-            {recipe.comments ? `${used.length > 0 || substituted > 0 ? ' · ' : ''}댓글 ${recipe.comments}` : ''}
+            {recipe.comments ? `${used.length > 0 ? ' · ' : ''}댓글 ${recipe.comments}` : ''}
           </span>
           <button
             type="button"
