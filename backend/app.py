@@ -2181,19 +2181,27 @@ def send_verification_email(email, code):
         
         # 이메일 발송
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = '[Cookmatch] 이메일 인증 코드'
+        msg['Subject'] = '[쿡매치] 이메일 인증 코드'
         msg['From'] = smtp_from
         msg['To'] = email
         
+        # 머리글은 이미지 없이 글자로만 — 새 로고(2026-11-07) 노랑 #FFD600 바탕 + 검정 글자. 메일 클라이언트는 외부 이미지를 막는 경우가 많고
+        # 마크 PNG 의 공개 주소가 아직 확정되지 않아 이미지는 쓰지 않는다(공개 https 주소가 생기면 머리글 안에 <img> 한 줄 추가).
         html_content = f"""
         <html>
-          <body>
+          <body style="margin:0; padding:0; background:#ffffff;">
+            <div style="background:#FFD600; padding:18px 24px;">
+              <span style="font-size:24px; font-weight:900; color:#1A1A1E;">쿡매치</span>
+              <span style="font-size:13px; font-weight:600; color:#524200; margin-left:6px;">CookMatch</span>
+            </div>
+            <div style="padding:20px 24px;">
             <h2>이메일 인증 코드</h2>
             <p>안녕하세요,</p>
-            <p>Cookmatch 인증 코드입니다.</p>
+            <p>쿡매치 인증 코드입니다.</p>
             <p style="font-size: 24px; font-weight: bold; color: #3c3c3c; letter-spacing: 4px;">{code}</p>
             <p>이 코드는 10분간 유효합니다.</p>
             <p>본인이 요청하지 않은 경우 이 이메일을 무시하세요.</p>
+            </div>
           </body>
         </html>
         """
@@ -2203,7 +2211,7 @@ def send_verification_email(email, code):
 
 안녕하세요,
 
-Cookmatch 인증 코드입니다.
+쿡매치 인증 코드입니다.
 
 {code}
 

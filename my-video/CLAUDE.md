@@ -12,4 +12,5 @@
   - 말소리 구간은 음악이 자동으로 -16dB 로 내려간다(`add_bgm.py` 기본). 따로 끄지 않는다.
 - **① 훅의 웃음 포인트 자막은 최소 3.5초** 보이게 — 모자라면 대사 뒤 꼬리를 `scripts/slow_hook_tail.py` 로 슬로.
 - **① 훅 릴스의 기능 데모 동안 하단 중앙 검색 안내**(`makeReel(..., true)`).
+- **새 로고(P1 확정, 2026-11-07) — 앞으로 만드는 릴스부터**: 엔딩(`CtaOutro`)의 마크는 `AppIcon`(정사각 마크 PNG + CSS 둥근 모서리), 글자는 `Wordmark`(「쿡매치 CookMatch」 PNG). **흰 바탕 엔딩 = 노랑 정식 마크(260px, 화면 위쪽 1/4 지점 `top:470`) + `Wordmark on="white"`**, **노랑 바탕 위에 올릴 때만 검정 바탕판 `AppIcon variant="black"` + `Wordmark on="yellow"`**(노랑 위에 노랑 타일은 사라진다), **검정 바탕 위는 노랑 정식 마크 + `Wordmark on="black"`**. 마크를 코드로 다시 그리거나 앰버·주황 띠·테두리를 두르지 않는다(원본 `store/brand/`·`store/make_brand_assets.py`, 확정 시안 `store/logo_proposals/e9_final/p1_final/`). **이미 올린 릴스는 못 바꾼다 — 옛 아이콘 그대로.** 옛 텍스트 워드마크(갈색 #D99A00 「Match」)는 폐기.
 - **레시피를 DM·댓글로 보내는 PDF**는 [../store/RECIPE_PDF_GUIDE.md](../store/RECIPE_PDF_GUIDE.md) 형식 그대로(3쪽, 단위+괄호, 쪽 직접 나눔, 노란 「쿡매치 검색 · 여기를 누르면 쿡매치 받기」 링크, `utm_source=recipe_pdf_<요리이름>`).

@@ -78,17 +78,23 @@ export const RevealText: React.FC<{
   );
 };
 
-export const AppIcon: React.FC<{ size: number }> = ({ size }) => (
+// 새 로고(P1 확정, 2026-11-07) — 앞으로 만드는 릴스부터 적용. 이미 올린 릴스는 옛 아이콘 그대로(못 바꿈).
+// 마크 PNG(public/cookmatch_icon.png = store/brand/cookmatch_mark_1024.png)는 모서리 없는 정사각 1024 이므로 CSS radius 22.37% 로 둥글게.
+// variant: "yellow"(정식, 흰·검정 바탕 위) / "black"(검정 바탕판 — **노랑 바탕 위**에서 타일이 사라지지 않게).
+export const AppIcon: React.FC<{ size: number; variant?: "yellow" | "black" }> = ({ size, variant = "yellow" }) => (
   <Img
-    src={staticFile("cookmatch_icon.png")}
-    style={{ width: size, height: size, borderRadius: size * 0.22, display: "block" }}
+    src={staticFile(variant === "black" ? "cookmatch_mark_reverse.png" : "cookmatch_icon.png")}
+    style={{ width: size, height: size, borderRadius: size * 0.2237, display: "block" }}
   />
 );
 
-export const Wordmark: React.FC<{ size?: number }> = ({ size = 60 }) => (
-  <div style={{ fontSize: size, fontWeight: 700, color: INK, letterSpacing: -0.5 }}>
-    Cook<span style={{ color: "#D99A00" }}>Match</span>
-  </div>
+// 워드마크 = 「쿡매치」(굵은 한글) + 「CookMatch」(보조) 가로형 PNG. on: 놓일 바탕(white / yellow / black)에 맞춰 글자색이 정해져 있다.
+// size 는 예전 텍스트 워드마크의 글자 크기(px)와 같은 자리 — 이미지 높이는 size * 0.95.
+export const Wordmark: React.FC<{ size?: number; on?: "white" | "yellow" | "black" }> = ({ size = 60, on = "white" }) => (
+  <Img
+    src={staticFile(`wordmark_on_${on}.png`)}
+    style={{ height: size * 0.95, width: "auto", display: "block" }}
+  />
 );
 
 // 7편 공통 엔딩 — 로고 + 워드마크 + 태그라인 + 편별 페이오프 한 줄 + CTA.

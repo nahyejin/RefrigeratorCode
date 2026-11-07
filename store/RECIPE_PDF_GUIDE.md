@@ -52,6 +52,7 @@
   - `<요리이름>` 은 영문 소문자·밑줄, **요리 이름만**(캠핑 같은 상황은 넣지 않는다). 예: `recipe_pdf_shrimp_alioolio`.
   - 관리자 대시보드 「어디서 들어왔나」 표에 `recipe_pdf_…` 는 「레시피 PDF의 「쿡매치 받기」 링크 (요리이름)」으로 보인다(Admin.tsx `sourceLabel`). 새 레시피는 Admin.tsx 꼬리표 목록에 한 줄 추가.
 - 따옴표는 Do Hyeon 글꼴에서 「」가 벌어져 보여서 ‘ ’ 를 쓴다.
+- **로고(새 로고 P1 확정 2026-11-07)**: PDF 에는 원래부터 로고 이미지가 없고 노란 상자(#FFD600)+글자뿐이다. 새 로고의 바탕 노랑이 같은 값이라 **틀 변경 없음**(`scripts/make_dm_pdf.py` 확인). 이미 DM 으로 보낸 PDF 도 그대로. 나중에 로고를 넣고 싶으면 노란 상자 안에 `store/brand/wordmark_on_yellow.png`(투명, 검은 「쿡매치 CookMatch」)를 높이 40px 이하로 한 줄만 — 노란 상자 위에 마크를 놓을 때는 검정 바탕판(`store/brand/cookmatch_mark_reverse_1024.png`).
 
 ## 지금까지 만든 것
 

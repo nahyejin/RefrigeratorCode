@@ -369,18 +369,25 @@ def render_phone_slide(slide, W, H, hsize):
 # 시안 3개(A·B·C)를 만들어 하나를 정식 01_brand 로 쓴다 — BRAND_VARIANT 로 고른다. 장식(타일·형광펜 띠·알약·반짝임)은 모두 뺐다.
 # ---------------------------------------------------------------------------
 BRAND_VARIANT = "A"
-WORDMARK = os.path.join(os.path.dirname(STORE), "frontend", "src", "assets", "냉털이 로고 white.png")  # 앱 헤더 로고(투명 배경 글자)
+BRAND_DIR = os.path.join(STORE, "brand")  # 새 로고(P1 확정) 공용 자산 — store/make_brand_assets.py 가 만든다(마크를 여기서 다시 그리지 않는다)
 CARD_FILES = ["card12_v3.png", "card9_v3.png", "card2_v3.png"]  # 냉장고요리 목록의 실제 카드 캡처(폰 화면 밖, 카드만)
 
 
-def wordmark(width, color):
-    """앱 헤더 워드마크 「CookMatch」를 알파 마스크로 단색 칠해 돌려준다(RGBA)."""
-    im = Image.open(WORDMARK).convert("RGBA")
-    im = im.crop(im.getbbox())
-    h = int(width * im.height / im.width)
-    a = im.split()[3].resize((width, h), Image.LANCZOS)
-    out = Image.new("RGBA", (width, h), tuple(color) + (255,))
-    out.putalpha(a)
+def lockup(height, dark):
+    """새 락업(P1 확정): 마크 타일 + 「쿡매치 CookMatch」 글자를 가로로 붙인 RGBA. dark=True 면 검정 장(노랑 정식 타일 + 노랑 글자),
+    False 면 노랑 장(검정 바탕판 타일 + 검정 글자). 타일은 모서리 없는 정사각 PNG 에 iOS 식 둥근 모서리(22.37%)를 씌운다."""
+    tile = Image.open(os.path.join(BRAND_DIR, "cookmatch_mark_1024.png" if dark else "cookmatch_mark_reverse_1024.png")).convert("RGBA")
+    tile = tile.resize((height, height), Image.LANCZOS)
+    m = Image.new("L", (height * 4, height * 4), 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, height * 4 - 1, height * 4 - 1], radius=int(height * 4 * 0.2237), fill=255)
+    tile.putalpha(m.resize((height, height), Image.LANCZOS))
+    wm = Image.open(os.path.join(BRAND_DIR, "wordmark_on_black.png" if dark else "wordmark_on_yellow.png")).convert("RGBA")
+    wh = int(height * 0.47)
+    wm = wm.resize((int(wm.width * wh / wm.height), wh), Image.LANCZOS)
+    gap = int(height * 0.20)
+    out = Image.new("RGBA", (height + gap + wm.width, height), (0, 0, 0, 0))
+    out.alpha_composite(tile, (0, 0))
+    out.alpha_composite(wm, (height + gap, int(height * 0.47)))  # 락업 시안(가로형)과 같은 높이 — 글자 줄이 타일 가운데보다 약간 아래
     return out
 
 
@@ -418,9 +425,9 @@ def brand_text(img, W, hsize, ink, sub, accent, bigk=0.265, pad=None, ytop=None,
     워드마크·헤드라인 첫 줄 위치는 다른 장(아이콘 원 + 헤드라인)과 같게 맞춘다."""
     d = ImageDraw.Draw(img)
     D = int(W * 0.105)
-    y0 = int(W * 0.075)
-    wm = wordmark(int(W * 0.30), wm_color or ink)
-    img.alpha_composite(wm, (int(W * PAD), y0 + (D - wm.height) // 2))
+    y0 = int(W * 0.075)  # 다른 장(아이콘 원 + 헤드라인)의 머리말 위치 — 헤드라인 첫 줄 기준
+    lk = lockup(int(W * 0.125), dark=(wm_color or ink) != INK)
+    img.alpha_composite(lk, (int(W * PAD), int(W * 0.06)))  # 락업은 머리말 줄보다 약간 위·크게(마크가 읽히게)
     pad = pad if pad is not None else int(W * PAD)
     y = ytop if ytop is not None else y0 + D + int(W * 0.04)
     f = font(hsize, 900)

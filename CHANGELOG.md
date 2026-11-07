@@ -14788,3 +14788,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ### 로고 P1 확정(앰버 띠 제외) (2026-11-07, 제안만)
 사용자 선택: P1(노랑 바탕 + 흰 재료 + 검정 받침 + 진초록 잎)에서 재료 둘레 앰버 띠만 빼기 → `store/logo_proposals/e9_final/p1_final/` 에 확정안 풀세트(앱 아이콘 정식·검정 바탕판·옅은 판, 적응형, 알림 실루엣, 락업 3종, 스토어 첫 장 상단, 홈 화면)·계절 아이콘 4종(P1 문법)·브랜드 보드·컴포넌트 가이드·`BrandMark.tsx` 초안을 새로 만들고 색 토큰에서 앰버(`--brand-bowl #E8AC00`)를 삭제했다. 재료↔바탕 대비는 1.41:1 로 약하며 사용자가 알고 선택했다(표기). 보정 4종 비교(크림 초승달·바탕 #FFD000·틈 넓힘/좁힘) 결과 효과가 작아 **띠 없는 순수 P1 로 확정**, 비교판 `p1_final/logo_P1_확정_비교.png`. 이전 후보 README 는 ARCHIVE 표기만 했다. 운영 자산 변경 없음, RELEASE_NOTES 안 건드림.
+
+### 브랜드 적용 C — 스토어 스크린샷·문서·릴스 엔딩·이메일 (2026-11-07)
+새 로고(P1 확정)를 마케팅 쪽에 반영했다(앱 변경 없음 — RELEASE_NOTES 안 건드림). 공용 자산 `store/brand/`(확정 마크 정식·검정 바탕판 1024·512·120, 「쿡매치 CookMatch」 워드마크 투명 PNG 3색)와 생성기 `store/make_brand_assets.py` 신설 — 마크는 `p1_final/fullset` 확정 파일을 그대로 쓰고 다시 그리지 않는다.
+- **스토어 스크린샷 v3**: 1번 장 `01_brand` 상단의 옛 앱 헤더 워드마크를 새 락업(마크 타일 + 쿡매치 CookMatch)으로 교체(노랑 장은 검정 바탕판 타일·검은 글자, 검정 장 시안 B는 노랑 정식 타일·노랑 글자; 큰 「4만 개,」 타이포·실제 카드는 그대로). Play·iOS 2종 24장·zip 3개·첫 장 시안 A·B·C 재생성(`make_store_assets_v3.py` 가 옛 워드마크 PNG 를 더는 읽지 않음). **재촬영한 장 없음** — 2~8번 장은 앱 헤더를 잘라 낸 캡처라 옛 워드마크가 안 보여서 불필요.
+- **`store/STORE_LISTING.md`**: 「앱 아이콘·로고」 절 신설(옛 이름 점검, 앱 바이너리 아이콘과 스토어 아이콘이 어긋나면 안 된다는 체크 항목, 아이콘 A/B 실험(Play 등록정보 실험·Apple 제품 페이지 최적화)은 이번엔 비추천 메모, 콘솔 업로드 목록), 그래픽 표의 스크린샷 경로 v1→v3. `store/paste/ios-desc.txt` 에 남아 있던 옛 이름 「요리 AI」·「식단」을 문서의 `ios-desc` 와 같게 다시 뽑음(글자 수 검사 통과). PLAY_CONSOLE_ANSWERS·PLAY_PRODUCTION_APPLICATION 은 아이콘 답변이 없어 변경 없음.
+- **릴스(`my-video`)**: `shared.tsx` 의 `AppIcon`(새 마크 + 22.37% 둥근 모서리, `variant="black"` 검정 바탕판)·`Wordmark`(새 워드마크 PNG, `on` 바탕별)와 `public/` 자산 교체 — 앞으로 만드는 릴스용(이미 올린 릴스는 불변). `remotion still` 로 `CookMatchTeaser` 엔딩·인트로 확인. `my-video/CLAUDE.md`·`store/REEL_FORMATS.md` 에 로고 규칙 추가(노랑 바탕은 검정 바탕판, 검정·흰 바탕은 정식, 마크 재작도·앰버 띠 금지).
+- **문서**: `AD_BRIEF.md` 6장 브랜드 자산에서 옛 마스코트 「냉털이」·저장소에 없는 `쿡매치글씨로고.png` 안내를 새 로고·워드마크·바탕별 규칙으로 교체, `RECIPE_PDF_GUIDE.md`·`INSTAGRAM_AUTO_DM.md` 에 로고 메모(PDF·DM 카드에는 원래 로고가 없어 틀 변경 없음).
+- **인증 메일(`backend/app.py`)**: 철자 「Cookmatch」→「쿡매치」, 머리글에 노랑 바 + 「쿡매치 CookMatch」 글자(이미지 호스팅 주소가 없어 텍스트로 대체). 발송·배포 안 함.
+- **점검표**: `store/logo_proposals/ROLLOUT_CHECKLIST.md` 끝에 「6. 진행 상태」 — 완료/미완료와 사용자가 저장소 밖에서 할 일(Xcode·App Store Connect·Play Console·인스타 프로필·카카오/구글/네이버 로고·KIPRIS·스레드)을 올릴 파일 경로와 함께 정리하고 해당 단계 체크를 갱신.
