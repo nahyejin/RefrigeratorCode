@@ -574,7 +574,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     >
       {/* 사진은 **사람을 끌어당기는 유일한 요소**다. 280×100 은 3:1 띠라
           음식이 뭉개진다. 훑어보는 자리(`browse`)에서는 키운다. */}
-      <div style={{
+      <div {...(index === 0 ? { 'data-guide-target': 'recipe-photo' } : {})} style={{
         ...STYLES.imageContainer,
         height: browse ? 160 : (isHorizontal ? 100 : 160),
         ...(bleed ? { height: 'auto', margin: '0 -14px 12px', width: 'auto' } : null),

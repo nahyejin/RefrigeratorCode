@@ -1604,7 +1604,20 @@ const RecipeList: React.FC = () => {
       ),
       position: 'left' as const,
     },
-    // 13단계 — 오른쪽 아래 AI 챗봇(앱 전역 FAB). 다음 단계부터는 요리 캘린더로 넘어간다.
+    // 레시피 창(2026-11-08 「가이드에 쿡 코치·요약·읽어 주기가 빠졌다」) — 카드를 누르면 열리는 창은 가이드가 띄울 수 없으니
+    // 첫 카드 사진을 짚고 창 안에 뭐가 있는지(본문 요약·읽어 주기·쿡 코치)를 한 번에 말한다.
+    {
+      targetSelector: '[data-guide-target="recipe-photo"]',
+      message: (
+        <>
+          레시피를 누르면 블로그 본문을 <b>재료·조리 순서로 요약</b>해서 보여 줘요.<br />
+          <b>▶ 읽어 주기</b>로 조리 순서를 소리로 듣고,<br />
+          <b>쿡 코치(AI)</b>에게 이 요리에 대해 바로 물어볼 수 있어요.
+        </>
+      ),
+      position: 'bottom' as const,
+    },
+    // 마지막 — 오른쪽 아래 AI 챗봇 쿡 픽(앱 전역 FAB). 다음 단계부터는 요리 캘린더로 넘어간다.
     {
       targetSelector: '[data-guide-target="chat-fab"]',
       message: '먹고 싶은 걸 편하게 물어보세요.\nAI가 내 냉장고 재료에 맞는\n레시피를 찾아 드려요.',

@@ -69,7 +69,7 @@ export function evaluateVisitForUsageGuide(now = Date.now()): boolean {
  */
 export const USAGE_GUIDE_STEPS = {
   myFridge: 3,
-  recipeList: 9,
+  recipeList: 10,  // 2026-11-08 레시피 창(요약·읽어 주기·쿡 코치) 한 단계 추가
   // 요리 캘린더 3단계(2026-10-22): 13 이번 주 **AI** 식단 추천 버튼 → 14 요리 기록 달력 → 15 이번 달 목표.
   // 일반 「이번 주 식단 추천」 버튼은 따로 소개하지 않는다(AI 가 더 강조돼야 한다는 사용자 요청).
   // 예전엔 로그인한 사람만 월 목표·달력 단계를 봤는데(2단계), 달력은 비로그인도 쓰는 화면이라 모두에게 보여 준다.
