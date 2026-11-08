@@ -39,8 +39,8 @@ export const SEGS_V2: SegV2[] = [
     ],
   },
   {
-    label: "쿡 픽 · 식단 짜기",
-    caption: "물어보면 레시피부터\n식단까지 척척",
+    label: "AI 메뉴·식단 추천",
+    caption: "먹고 싶은 걸 물어보면\nAI가 레시피·식단까지",
     parts: [
       { kind: "clip", src: "v2_pick.mp4", from: 5.4, to: 9.6, rate: 2.2 }, // 쿡 픽 열기 → 「오늘 매운 거 먹고 싶어」
       { kind: "clip", src: "v2_pick.mp4", from: 11.2, to: 13.8 }, // 답 + 레시피 카드
@@ -49,8 +49,8 @@ export const SEGS_V2: SegV2[] = [
     ],
   },
   {
-    label: "쿡 코치",
-    caption: "재료 대체부터 계량까지\n쿡 코치가 다 답해요",
+    label: "요리 중 AI 질문",
+    caption: "요리하다 막히면\nAI 쿡 코치에게 물어보기",
     parts: [
       { kind: "clip", src: "v2_coach.mp4", from: 5.2, to: 9.6, rate: 2.6 }, // 레시피 창 → 쿡 코치
       { kind: "clip", src: "v2_coach.mp4", from: 9.6, to: 11.6, rate: 1.6 }, // 「당근이 없으면 뭐로 바꿔요?」
