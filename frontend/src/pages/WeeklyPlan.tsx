@@ -50,6 +50,8 @@ const LAST_AI_PLAN_KEY = 'cookmatch_last_ai_plan';
 const LAST_AI_PLAN_DAYS = 7;
 interface LastAiPlan {
   at: number;
+  /** 「지난 식단」 목록의 어느 줄인지 — 그 줄을 다시 열 때 끼니를 바꿔 둔 이 판을 대신 연다. */
+  historyId?: string;
   note: string;
   basket: { basket: string[]; buy_count: number; days: number; no_buy_days: number } | null;
   meals: Meal[][];
@@ -67,6 +69,37 @@ function saveLastAiPlan(p: LastAiPlan) {
 }
 function clearLastAiPlan() {
   try { localStorage.removeItem(LAST_AI_PLAN_KEY); } catch { /* 무시 */ }
+}
+
+/**
+ * 「지난 식단」(2026-11-08 「크레딧까지 써서 받은 추천은 목록으로 남아 다시 볼 수 있어야」) — AI 가 짠 식단을 짤 때마다 한 줄씩 남긴다.
+ * 로그인했으면 서버(`/api/plan/history`, 최근 60일), 비회원이면 이 기기에(최근 60일·10개). 저장 버튼은 없다 — 받은 건 알아서 남는다.
+ */
+interface PlanHistoryItem {
+  /** 서버 것은 `s<번호>`, 기기 것은 `l<시각>` */
+  id: string;
+  at: number;
+  request: string;
+  summary: string;
+  basket: LastAiPlan['basket'];
+  plan: PlanRecipe[];
+}
+const PLAN_HISTORY_KEY = 'cookmatch_ai_plan_history';
+const PLAN_HISTORY_DAYS = 60;
+const PLAN_HISTORY_LOCAL_MAX = 10;
+function loadLocalHistory(): PlanHistoryItem[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(PLAN_HISTORY_KEY) || '[]');
+    if (!Array.isArray(v)) return [];
+    const since = Date.now() - PLAN_HISTORY_DAYS * 24 * 60 * 60 * 1000;
+    return v.filter((x: PlanHistoryItem) => x && typeof x.at === 'number' && x.at >= since && Array.isArray(x.plan));
+  } catch { return []; }
+}
+function pushLocalHistory(item: PlanHistoryItem) {
+  try {
+    const next = [item, ...loadLocalHistory().filter(x => x.id !== item.id)].slice(0, PLAN_HISTORY_LOCAL_MAX);
+    localStorage.setItem(PLAN_HISTORY_KEY, JSON.stringify(next));
+  } catch { /* 용량 초과 등 — 무시 */ }
 }
 
 const API_BASE_URL =
@@ -356,12 +389,42 @@ const WeeklyPlan: React.FC = () => {
     setLastPlan(loadLastAiPlan());
     setPlanReady(true);
   }, []);
-  const restoreLastPlan = () => {
-    if (!lastPlan) return;
-    setSlots(prev => prev.map((s, i) => ({ ...s, meals: lastPlan.meals[i] ?? [] })));
-    setBasket(lastPlan.basket);
-    setAiNote(lastPlan.note);
+  /** 지금 화면에 띄운 AI 식단이 「지난 식단」의 어느 줄인지(끼니를 바꾸면 그 판을 이 기기에 남길 때 함께 적는다). */
+  const historyIdRef = React.useRef<string | undefined>(undefined);
+  const [history, setHistory] = React.useState<PlanHistoryItem[]>([]);
+  const [historyAll, setHistoryAll] = React.useState(false);
+  React.useEffect(() => {
+    const local = loadLocalHistory();
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (!authUser || !token) { setHistory(local); return; }
+    let alive = true;
+    fetch(`${API_BASE_URL}/api/plan/history`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then(d => {
+        if (!alive) return;
+        const items: PlanHistoryItem[] = (d?.items || []).map((x: any) => ({
+          id: `s${x.id}`, at: Date.parse(x.created_at) || Date.now(), request: String(x.request || ''),
+          summary: String(x.summary || ''), basket: x.basket ?? null, plan: Array.isArray(x.plan) ? x.plan : [],
+        })).filter((x: PlanHistoryItem) => x.plan.length > 0);
+        setHistory(items);
+      })
+      .catch(() => { if (alive) setHistory(local); });   // 서버가 아직 이 기능이 없거나 오프라인이면 이 기기 것
+    return () => { alive = false; };
+  }, [authUser]);
+  /** 「지난 식단」 한 줄을 연다. 끼니를 바꿔 둔 판이 이 기기에 있으면 그걸 연다. */
+  const restoreHistory = (item: PlanHistoryItem) => {
+    const edited = loadLastAiPlan();
+    const meals = edited && edited.historyId === item.id
+      ? edited.meals
+      : item.plan.map(r => [{ recipe: r, on: true }]);
+    historyIdRef.current = item.id;
+    setWish(item.request);   // 위 줄(「다이어트 · 담백하게」)과 「이 조건으로 다시 짜기」가 그때 조건을 따르게
+    setSlots(prev => prev.map((s, i) => ({ ...s, meals: meals[i] ?? [] })));
+    setBasket(item.basket);
+    setAiNote(item.summary || (item.request ? `"${item.request}" 을(를) 반영했어요.` : 'AI 가 골랐어요.'));
+    setSaved(false);
     setLastPlan(null);
+    window.scrollTo({ top: 0 });
   };
 
   /**
@@ -395,7 +458,7 @@ const WeeklyPlan: React.FC = () => {
     // 지난번 식단이 아직 불려 오지 않은 첫 화면에서는 저장분을 건드리지 않는다(빈 화면이라고 지우면 크레딧 쓴 결과가 사라진다)
     if (lastPlan) return;
     if (!aiNote || !slots.some(s => s.meals.length > 0)) { clearLastAiPlan(); return; }
-    saveLastAiPlan({ at: Date.now(), note: aiNote, basket, meals: slots.map(s => s.meals) });
+    saveLastAiPlan({ at: Date.now(), historyId: historyIdRef.current, note: aiNote, basket, meals: slots.map(s => s.meals) });
   }, [planReady, asking, aiNote, basket, slots, lastPlan]);
 
   React.useEffect(() => {
@@ -608,6 +671,7 @@ const WeeklyPlan: React.FC = () => {
   /** 전체를 다시 짠다 (무료). 매번 같은 조합이 안 나오게 섞는다. */
   const reshuffle = () => {
     if (!qualifiedPool) return;
+    historyIdRef.current = undefined;
     setAiNote(null);
     setSaved(false);
     const shuffled = [...qualifiedPool].sort(() => Math.random() - 0.5);
@@ -726,6 +790,14 @@ const WeeklyPlan: React.FC = () => {
       })));
       setSaved(false);
       setAiNote(aiReason.current || (request ? `"${request}" 을(를) 반영했어요.` : 'AI 가 새로 골랐어요.'));
+      // 「지난 식단」에 한 줄 — 로그인했으면 서버가 이미 남겼다(history_id). 이 기기에도 남겨 서버가 안 될 때 대신 보인다.
+      const item: PlanHistoryItem = {
+        id: data.history_id ? `s${data.history_id}` : `l${Date.now()}`, at: Date.now(), request,
+        summary: aiReason.current, basket: data.basket ?? null, plan: got.slice(0, slots.length),
+      };
+      historyIdRef.current = item.id;
+      pushLocalHistory(item);
+      setHistory(prev => [item, ...prev.filter(x => x.id !== item.id)]);
     } catch {
       aiFailReason.current = '네트워크 상태를 확인하고 다시 시도해 주세요.';
       setError(aiFailReason.current);
@@ -1144,6 +1216,9 @@ const WeeklyPlan: React.FC = () => {
                   {/* 무료 — 마음에 들 때까지 눌러도 된다. 여기에 크레딧을 물리면
                       사용자가 누르기를 주저하고, 그러면 식단을 완성하지 못한 채
                       나간다. 이 버튼의 값어치가 바로 "공짜" 다. */}
+                  {/* AI 식단에는 두지 않는다(2026-11-08) — 크레딧을 쓴 결과 옆에서 누르면 조건을 버린 무료 식단으로 통째로 바뀌었다.
+                      한 끼씩 바꾸기(···)는 그대로 공짜고, 전체를 다시 짜려면 위 「바꾸기 ›」의 「이 조건으로 다시 짜기」(크레딧)로 간다. */}
+                  {!aiNote && (
                   <button
                     type="button"
                     onClick={reshuffle}
@@ -1155,6 +1230,7 @@ const WeeklyPlan: React.FC = () => {
                   >
                     ↻ 다시 추천
                   </button>
+                  )}
 
                 </span>
               }
@@ -1468,24 +1544,70 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {(!hasResult || editOpen) && conditionSection}
-      {!hasResult && lastPlan && !asking && (
-        <button
-          type="button"
-          onClick={restoreLastPlan}
-          style={{
-            width: '100%', textAlign: 'left', cursor: 'pointer', marginBottom: 10,
-            background: 'transparent', border: '1px dashed var(--line-200)', borderRadius: 14,
-            padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8,
-          }}
-        >
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink-700)' }}>
-            지난번에 AI가 짠 식단이 있어요
-            <span style={{ color: 'var(--ink-500)' }}>
-              {' · '}{new Date(lastPlan.at).getMonth() + 1}월 {new Date(lastPlan.at).getDate()}일
-            </span>
-          </span>
-          <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ink-900)' }}>다시 보기 ›</span>
-        </button>
+      {/* 「지난 식단」 — AI 가 짠 식단이 짤 때마다 남는다(로그인: 서버 최근 2개월, 비회원: 이 기기). 당근 「최근 본 글」처럼 한 줄씩:
+          날짜 · 적은 조건 · 요리 사진 셋. 누르면 그 식단이 그대로 열린다. */}
+      {!hasResult && !asking && history.length > 0 && (
+        <section style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '4px 2px 8px' }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>지난 식단</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>AI가 짠 식단 · 최근 2개월</span>
+          </div>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--line-200)', overflow: 'hidden' }}>
+            {(historyAll ? history : history.slice(0, 3)).map((h, i) => {
+              const d = new Date(h.at);
+              return (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => restoreHistory(h)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', cursor: 'pointer',
+                    background: 'transparent', border: 'none', borderTop: i === 0 ? 'none' : '1px solid var(--line-200)',
+                    padding: '12px 14px',
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-500)', marginBottom: 2 }}>
+                      {d.getMonth() + 1}월 {d.getDate()}일 · {h.plan.length}일치
+                    </span>
+                    <span style={{
+                      display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--ink-900)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {h.request ? `“${h.request}”` : '조건 없이'}
+                    </span>
+                  </span>
+                  <span style={{ display: 'flex', flexShrink: 0 }}>
+                    {h.plan.slice(0, 3).map((r, k) => (
+                      <img
+                        key={k}
+                        src={getProxiedImageUrl(r.thumbnail || '')}
+                        alt=""
+                        style={{
+                          width: 34, height: 34, borderRadius: 8, objectFit: 'cover', background: 'var(--surface-sub)',
+                          border: '2px solid var(--surface)', marginLeft: k === 0 ? 0 : -8,
+                        }}
+                      />
+                    ))}
+                  </span>
+                  <span aria-hidden style={{ flexShrink: 0, color: 'var(--ink-500)', fontSize: 16 }}>›</span>
+                </button>
+              );
+            })}
+          </div>
+          {history.length > 3 && (
+            <button
+              type="button"
+              onClick={() => setHistoryAll(v => !v)}
+              style={{
+                display: 'block', margin: '6px auto 0', minHeight: 32, padding: '6px 14px', border: 'none',
+                background: 'transparent', color: 'var(--ink-500)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              {historyAll ? '접기 ▴' : `더 보기 (${history.length - 3}) ▾`}
+            </button>
+          )}
+        </section>
       )}
       {hasResult && editOpen && (
         <button

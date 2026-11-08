@@ -2462,6 +2462,7 @@ WITHDRAWAL_CONTENT_TABLES = [
     ("user_manual_cook_logs", "user_id"),
     ("user_meal_plans", "user_id"),
     ("ai_plan_chat_sessions", "user_id"),
+    ("ai_meal_plan_history", "user_id"),
     ("family_action_notifications", "target_user_id"),
     ("push_subscriptions", "user_id"),
     ("push_device_tokens", "user_id"),
@@ -6753,6 +6754,129 @@ def meal_plan_days(body):
     return max(1, min(14, n))
 
 
+# =====================
+# AI 식단 「지난 식단」 (2026-11-08)
+# =====================
+#
+# 크레딧을 쓰고 받은 AI 식단이 화면을 나가거나 「다시 추천」을 누르면 사라졌다(기기에 마지막 1개만, 7일). 사용자 지적
+# 「크레딧까지 써가며 받은 추천은 어디 목록으로 저장돼서 다시 볼 수 있어야」 → 로그인한 사람은 짤 때마다 서버에 한 줄씩 남기고,
+# **최근 2개월(60일)** 것만 둔다(사용자 결정). 오래된 행은 저장·조회 때 그 사람 것만 지운다(따로 도는 정리 작업 없음).
+AI_PLAN_HISTORY_DAYS = 60
+AI_PLAN_HISTORY_LIMIT = 30
+_ai_plan_history_ready = False
+
+
+def ensure_ai_plan_history_table():
+    global _ai_plan_history_ready
+    if _ai_plan_history_ready:
+        return
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ai_meal_plan_history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                request_text VARCHAR(300) NOT NULL DEFAULT '' COMMENT '사용자가 적은 조건',
+                summary TEXT NULL COMMENT '화면 위 AI 설명 문단',
+                basket_json TEXT NULL,
+                plan_json MEDIUMTEXT NOT NULL COMMENT '하루 하나씩, 화면에 나간 순서 그대로',
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_created (user_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+        _ai_plan_history_ready = True
+    finally:
+        db.close()
+
+
+_PLAN_HISTORY_KEYS = ('id', 'title', 'link', 'thumbnail', 'used_ingredients', 'ingredients', 'match_rate', 'why')
+
+
+def save_ai_plan_history(user_id, request_text, summary, basket, plan):
+    """짠 식단을 남긴다. 실패해도 식단 응답은 나가야 하므로 예외를 삼키고 None."""
+    try:
+        ensure_ai_plan_history_table()
+        slim = [{k: c.get(k) for k in _PLAN_HISTORY_KEYS if c.get(k) is not None} for c in plan]
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO ai_meal_plan_history (user_id, request_text, summary, basket_json, plan_json) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (user_id, (request_text or '')[:300], summary or '',
+                 json.dumps(basket, ensure_ascii=False) if basket is not None else None,
+                 json.dumps(slim, ensure_ascii=False)))
+            new_id = cursor.lastrowid
+            cursor.execute(
+                "DELETE FROM ai_meal_plan_history WHERE user_id = %s AND created_at < NOW() - INTERVAL %s DAY",
+                (user_id, AI_PLAN_HISTORY_DAYS))
+            db.commit()
+            return new_id
+        finally:
+            db.close()
+    except Exception as e:  # noqa: BLE001
+        print(f"[식단 기록] 저장 실패(무시): {e}", flush=True)
+        return None
+
+
+@app.route('/api/plan/history', methods=['GET'])
+def get_ai_plan_history():
+    """로그인한 사람의 최근 60일 AI 식단, 새것부터."""
+    user_id, err = _auth_user_id()
+    if err:
+        return err
+    ensure_ai_plan_history_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM ai_meal_plan_history WHERE user_id = %s AND created_at < NOW() - INTERVAL %s DAY",
+            (user_id, AI_PLAN_HISTORY_DAYS))
+        db.commit()
+        cursor.execute(
+            "SELECT id, request_text, summary, basket_json, plan_json, created_at FROM ai_meal_plan_history "
+            "WHERE user_id = %s ORDER BY created_at DESC, id DESC LIMIT %s",
+            (user_id, AI_PLAN_HISTORY_LIMIT))
+        items = []
+        for r in cursor.fetchall():
+            try:
+                plan = json.loads(r['plan_json'] or '[]')
+            except ValueError:
+                continue
+            try:
+                basket = json.loads(r['basket_json']) if r.get('basket_json') else None
+            except ValueError:
+                basket = None
+            ca = r['created_at']
+            items.append({
+                'id': r['id'], 'request': r['request_text'] or '', 'summary': r['summary'] or '',
+                'basket': basket, 'plan': plan,
+                # DB 세션이 KST(+09:00)로 고정돼 있어 CURRENT_TIMESTAMP 도 KST 다(get_db 참고).
+                'created_at': ca.strftime('%Y-%m-%dT%H:%M:%S+09:00') if hasattr(ca, 'strftime') else str(ca),
+            })
+        return jsonify({'items': items, 'days': AI_PLAN_HISTORY_DAYS})
+    finally:
+        db.close()
+
+
+@app.route('/api/plan/history/<int:item_id>', methods=['DELETE'])
+def delete_ai_plan_history(item_id):
+    user_id, err = _auth_user_id()
+    if err:
+        return err
+    ensure_ai_plan_history_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("DELETE FROM ai_meal_plan_history WHERE id = %s AND user_id = %s", (item_id, user_id))
+        db.commit()
+        return jsonify({'ok': True})
+    finally:
+        db.close()
+
+
 @app.route('/api/plan/suggest', methods=['POST'])
 def suggest_meal_plan():
     """냉장고 재료로 이번 주 식단을 **LLM 이** 짜 준다.
@@ -7011,8 +7135,9 @@ def suggest_meal_plan():
     summary_text = _plan_summary(plan, have, sorted(final_basket), request_text,
                                  ai_summary, expiring=expiring, bold=bool(body.get('markdown')))
 
+    history_id = save_ai_plan_history(user_id, request_text, summary_text, basket_info, plan) if user_id else None
     return jsonify({'plan': plan, 'usage': usage, 'basket': basket_info,
-                    'summary': summary_text})
+                    'summary': summary_text, 'history_id': history_id})
 
 
 @app.route('/api/events', methods=['GET', 'POST'])
