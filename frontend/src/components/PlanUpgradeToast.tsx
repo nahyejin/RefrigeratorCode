@@ -68,7 +68,7 @@ const PlanUpgradeToast: React.FC = () => {
       <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, lineHeight: 1.6 }}>
         <b>유료 계정이 됐어요.</b>
         <br />
-        매주 <b style={{ color: '#FFD600' }}>{usage.weekly_credits} 크레딧</b>을 받아요
+        매주 <b style={{ color: '#FFD600' }}>{usage.weekly_credits} 크레딧</b>까지 채워져요
         {usage.plan_until && <> · {usage.plan_until} 까지</>}.
       </span>
       <button

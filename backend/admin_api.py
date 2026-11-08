@@ -603,7 +603,7 @@ def register(app, get_db):
         title = body_text = None
         if became_plus:
             title = '유료 계정이 됐어요'
-            body_text = f"매주 {st['weekly_credits']} 크레딧을 받아요"
+            body_text = f"매주 {st['weekly_credits']} 크레딧까지 채워져요"
             if st.get('plan_until'):
                 body_text += f" · {st['plan_until']} 까지"
             if grant:

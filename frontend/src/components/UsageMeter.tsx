@@ -198,7 +198,7 @@ export const UsageLine: React.FC<{
       ? '가입하면 더'
       : <>체험분을 다 쓰셨어요 · 가입하면 <b>{usage.signup_credits} 크레딧</b></>;
   } else if (noBalance) {
-    text = compact ? '크레딧 0' : <>크레딧 소진 · 월요일에 <b>{usage.weekly_credits}</b> 충전돼요</>;
+    text = compact ? '크레딧 0' : <>크레딧 소진 · 월요일에 <b>{usage.weekly_credits}</b>까지 채워져요</>;
   } else if (noToday) {
     text = compact ? '금일 소진' : '금일 크레딧 소진 · 자정에 초기화돼요';
   } else if (compact) {
@@ -480,7 +480,7 @@ export const UsageGauge: React.FC = () => {
           <>
             {/* PLUS 배지는 카드 위쪽에 이미 있다 — 여기 또 두면 같은 카드
                 안에서 두 번 말하는 것이라 뺐다. */}
-            매주 월요일 <b>{usage.weekly_credits} 크레딧</b> 충전
+            매주 월요일 <b>{usage.weekly_credits} 크레딧</b>까지 채워져요(안 쓴 건 쌓이지 않아요)
             {dailyCap > 0 && ' · 금일 한도는 자정 초기화'}
             {/* 언제까지인지 안 적으면 어느 날 갑자기 줄어든 것처럼 느낀다. */}
             {usage.is_paid && usage.plan_until && (
@@ -495,7 +495,7 @@ export const UsageGauge: React.FC = () => {
               <>
                 <br />
                 지금은 시험 기간이라, 위 <b>더 필요해요</b> 로 요청하시면{' '}
-                매주 <b>{usage.weekly_plus ?? 60} 크레딧</b>으로 바꿔 드려요.
+                매주 <b>{usage.weekly_plus ?? 60} 크레딧</b>까지 채워 드려요.
               </>
             )}
           </>
@@ -524,7 +524,7 @@ export const UsageGauge: React.FC = () => {
           }}>
             지금은 <b>시험 기간</b>이라 요청하시면 <b>유료 계정</b>으로 바꿔 드려요.
             <br />
-            매주 <b>{usage.weekly_plus ?? 60} 크레딧</b>이 충전되고, 하루 한도도 함께 올라가요.
+            매주 <b>{usage.weekly_plus ?? 60} 크레딧</b>까지 채워지고, 하루 한도도 함께 올라가요.
           </div>
           <input
             value={reason}

@@ -59,7 +59,7 @@ SIGNUP_CREDITS = int(os.getenv("CREDITS_SIGNUP", "30"))   # 가입할 때 한 �
 # 6인 이유: 식단 짜기가 3이 되면서 5로는 **한 주에 식단 한 번 반**밖에 안 됐다.
 # 6이면 딱 두 번이다. 매주 무엇을 할 수 있는지가 떨어지는 숫자라야
 # "이번 주엔 뭘 하지" 가 성립한다.
-WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "6"))    # 매주 월요일 (무료)
+WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "6"))    # 매주 월요일 이만큼까지 채움(무료) — 2026-11-08 부터 쌓이지 않는다(_ensure_weekly)
 
 # 플랜별 주간 충전량. **더해지는 게 아니라 대신 들어간다.**
 #
@@ -594,31 +594,30 @@ def topup(get_db, user_id, amount, note=None, reason="topup", period_key=None):
 
 
 def _ensure_weekly(cursor, user_id, now=None, plan="free"):
-    """이번 주 몫 중 **아직 못 받은 만큼**을 준다.
+    """매주 월요일, 잔액을 플랜 몫(무료 6 / PLUS 60)**까지 채운다**(2026-11-08).
 
-    플랜마다 총량이 다르고(무료 6 / 유료 60), 주중에 플랜이 바뀔 수 있다.
-    "안 받았으면 준다" 로 두면 월요일에 무료로 6을 받은 사람이 수요일에 유료가
-    돼도 그 주는 6으로 끝난다 — 돈을 냈는데 다음 월요일까지 기다리는 셈이다.
-    반대로 그냥 또 주면 6 + 60 = 66 이 되어 "유료는 60" 이라는 약속과 어긋난다.
+    예전엔 매주 6(유료 60)을 **더해 줬다**. 안 쓴 몫이 끝없이 쌓여서 오래 쓴 사람일수록 부족할 일이 없어졌다
+    (테스트 계정이 수백 크레딧). 사용자 결정: 「안 쓴 건 쌓이지 않고, 매주 그 주 몫까지 채워 준다」.
+    그래서 이번 주에 채울 때 **잔액이 이미 그 이상이면 아무것도 안 준다.** 가입 30·관리자 지급분은 잔액에 그대로 있고,
+    그걸 다 써서 몫 아래로 내려가면 다음 월요일에 다시 채워진다.
 
-    그래서 **차액만** 채운다. 지급 행은 `주키:총량` 을 열쇠로 쓰므로, 같은 주에
-    같은 총량으로는 두 번 들어가지 않는다.
+    한 주에 한 번만 채운다 — 채운 기록(`주키:총량`, 0 이어도 남긴다)이 있으면 그 주엔 다시 안 본다.
+    그러지 않으면 주중에 쓰고 화면을 다시 열 때마다 또 채워진다.
+    주중에 PLUS 로 올리면 총량이 달라 열쇠가 새것이라 **그 자리에서 60까지** 채워진다.
     """
     want = weekly_for(plan)
     if not want:
         return
-    key = week_key(now)
+    key = f"{week_key(now)}:{want}"
     cursor.execute(
-        "SELECT COALESCE(SUM(amount), 0) FROM credit_grants "
-        "WHERE user_id = %s AND reason = 'weekly' AND period_key LIKE %s",
-        (user_id, key + "%"),
+        "SELECT 1 FROM credit_grants WHERE user_id = %s AND reason = 'weekly' AND period_key = %s LIMIT 1",
+        (user_id, key),
     )
-    got = _scalar(cursor.fetchone())
-    short = want - got
-    if short <= 0:
+    if cursor.fetchone():
         return
-    _add_grant(cursor, user_id, short, "weekly", f"{key}:{want}",
-               f"주간 지급 ({plan} {want})")
+    _, _, left = balance(cursor, user_id)
+    top = max(0, want - int(left))
+    _add_grant(cursor, user_id, top, "weekly", key, f"주간 채우기 ({plan} {want}까지)")
 
 
 def _used(cursor, user_id, device_id, since):
