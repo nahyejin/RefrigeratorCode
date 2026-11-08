@@ -7,7 +7,7 @@ import { FeatureTailBody, FEATURE_TAIL_V2_LEN } from "./FeatureDemosV2";
 
 // 요리 릴스 6편(쿠키, 도아랑 같이 만드는 곰돌이·토끼 쿠키) 뒷부분 v2 — 2026-11-08.
 // 사용자가 확정한 완성본(쿠키_20261105_v1, 124.8초)의 0~98.33초(이야기)는 그대로 두고, 그 뒤를 이것으로 갈아 끼운다:
-//   쿡매치 구간(옛 UI → 새 UI 재녹화, 자막 문구는 완성본과 같음) → 「그 밖에도 이런 기능이 있어요」(새 이름) → 새 기능영상 8개 → 이 편 슬로건 CTA(새 로고, 검색창 — 영상 맨 끝).
+//   쿡매치 구간(옛 UI → 새 UI 재녹화, 자막 문구는 완성본과 같음) → 「그 밖에도 이런 기능이 있어요」(새 이름) → 이 편 슬로건 CTA(새 로고, 검색창) → 새 기능영상 8개 → 같은 CTA 한 번 더(영상 맨 끝, 2026-11-08 사용자: 중간·끝 두 번).
 // 붙이기·음악은 scripts/make_cookie_v2.py (완성본의 쿠키 음악을 이어 붙인다 — 새 곡을 받지 않음).
 
 const f = (s: number) => Math.round(s * 30);
@@ -21,7 +21,7 @@ const APP: AppShot[] = [
 ];
 const appLen = (s: AppShot) => Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1));
 const APP_LEN = APP.reduce((a, s) => a + appLen(s), 0);
-export const COOKIE_TAIL_V2_LEN = APP_LEN + CTA_LEN + FEATURE_TAIL_V2_LEN;
+export const COOKIE_TAIL_V2_LEN = APP_LEN + CTA_LEN + FEATURE_TAIL_V2_LEN + CTA_LEN; // 끝 장표는 중간(앱 구간 뒤)과 맨 끝 두 번
 
 const AppClip: React.FC<{ s: AppShot; len: number }> = ({ s, len }) => {
   const frame = useCurrentFrame();
@@ -53,11 +53,20 @@ export const CookieTailV2: React.FC = () => {
       <Sequence from={0} durationInFrames={APP_LEN} name="검색 안내">
         <SearchBanner bottom={120} scale={0.82} panel />
       </Sequence>
-      <Sequence from={APP_LEN} durationInFrames={FEATURE_TAIL_V2_LEN} name="그 밖에도 + 기능 8개">
+      <Sequence from={APP_LEN} durationInFrames={CTA_LEN} name="CTA">
+        <CtaOutro
+          payoffLine={
+            <>
+              아이랑 만들 간식도, <Mark>쿡매치에서</Mark>
+            </>
+          }
+        />
+      </Sequence>
+      <Sequence from={APP_LEN + CTA_LEN} durationInFrames={FEATURE_TAIL_V2_LEN} name="그 밖에도 + 기능 8개">
         <FeatureTailBody />
       </Sequence>
-      {/* 끝 장표는 영상 맨 마지막에 — 로고 + 검색창에 「쿡매치」 타이핑 + 프로필 링크(2026-11-08 사용자: 「영상 맨 마지막엔 검색 유도 장표」) */}
-      <Sequence from={APP_LEN + FEATURE_TAIL_V2_LEN} durationInFrames={CTA_LEN} name="CTA(끝)">
+      {/* 끝 장표를 영상 맨 마지막에도 한 번 더 — 로고 + 검색창에 「쿡매치」 타이핑 + 프로필 링크(2026-11-08 사용자: 「영상 맨 마지막엔 검색 유도 장표」) */}
+      <Sequence from={APP_LEN + CTA_LEN + FEATURE_TAIL_V2_LEN} durationInFrames={CTA_LEN} name="CTA(끝)">
         <CtaOutro
           payoffLine={
             <>
