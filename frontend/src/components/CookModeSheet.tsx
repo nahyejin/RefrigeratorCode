@@ -21,6 +21,7 @@ import CoupangDynamicBanner from './CoupangDynamicBanner';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { recordRecentRecipe } from '../utils/recentRecipes';
 import { requestShare } from '../utils/recipeShare';
+import { canSpeak, speakText, stopSpeech, useCanSpeak } from '../utils/speech';
 
 /**
  * 요리 모드 — 원문으로 나가지 않고 앱 안에서 조리 순서를 본다.
@@ -58,9 +59,8 @@ const API_BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
   'https://refrigeratorcode-production.up.railway.app';
 
-/** 브라우저가 소리 내어 읽어 줄 수 있는가. */
-const canSpeak = () =>
-  typeof window !== 'undefined' && 'speechSynthesis' in window;
+// 소리 내어 읽기는 utils/speech.ts — 웹·아이폰은 브라우저 내장 음성, 안드로이드 앱은 폰의 음성 엔진(플러그인).
+// (안드로이드 웹뷰에는 `speechSynthesis` 가 없어서 2026-11-08 전까지 안드로이드에서는 버튼이 숨어 있었다)
 
 /** 작성자 이름이 없을 때 "출처" 줄에 최소한 대신 넣을 플랫폼 이름. */
 function platformLabel(platform?: string): string | null {
@@ -127,6 +127,8 @@ const CookModeSheet: React.FC<Props> = ({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [speaking, setSpeaking] = React.useState(false);
+  // 읽어 주기 버튼을 보일지 — 안드로이드는 폰에 한국어 음성이 있는지 확인한 뒤 정해진다
+  const speakable = useCanSpeak();
   const [at, setAt] = React.useState<number>(-1);
   const [speed, setSpeed] = React.useState<number>(loadSpeed);
   const [speedOpen, setSpeedOpen] = React.useState(false);
@@ -397,7 +399,7 @@ const CookModeSheet: React.FC<Props> = ({
 
   const stopSpeaking = React.useCallback(() => {
     runIdRef.current += 1;
-    if (canSpeak()) window.speechSynthesis.cancel();
+    stopSpeech();
     setSpeaking(false);
     setAt(-1);
     releaseScreen();
@@ -441,7 +443,7 @@ const CookModeSheet: React.FC<Props> = ({
   const speakFrom = React.useCallback((start: number) => {
     if (!canSpeak() || steps.length === 0) return;
     const myRun = ++runIdRef.current;   // 이번 읽기의 번호
-    window.speechSynthesis.cancel();
+    stopSpeech();
     setSpeaking(true);
     holdScreen();
 
@@ -455,29 +457,25 @@ const CookModeSheet: React.FC<Props> = ({
         setAt(-1);
         setTimeout(() => {
           if (myRun !== runIdRef.current) return;
-          const again = new SpeechSynthesisUtterance('처음부터 다시 읽을게요.');
-          again.lang = 'ko-KR';
-          again.rate = BASE_RATE * speed;
-          again.onend = () => run(0);
-          again.onerror = () => { if (myRun === runIdRef.current) run(0); };
-          window.speechSynthesis.speak(again);
+          speakText('처음부터 다시 읽을게요.', BASE_RATE * speed).then(
+            () => run(0),
+            () => { if (myRun === runIdRef.current) run(0); },
+          );
         }, 2000);
         return;
       }
       setAt(i);
-      const u = new SpeechSynthesisUtterance(`${i + 1}번. ${steps[i]}`);
-      u.lang = 'ko-KR';
-      // 기준 속도(`BASE_RATE`)에 고른 배속을 곱한다. 브라우저가 받는 상한은
-      // 10 이라 2× 까지는 넉넉하다.
-      u.rate = BASE_RATE * speed;
-      u.onend = () => run(i + 1);
-      u.onerror = () => {
-        if (myRun !== runIdRef.current) return;
-        setSpeaking(false);
-        setAt(-1);
-        releaseScreen();
-      };
-      window.speechSynthesis.speak(u);
+      // 기준 속도(`BASE_RATE`)에 고른 배속을 곱한다. 브라우저 상한은 10, 안드로이드 음성 엔진은
+      // 1 이 보통 속도라 2× 까지는 넉넉하다.
+      speakText(`${i + 1}번. ${steps[i]}`, BASE_RATE * speed).then(
+        () => run(i + 1),
+        () => {
+          if (myRun !== runIdRef.current) return;
+          setSpeaking(false);
+          setAt(-1);
+          releaseScreen();
+        },
+      );
     };
     run(start);
   }, [steps, speed, holdScreen, releaseScreen]);
@@ -698,7 +696,7 @@ const CookModeSheet: React.FC<Props> = ({
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E', margin: 0 }}>
                   조리 순서
                 </h3>
-                {canSpeak() && (
+                {speakable && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     {/* 배속. 눌러야 눈금이 펼쳐진다 — 다섯 개를 늘 펴 두면
                         「읽어 주기」보다 배속이 더 넓은 자리를 차지한다. */}
@@ -734,7 +732,7 @@ const CookModeSheet: React.FC<Props> = ({
                 )}
               </div>
 
-              {canSpeak() && speedOpen && (
+              {speakable && speedOpen && (
                 <div
                   role="group"
                   aria-label="읽는 속도"
@@ -814,7 +812,7 @@ const CookModeSheet: React.FC<Props> = ({
                       // 읽고 있는 단계를 짚어 준다. 소리만 나오면 어디까지 왔는지
                       // 모르고, 한눈 팔면 처음부터 다시 들어야 한다.
                       background: at === i ? '#FFF8CC' : 'var(--surface-sub)',
-                      cursor: canSpeak() ? 'pointer' : 'default',
+                      cursor: speakable ? 'pointer' : 'default',
                     }}
                   >
                     <span style={{
@@ -830,7 +828,7 @@ const CookModeSheet: React.FC<Props> = ({
                 ))}
               </ol>
 
-              {canSpeak() && (
+              {speakable && (
                 <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
                   단계를 누르면 거기서부터 읽어 줘요. 멈출 때까지 이어서 읽습니다.
                 </div>
