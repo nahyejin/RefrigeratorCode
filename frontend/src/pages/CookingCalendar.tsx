@@ -2946,8 +2946,9 @@ const CookingCalendar: React.FC = () => {
               <div style={{ padding: '24px 4px', textAlign: 'center',
                             fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
                 {isFav
-                  ? (scope === 'household' ? '식구들이 즐겨찾기한 레시피가 아직 없어요.' : '아직 즐겨찾기한 레시피가 없어요.')
-                  : (scope === 'household' ? '식구들의 기록은 아직 모으지 않아요.' : '아직 기록한 레시피가 없어요.')}
+                  // 식구가 없으면(비회원·그룹 없는 회원) 범위 토글이 안 보여 'household' 에 머문다 — 「식구들…」 대신 내 문구로(2026-11-08)
+                  ? (scope === 'household' && isInHousehold ? '식구들이 즐겨찾기한 레시피가 아직 없어요.' : '아직 즐겨찾기한 레시피가 없어요.')
+                  : (scope === 'household' && isInHousehold ? '식구들의 기록은 아직 모으지 않아요.' : '아직 기록한 레시피가 없어요.')}
                 <br />
                 레시피에서 <b>{isFav ? '즐겨찾기' : '기록'}</b>{isFav ? '를' : '을'} 누르면 여기 쌓여요.
               </div>
