@@ -1610,9 +1610,8 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-photo"]',
       message: (
         <>
-          레시피를 누르면 블로그 본문을 <b>재료·조리 순서로 요약</b>해서 보여 줘요.<br />
-          <b>▶ 읽어 주기</b>로 조리 순서를 소리로 듣고,<br />
-          <b>쿡 코치(AI)</b>에게 이 요리에 대해 바로 물어볼 수 있어요.
+          레시피를 누르면 본문을 <b>요약</b>해 보여 줘요.<br />
+          <b>읽어 주기</b>로 듣고, <b>쿡 코치</b>에게 물어보세요.
         </>
       ),
       position: 'bottom' as const,
