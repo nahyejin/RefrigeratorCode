@@ -20,6 +20,7 @@ export const MEMBER_COLORS = [
 
 /** 그룹원 id 오름차순 목록에서 몇 번째인지로 색을 고른다. 화면마다 같은 사람은 같은 색. */
 export function colorForUser(userId: number, orderedIds: number[]): string {
-  const idx = orderedIds.indexOf(userId);
+  // 목록에 없는 사람(비회원은 목록이 비어 있다)은 -1 → 색이 undefined 라 점이 안 보였다(2026-11-08). 첫 색(=나)으로.
+  const idx = Math.max(0, orderedIds.indexOf(userId));
   return MEMBER_COLORS[idx % MEMBER_COLORS.length];
 }

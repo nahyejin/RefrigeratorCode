@@ -600,7 +600,7 @@ const CookingCalendar: React.FC = () => {
       const to = toDateKey(monthEnd);
       setEntries(mergeLocalDone([], GUEST_USER_ID, myName).filter(e => e.day >= from && e.day <= to));
       setIsInHousehold(false);
-      setMemberIds([]);
+      setMemberIds([GUEST_USER_ID]);
       setHouseholdMembers([]);
       setGroupGoal(null);
       setHouseholdSize(1);
@@ -877,7 +877,23 @@ const CookingCalendar: React.FC = () => {
   }, [scope, favorites, householdFavorites, hideMine, myName, actedInSpan]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
-    if (!authUser?.id || !dateInput) return;
+    if (!dateInput) return;
+    // 비회원: 완료는 기기(my_completed_recipes)에만 있다 — 그 사본의 날짜를 바꾼다(2026-11-08 「비회원은 완료일자 수정이 안 되나」).
+    // 시각은 그날 정오로 둔다(자정이면 시간대에 따라 전날로 보일 수 있다).
+    if (!authUser?.id) {
+      try {
+        const list = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+        if (Array.isArray(list)) {
+          const when = new Date(`${dateInput}T12:00:00`).toISOString();
+          const next = list.map((r: any) => (r && Number(r.id) === Number(entry.recipe_id) ? { ...r, user_saved_at: when } : r));
+          localStorage.setItem('my_completed_recipes', JSON.stringify(next));
+        }
+      } catch { /* 기기 저장소를 못 읽으면 그대로 둔다 */ }
+      setEditingDateKey(null);
+      setAllEntries(null);
+      await loadCalendar();
+      return;
+    }
     setSavingDate(true);
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -3030,7 +3046,7 @@ const CookingCalendar: React.FC = () => {
                 const first = i === 0 || arr[i - 1].day !== e.day;
                 // 일 보기와 같은 규칙 — 내 것이거나, 같은 그룹이면 대신
                 // 취소할 수 있다(당사자 알림 + 복구 가능, 서버 처리).
-                const isMine = authUser?.id != null && e.user_id === Number(authUser.id);
+                const isMine = authUser?.id != null ? e.user_id === Number(authUser.id) : e.user_id === GUEST_USER_ID;   // 비회원 기록은 모두 내 것
                 const canCancel = !authUser?.id || isMine || isInHousehold;
                 // 직접 적은 기록(수동 기록)은 레시피가 없어 조리 순서 시트를 열 곳이 없다.
                 const hasRecipe = e.entry_type !== 'manual' && e.recipe_id != null;
@@ -3245,7 +3261,7 @@ const CookingCalendar: React.FC = () => {
             (entriesByDay.get(selectedDay) || []).map((e, i) => {
               const isManual = e.entry_type === 'manual';
               const dateKey = isManual ? `manual-${e.manual_log_id}` : `${e.recipe_id}-${e.user_id}`;
-              const isMine = authUser?.id != null && e.user_id === Number(authUser.id);
+              const isMine = authUser?.id != null ? e.user_id === Number(authUser.id) : e.user_id === GUEST_USER_ID;   // 비회원 기록은 모두 내 것
               // 완료·수동 기록 모두, **같은 그룹이면 대신 지울 수 있다**(대리
               // 삭제 + 당사자 알림, 2026-09-14). 날짜 수정은 내 것만(그대로).
               // 게스트(계정 없음)는 그룹이 있을 수 없으니 `isMine`이 항상
