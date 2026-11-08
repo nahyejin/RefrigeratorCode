@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
 import Dialog from '../components/ui/Dialog';
 import Sheet from '../components/ui/Sheet';
+import { useCloseOnBack } from '../utils/closeOnBack';
 import KebabMenu from '../components/ui/KebabMenu';
 import VoiceInputButton from '../components/ui/VoiceInputButton';
 import StepLoading from '../components/StepLoading';
@@ -882,6 +883,24 @@ const WeeklyPlan: React.FC = () => {
   /** 조건을 한 글자라도 적었나. 적었으면 AI(크레딧), 아니면 무료. */
   const hasWish = wish.trim().length > 0;
   const hasResult = slots.some(s => s.meals.length > 0);
+  /**
+   * 결과 화면 → 「뒤로」 = 시작 화면(쓸 재료·조건·지난 식단)으로(2026-11-08 「뒤로가기 누르면 처음 화면으로 가야 하는데 마이캘린더로 넘어간다」).
+   * 결과는 같은 주소 위에 그린 것이라 `navigate(-1)` 이면 들어오기 전 화면으로 나가 버렸다. AI 식단은 「지난 식단」에 남아 있고,
+   * 끼니를 바꿔 둔 판도 지우지 않는다(`lastPlan` 을 다시 채워 두면 저장 효과가 그 판을 지우지 않는다).
+   */
+  const backToStart = () => {
+    setLastPlan(loadLastAiPlan());
+    historyIdRef.current = undefined;
+    setHasRequestedPlan(false);
+    setSlots(prev => prev.map(s => ({ ...s, meals: [] })));
+    setAiNote(null);
+    setBasket(null);
+    setEditOpen(false);
+    setNoteOpen(false);
+    setSaved(false);
+    window.scrollTo({ top: 0 });
+  };
+  useCloseOnBack(hasResult && !asking, backToStart);   // 안드로이드 폰 「뒤로」도 같게
   // 식단 결과가 새로 나올 때마다 1씩 올라가는 번호 — 결과 머리의 「딱」 앉는 마크를 결과마다 한 번만 재생하는 열쇠
   // (렌더 중 갱신: 같은 결과를 다시 그릴 때는 그대로라 반복되지 않는다. 「다시 추천」 같은 교체에서는 올리지 않는다)
   const planTokenRef = React.useRef(0);
@@ -1359,7 +1378,7 @@ const WeeklyPlan: React.FC = () => {
       }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center',
                       justifyContent: 'center', minHeight: 40 }}>
-          <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
+          <BackButton onClick={() => (hasResult && !asking ? backToStart() : navigate(-1))} style={{ left: 0, top: 2 }} />
           <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
             식단 짜기
           </div>
