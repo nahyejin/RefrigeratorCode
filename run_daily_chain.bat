@@ -33,6 +33,13 @@ call run_llm_ingredients_daily.bat
 echo [%date% %time%] 4/4 사전 반영 >> %CHAIN_LOG%
 call apply_dictionary_additions_daily.bat
 
+echo [%date% %time%] 대체 재료 사전(레시피별, 2026-11-08 추가 단계 — 하루 1,500건씩 이어서) >> %CHAIN_LOG%
+rem 43,933건을 하루 1,500건씩 약 30일. 이미 한 레시피는 건너뛰고, Gemini 한도(429)면 조용히 멈춰 다음 날 이어서 한다.
+rem 끝나도(전부 처리) 그날 새로 바뀐 레시피만 다시 하므로 계속 둬도 된다. 최대 60분이 지나면 끊고 다음 단계로.
+set PYTHONIOENCODING=utf-8
+%CHAIN_PY% scripts\build_recipe_substitutes.py --commit --daily-limit 1500 --max-minutes 60 >> logs\recipe_substitutes_daily.log 2>&1
+echo [%date% %time%] 대체 재료 사전 끝(종료 코드 %ERRORLEVEL%) >> %CHAIN_LOG%
+
 echo [%date% %time%] DB 백업(2026-10-22 추가 단계) >> %CHAIN_LOG%
 call run_db_backup_daily.bat
 
