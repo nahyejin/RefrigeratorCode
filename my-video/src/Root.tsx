@@ -15,6 +15,7 @@ import { CookingSausage, COOKING_SAUSAGE_TOTAL } from "./CookingSausage";
 import { CookingMiyeok, COOKING_MIYEOK_TOTAL } from "./CookingMiyeok";
 import { CookingCampPasta, COOKING_CAMP_PASTA_TOTAL } from "./CookingCampPasta";
 import { CookingCookie, COOKING_COOKIE_TOTAL } from "./CookingCookie";
+import { ReelOverviewV2, REEL_OVERVIEW_V2_LEN } from "./ReelOverviewV2";
 import { FeatureTailV2, FEATURE_TAIL_V2_LEN, FeatureOneV2, SEGS_V2, segLenV2 } from "./FeatureDemosV2";
 import { CookieTailV2, COOKIE_TAIL_V2_LEN } from "./CookieTailV2";
 import { REELS_HOOK_V2 } from "./ReelHooksV2";
@@ -119,6 +120,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="CookingCampPasta" component={CookingCampPasta} durationInFrames={COOKING_CAMP_PASTA_TOTAL} fps={30} width={1080} height={1920} />
       <Composition id="CookingCookie" component={CookingCookie} durationInFrames={COOKING_COOKIE_TOTAL} fps={30} width={1080} height={1920} />
       {/* 기능영상 v2(2026-11-08): 새 로고·새 이름·새 UI. 요리·후킹 릴스 뒤에 붙이는 묶음 + 기능 하나씩 */}
+      <Composition id="ReelOverviewV2" component={ReelOverviewV2} durationInFrames={REEL_OVERVIEW_V2_LEN} fps={30} width={1080} height={1920} />
       <Composition id="FeatureTailV2" component={FeatureTailV2} durationInFrames={FEATURE_TAIL_V2_LEN} fps={30} width={1080} height={1920} />
       {SEGS_V2.map((s, i) => (
         <Composition key={`fv2-${i}`} id={`FeatureV2-${i + 1}`} component={FeatureOneV2} defaultProps={{ index: i }} durationInFrames={segLenV2(s)} fps={30} width={1080} height={1920} />
