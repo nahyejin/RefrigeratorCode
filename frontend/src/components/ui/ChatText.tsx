@@ -14,18 +14,24 @@ import * as React from 'react';
 const BULLET = /^\s*(?:[-•·]|\*(?!\*))\s+(.*)$/;
 const HEADING = /^\s*#{1,3}\s+(.*)$/;
 
-function inline(text: string, keyPrefix: string): React.ReactNode[] {
+function inline(text: string, keyPrefix: string, weight = 700): React.ReactNode[] {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts
     .map((part, i) => {
       if (/^\*\*[^*]+\*\*$/.test(part)) {
-        return <b key={`${keyPrefix}-${i}`} style={{ fontWeight: 700 }}>{part.slice(2, -2)}</b>;
+        return <b key={`${keyPrefix}-${i}`} style={{ fontWeight: weight }}>{part.slice(2, -2)}</b>;
       }
       // 닫히지 않은 ** (아직 쓰는 중)는 보이지 않게
       return part.replace(/\*\*/g, '');
     })
     .filter(p => p !== '');
 }
+
+/** 한 줄 글 안의 `**굵게**` 만 그린다(줄바꿈·목록 없음) — 식단 짜기 한 줄 설명(`summary`·`why`)처럼 span 안에 들어가는 자리용.
+ *  둘레 글이 이미 600 이면 굵게가 티가 안 나므로 `weight` 로 더 굵게 줄 수 있다. */
+export const InlineBold: React.FC<{ text: string; weight?: number }> = ({ text, weight = 700 }) => (
+  <>{inline(String(text || ''), 'ib', weight)}</>
+);
 
 const ChatText: React.FC<{ text: string }> = ({ text }) => {
   const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');

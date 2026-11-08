@@ -6651,8 +6651,10 @@ def _josa(word, with_final, without_final):
     return with_final if (ord(last) - 0xAC00) % 28 else without_final
 
 
-def _plan_summary(plan, have, basket, request_text, ai_note, expiring=None):
+def _plan_summary(plan, have, basket, request_text, ai_note, expiring=None, bold=False):
     """식단을 왜 이렇게 골랐는지 **사실로** 적는다.
+
+    `bold` — 앱이 `**굵게**` 를 그릴 수 있다고 알려 왔으면(요청 `markdown: true`) 재료 이름과 결론 구절을 굵게 쓴다(2026-11-08).
 
     왜 서버가 쓰나: LLM 은 요리를 고르는 시점에 답을 쓴다. 그런데 장바구니는
     그 뒤에 최종 식단에서 계산된다 — 그래서 LLM 이 숫자를 말하면 반드시 화면과
@@ -6693,20 +6695,21 @@ def _plan_summary(plan, have, basket, request_text, ai_note, expiring=None):
             if name in soon_set and name not in soon_used:
                 soon_used.append(name)
 
+    B = (lambda x: f"**{x}**") if bold else (lambda x: x)
     parts = []
     if top:
-        parts.append("냉장고의 " + "·".join(top) + _josa(top[-1], "을", "를") + " 주로 썼어요.")
+        parts.append("냉장고의 " + "·".join(B(n) for n in top) + _josa(top[-1], "을", "를") + " 주로 썼어요.")
     if soon_used:
         names = soon_used[:3]
-        parts.append("곧 상하는 " + "·".join(names) + _josa(names[-1], "을", "를")
+        parts.append("곧 상하는 " + "·".join(B(n) for n in names) + _josa(names[-1], "을", "를")
                      + " 먼저 쓰도록 앞쪽에 뒀고요.")
     if not basket:
-        parts.append("장은 안 봐도 돼요 — 전부 있는 재료로 됩니다.")
+        parts.append(B("장은 안 봐도 돼요") + " — 전부 있는 재료로 됩니다.")
     else:
-        line = "새로 살 건 " + "·".join(basket[:6])
+        line = "새로 살 건 " + "·".join(B(n) for n in basket[:6])
         if len(basket) > 6:
             line += f" 외 {len(basket) - 6}가지"
-        line += f", 모두 {len(basket)}개예요."
+        line += ", " + B(f"모두 {len(basket)}개") + "예요."
         parts.append(line)
         if reuse:
             best = sorted(reuse.items(), key=lambda kv: -kv[1])[:2]
@@ -6725,6 +6728,8 @@ def _plan_summary(plan, have, basket, request_text, ai_note, expiring=None):
     # LLM 이 쓴 문장은 **조건 해석만** 덧붙인다. 숫자가 섞여 있으면 화면과
     # 어긋날 수 있으므로 그 문장은 버린다.
     note = " ".join(str(ai_note or "").split())
+    if not bold:
+        note = note.replace("**", "")  # 굵게를 못 그리는 예전 앱엔 별표가 보이므로
     if note and not re.search(r"\d", note):
         parts.append(note)
 
@@ -6941,7 +6946,8 @@ def suggest_meal_plan():
         import meal_plan
 
         picked, meta, ai_summary = meal_plan.suggest(
-            for_llm, have, expiring, request_text, hints=hints)
+            for_llm, have, expiring, request_text, hints=hints,
+            bold=bool(body.get('markdown')))  # 굵게를 그릴 줄 아는 앱만 보낸다(2026-11-08)
         # `meal_plan.suggest` 는 이미 벗겨 낸 `usageMetadata` 를 돌려준다.
         # 그걸 `note_gemini_usage` 에 넘기면 안에서 한 번 더 `usageMetadata` 를
         # 찾다가 빈 값이 되어, **식단은 토큰이 하나도 안 쌓이고 있었다**
@@ -7003,7 +7009,7 @@ def suggest_meal_plan():
     # 엄선했다" 고 해 놓고 여섯 개가 떴다). LLM 에게는 **조건을 어떻게 읽었는지**
     # 한 문장만 맡기고, 무엇을 썼고 무엇을 사야 하는지는 여기서 센다.
     summary_text = _plan_summary(plan, have, sorted(final_basket), request_text,
-                                 ai_summary, expiring=expiring)
+                                 ai_summary, expiring=expiring, bold=bool(body.get('markdown')))
 
     return jsonify({'plan': plan, 'usage': usage, 'basket': basket_info,
                     'summary': summary_text})

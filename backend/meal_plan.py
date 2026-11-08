@@ -79,9 +79,17 @@ _PROMPT = """너는 냉장고 사정을 아는 요리 도우미다. 아래 후�
   조건이 따로 없었으면 빈 문자열로 둬라.
   예: "아이가 먹기 좋게 맵지 않고 자극이 적은 것만 담았어요."
   예: "기름지지 않고 담백한 쪽으로, 튀김과 밀가루는 뺐어요."
-
+{bold_rule}
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
 예: {{"summary": "아이가 먹기 좋게 맵지 않은 것만 담았어요", "plan": [{{"n": 3, "why": "양파가 이틀 남았어요"}}, {{"n": 11, "why": "재료가 다 있어요"}}]}}
+"""
+
+
+# 핵심 낱말 굵게 — 앱이 그릴 수 있을 때만 프롬프트에 넣는다(`suggest(bold=True)`).
+_BOLD_RULE = """- **굵게:** `summary` 와 `why` 에서 **핵심 낱말 한두 곳만** 별표 두 개로 감싸 굵게 써라.
+  `summary` 는 사용자 조건을 어떻게 읽었는지의 핵심 구절, `why` 는 재료 이름이나 이유의 핵심.
+  문장 전체를 굵게 하지 말고, 별표는 글자 수에 세지 않는다.
+  예: "아이가 먹기 좋게 **맵지 않고 자극이 적은 것**만 담았어요." / "**양파**가 이틀 남았어요"
 """
 
 
@@ -126,13 +134,16 @@ def _parse(text):
             n = int(x.get("n"))
         except (TypeError, ValueError):
             continue
-        why = " ".join(str(x.get("why") or "").split())[:40]
+        why = " ".join(str(x.get("why") or "").split())[:48]  # 굵게(**) 별표 몫까지
         out.append({"n": n, "why": why})
     return out, summary
 
 
-def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=None, hints=None):
+def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=None, hints=None, bold=False):
     """후보 중에서 골라 식단을 짠다.
+
+    `bold` — 앱이 `summary`·`why` 의 `**굵게**` 를 그릴 수 있다고 알려 왔을 때만(요청 `markdown: true`) 핵심 낱말을 굵게
+    쓰라고 시킨다. 예전 앱은 글자 그대로 보여 줘서 별표가 보이므로 기본은 끈다(2026-11-08).
 
     `candidates` 는 `{id, title, ingredients}` 목록. 반환은
     `[{recipe_id, why}, ...]` — 순서가 곧 날짜 순서다.
@@ -164,6 +175,7 @@ def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=N
         request=(request_text or "").strip()[:300] or "(따로 없음)",
         hints=("\n".join("- " + h for h in hints) if hints else "- (특별한 지침 없음)"),
         candidates="\n".join(lines),
+        bold_rule=_BOLD_RULE if bold else "",
     )
 
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"

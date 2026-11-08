@@ -27,6 +27,7 @@ import {
 import PlanConflictSummary from '../components/PlanConflictSummary';
 import SnugMark from '../components/brand/SnugMark';
 import { SparklesIcon } from '../components/ui/Icons';
+import { InlineBold } from '../components/ui/ChatText';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -693,6 +694,8 @@ const WeeklyPlan: React.FC = () => {
         body: JSON.stringify({
           ingredients: planIngredients,
           expiring: priority,
+          // 이 앱은 summary·why 의 **굵게** 를 그린다 — 서버가 이걸 보고만 굵게 쓰게 시킨다(예전 앱엔 별표가 보이므로)
+          markdown: true,
           request,
         }),
       });
@@ -1094,7 +1097,7 @@ const WeeklyPlan: React.FC = () => {
               lineHeight: 1.4, overflow: 'hidden', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
             }}>{shortRecipeTitle(meal.recipe.title)}</span>
             {meal.recipe.why ? (
-              <span style={{ display: 'block', fontSize: 12, color: '#7A5C00', marginTop: 3 }}>{meal.recipe.why}</span>
+              <span style={{ display: 'block', fontSize: 12, color: '#7A5C00', marginTop: 3 }}><InlineBold text={meal.recipe.why} /></span>
             ) : typeof meal.recipe.match_rate === 'number' ? (
               <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-500)', marginTop: 3 }}>
                 가진 재료로 {meal.recipe.match_rate}% 만들 수 있어요
@@ -1174,7 +1177,7 @@ const WeeklyPlan: React.FC = () => {
                 <span style={noteOpen ? { flex: 1 } : {
                   flex: 1, display: '-webkit-box', overflow: 'hidden',
                   WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                }}>{aiNote}</span>
+                }}><InlineBold text={aiNote} weight={800} /></span>
                 <span aria-hidden style={{ flex: 'none', color: 'var(--ink-500)', fontWeight: 400 }}>{noteOpen ? '접기 ▴' : '더보기 ▾'}</span>
               </button>
             )}
