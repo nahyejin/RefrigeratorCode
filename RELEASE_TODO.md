@@ -15,7 +15,7 @@
 2. [ ] **폰에서 확인** — Play 스토어에서 업데이트 후: 홈 아이콘 흰 바탕+노랑 재료 · 스플래시 재료가 떨어져 통통 튕기다 앉음 · 스플래시 동안 맨 위 상태바까지 노랑.
 3. [ ] **태블릿 스크린샷 올리기**(이번 검토에 빠짐 — 검토 끝난 뒤 따로) — 기본 스토어 등록정보 수정 → 태블릿 애셋 → 7인치·10인치 각각 옛 장 8개 삭제 → `쿡매치_빌드/6_태블릿_스크린샷_8장_7인치·10인치공통` 8장을 1번부터 하나씩(노랑/검정 번갈아) → 저장 → 게시 개요 → 검토 전송. 원본 `store/screenshots_v3/tablet_1440x2560/`(1440x2560, 9:16).
 4. [ ] **release 브랜치를 main 에 합치고 푸시** — `release/android-1.0.14` 커밋 2개(versionCode 15, 태블릿 스크린샷). 안 합치면 다음 빌드 때 versionCode 가 14 로 돌아가 업로드 거부됨. 다음 안드로이드는 **versionCode 16**.
-5. [ ] **iOS 1.0.11 (빌드 18)** — 맥에서 `git pull origin main` → `npm run build` → `npx cap sync ios` → Xcode 버전·빌드 올리기, AppIcon 라이트·다크·틴트 경고 없는지 → Archive·업로드 → App Store Connect 「새로운 기능」에 `· 앱 아이콘이 새로워졌어요.` 포함. 스토어 이미지는 `store/upload_packages/v3_AppStore_*` zip.
+5. [ ] **iOS 1.0.12 (빌드 19) 심사 제출** — 빌드 업로드는 2026-11-08 08:54 맥에서 완료(1.0.11 은 train closed 라 1.0.12 로). 남은 것: App Store Connect 에서 1.0.12 새 버전 생성 → 빌드 19 선택 → 「새로운 기능」(`· 앱 아이콘이 새로워졌어요.` 포함) → 스크린샷 v3 8장 교체(`store/upload_packages/v3_AppStore_*` zip, 한 장씩 순서대로) → 심사 제출. 다음 iOS 는 1.0.13 · 빌드 20.
 6. [ ] **앱 크기 줄이기(다음 빌드)** — 1.0.14 신규 설치 19.9MB(이전보다 +8MB). 원인 추정: `frontend/public/ingredient_substitute_table.csv`(30MB, 화면은 이제 `_lite.json` 0.85MB 를 씀)가 앱 안에 같이 들어감. 앱 번들에서 빼도 되는지 확인 후 제외.
 7. [ ] **이 PC 의 옛 작업 폴더 정리** — `Desktop/RefrigeratorCode` 는 옛 브랜치(`claude/koongmatch-content-automation-svj563`)에 머물러 있고 커밋 안 된 수정은 main 에 이미 있는 내용(더 옛 버전). 매일 도는 배치(사전·백업·푸시)가 이 폴더에서 돌므로, main 으로 옮길지 확인 후 정리.
 8. [ ] **기능영상 재제작** — 스토어 8장 순서·새 이름·새 로고로 기능 데모 8개 새로 녹화, 아이랑 쿠키 릴스 뒤쪽(옛 로고 끝 화면·옛 이름 기능 목록)을 새 기능영상으로 교체. 2026-11-08 진행 중(작업 폴더 `Desktop/rc_push_wt_cookie2`, 브랜치 `video/feature-demos-v2`). 결과 확인 후 BGM·업로드는 사용자 결정.
