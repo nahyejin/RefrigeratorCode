@@ -1,9 +1,9 @@
 import React from "react";
 import { AbsoluteFill, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, INK, WHITE, YELLOW, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
-import { CTA_LEN, Mark, fade } from "./ReelOverview";
+import { CTA_LEN, Mark, fade, Intro } from "./ReelOverview";
 import { SearchBanner } from "./TalkReels";
-import { FeatureTailBody, FEATURE_TAIL_V2_LEN } from "./FeatureDemosV2";
+import { LABELS_V2, TRANSITION_V2 } from "./FeatureDemosV2";
 
 // 요리 릴스 7편 — 도아랑 연유쿠키(2026-11-11 빼빼로데이). 레시피는 메리니즈부엌 「연유쿠키 만들기」(쿡매치에 있는 레시피, 170도 20분).
 // 사용자 요청: 장보기 → 반죽 → 냉장고 → 도아랑 틀 찍기 → 도아가 오븐에 넣기, 특히 도아가 의미 있는 「말」을 할 때 우선.
@@ -136,8 +136,8 @@ const APP: Shot[] = [
 ];
 
 const TAIL: Shot[] = [
-  { kind: "cta", len: CTA_LEN },
-  { kind: "tail", len: FEATURE_TAIL_V2_LEN },
+  // 사용자(2026-11-12): 뒤에 기능영상 8개(약 1분)는 빼고 「그 밖에도 이런 기능이 있어요」(기능 이름 칩) 장면 → 검색창 CTA 로 끝(길면 안 본다)
+  { kind: "tail", len: TRANSITION_V2 },
   { kind: "cta", len: CTA_LEN },
 ];
 
@@ -332,7 +332,20 @@ export const CookingMilkCookie: React.FC = () => {
         if (s.kind === "video") body = <Video s={s} len={len} />;
         else if (s.kind === "photo") body = <Photo s={s} len={len} first={i === 0} />;
         else if (s.kind === "cta") body = <Cta />;
-        else if (s.kind === "tail") body = <FeatureTailBody />;
+        else if (s.kind === "tail")
+          body = (
+            <AbsoluteFill style={{ backgroundColor: WHITE }}>
+              <Intro
+                line1="그 밖에도"
+                line2={
+                  <>
+                    이런 <Mark>기능</Mark>이 있어요
+                  </>
+                }
+                labels={LABELS_V2}
+              />
+            </AbsoluteFill>
+          );
         return (
           <Sequence key={i} from={from} durationInFrames={len} name={`${i + 1}-${s.kind}${s.kind === "video" || s.kind === "photo" ? "-" + s.src : ""}`}>
             {body}
