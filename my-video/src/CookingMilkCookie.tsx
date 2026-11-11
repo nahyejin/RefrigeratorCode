@@ -17,11 +17,13 @@ const DIR = "cooking/연유쿠키_20261111/work/";
 const f = (s: number) => Math.round(s * 30);
 
 // t0·t1 은 원본 영상의 초(자막을 원본 시각 그대로 적는다)
-type Line = { t0: number; t1: number; text: string };
+// mom: 엄마 말 — 사용자(2026-11-12) 「엄마 말보다 아이 말 위주로」. 꼭 필요한 것만 작게(하늘색), 도아 말은 크게.
+// 누가 했는지는 목소리 높이로 가렸다(scripts/pitch_cookie_20261111.py → pitch.txt, 엄마 ≈ 200~250Hz, 도아 ≈ 300Hz 이상)
+type Line = { t0: number; t1: number; text: string; mom?: boolean };
 type Card = { title: string; items: string[] };
 type Shot =
-  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; cap?: string; capAt?: number; talk?: Line[]; think?: Line[]; app?: boolean; card?: Card }
-  | { kind: "photo"; src: string; len: number; cap?: string; origin?: string; snap?: boolean; card?: Card }
+  | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; cap?: string; capAt?: number; talk?: Line[]; app?: boolean; card?: Card; step?: number }
+  | { kind: "photo"; src: string; len: number; cap?: string; origin?: string; snap?: boolean; card?: Card; step?: number }
   | { kind: "cta"; len: number }
   | { kind: "tail"; len: number };
 
@@ -29,92 +31,97 @@ const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.fro
 
 // ── 후킹 = 썸네일(프로필 그리드 3:4, y 240~1680 안에)
 const HOOK = { len: 3.2, text: "우리 집이\n쿠키 교실이 됐어요", sub: "반죽 · 틀 찍기 · 오븐 · 나눔" };
-const OPEN: Shot[] = [{ kind: "photo", src: "p_113312_141.jpg", len: f(HOOK.len), origin: "50% 45%" }];
+// 썸네일 = 다 구운 쿠키를 맛있게 먹는 도아(사용자 2026-11-12, 사용자가 찍어 둔 스크린샷 12:50)
+const OPEN: Shot[] = [{ kind: "photo", src: "s_125013.jpg", len: f(HOOK.len), origin: "40% 30%" }];
 
-// ── 오늘의 이야기: 빼빼로데이, 친구들 줄 쿠키
+// ── 오늘의 이야기: 빼빼로데이, 친구들 줄 쿠키(엄마 말은 자막 대신 아래 설명 자막으로)
 const STORY: Shot[] = [
-  { kind: "video", src: "091241.mp4", from: 0, to: 9.4, audio: true, cap: "도아가 직접 고른\n강아지 포장 봉투", talk: [
-    { t0: 0.2, t1: 3.6, text: "뭐 산 거야? / 강아지야?" },
-    { t0: 3.7, t1: 7.4, text: "내일 친구들 / 이걸로 줄 거야?" },
-    { t0: 8.3, t1: 9.4, text: "응!" },
-  ] },
-  { kind: "video", src: "092414.mp4", from: 13.6, to: 17.7, audio: true, cap: "돌아오는 차 안에서\n건네줄 말 미리 연습", talk: [
-    { t0: 14.0, t1: 16.3, text: "친구야, / 내가 이거 만들었어" },
-    { t0: 16.5, t1: 17.7, text: "이거 먹어!" },
-  ] },
-  { kind: "video", src: "092414.mp4", from: 25.2, to: 30.0, audio: true, cap: "엄마는 친구 역할", talk: [
-    { t0: 25.3, t1: 27.5, text: "쿠키? 고마워" },
-    { t0: 27.6, t1: 30.0, text: "도아야, 잘 먹을게" },
+  { kind: "video", src: "091241.mp4", from: 0, to: 6.0, audio: true, cap: "빼빼로데이, 같은 반 친구들 줄 쿠키\n포장 봉투는 도아가 골랐어요" },
+  // 차 안 — 엄마가 「친구야, 내가 이거 만들었어」 하고 보여 주면 도아가 따라 한다(22.9초, 도아 목소리 340Hz)
+  { kind: "video", src: "092414.mp4", from: 22.0, to: 25.6, audio: true, cap: "차 안에서 친구한테 할 말 연습", talk: [
+    { t0: 22.9, t1: 25.4, text: "도아가 / 이거 만들었어!" },
   ] },
 ];
 
-// ── 반죽(엄마) — 타임랩스(dough_*.mp4 는 ffmpeg 로 미리 빨리 감음), 레시피 카드의 재료 순서
+// 쿡 코치 — 반죽하다 실제로 물어본 화면(10:27 녹화). 설탕을 믹서로 못 갈아서(사용자 2026-11-12)
+const COACH: Shot[] = [
+  { kind: "video", src: "app_coach.mp4", from: 17.2, to: 30.4, rate: 4, app: true, cap: "설탕을 못 갈았는데 괜찮을까?\n바로 쿡 코치에게 물어봤어요" },
+  { kind: "video", src: "app_coach.mp4", from: 31.0, to: 35.6, app: true, cap: "그대로 넣어도 녹으면서 섞이고\n연유랑 같이 넣으면 된대요" },
+];
+
+// ── 반죽(엄마) — 사용자가 실제로 한 순서·분량(2026-11-12). 타임랩스(dough_*.mp4 는 ffmpeg 로 미리 빨리 감음)
 const DOUGH: Shot[] = [
-  { kind: "video", src: "dough_0.mp4", from: 0, to: 2.0, cap: "말랑한 버터에\n설탕 · 소금" },
-  { kind: "video", src: "dough_1.mp4", from: 0, to: 2.5, cap: "연유 듬뿍" },
-  { kind: "video", src: "dough_2.mp4", from: 0, to: 2.5, cap: "박력분은 체에 쳐서" },
-  { kind: "video", src: "dough_3.mp4", from: 0, to: 4.0, cap: "한 덩어리로 뭉치면 반죽 끝" },
-  { kind: "video", src: "104752.mp4", from: 0, to: 10.6, rate: 3, cap: "반죽은 냉장고에서\n30분 쉬어 가기" },
+  { kind: "video", src: "dough_0.mp4", from: 0, to: 3.0, step: 1, cap: "무염버터 70g + 설탕 20g" },
+  ...COACH,
+  { kind: "video", src: "dough_1.mp4", from: 0, to: 2.5, step: 2, cap: "연유 70g 넣고 마구 섞기" },
+  { kind: "video", src: "dough_3.mp4", from: 0, to: 3.0, step: 3, cap: "조금 묽어지면 소금 한 꼬집(2g)\n박력분 140g" },
+  { kind: "video", src: "dough_4.mp4", from: 0, to: 3.5, step: 4, cap: "말랑말랑 찰져질 때까지 반죽" },
+  // 엄마가 반죽하는 동안 옆에서 도아(목소리 390·340Hz)
+  { kind: "video", src: "102853.mp4", from: 996.6, to: 1001.2, audio: true, step: 4, talk: [
+    { t0: 997.0, t1: 998.8, text: "아, 살살 해!" },
+    { t0: 1000.3, t1: 1001.2, text: "재밌겠지?" },
+  ] },
+  { kind: "video", src: "104752.mp4", from: 0, to: 10.6, rate: 3, step: 5, cap: "유산지에 싸서\n냉장고에서 20분" },
 ];
 
 const LESSON_CARD: Card = {
   title: "오늘의 쿠키 교실",
-  items: ["말랑한 반죽 만지기", "틀로 모양 찍기", "오븐 앞에서 기다리기", "하나 둘 셋, 숫자 세기", "친구 · 선생님과 나누기"],
+  items: ["말랑한 반죽 만지기", "틀로 모양 찍기", "오븐 앞에서 기다리기", "친구 · 선생님 · 아빠 몫 나누기", "「도아가 만들었어!」 자신감"],
 };
 
-// ── 쿠키 교실 — 도아가 틀로 찍는다(사자·토끼·곰돌이·버스 틀)
+// ── 쿠키 교실 — 도아가 틀로 찍는다(사자·토끼·곰돌이·버스 틀). 도아 말 위주
 const CLASS: Shot[] = [
-  { kind: "video", src: "111525.mp4", from: 146.3, to: 153.0, audio: true, cap: "엄마가 한 것처럼\n꾹 누르고, 쏙 빼고", capAt: 0.8, talk: [
-    { t0: 146.5, t1: 148.7, text: "엄마 한 것처럼 / 해 봐, 빼 봐" },
-    { t0: 152.1, t1: 153.0, text: "빼 봐!" },
+  { kind: "video", src: "111525.mp4", from: 570.8, to: 577.0, audio: true, step: 6, cap: "도아는 틀로 모양 찍기", talk: [
+    { t0: 571.1, t1: 574.1, text: "토끼! / 토끼 만들어 줘" },
+    { t0: 575.9, t1: 577.0, text: "응!" },
   ] },
-  { kind: "video", src: "111525.mp4", from: 603.9, to: 609.6, audio: true, cap: "모양 맞추기는\n손끝으로 하는 놀이", talk: [
-    { t0: 604.1, t1: 607.6, text: "도아가 만든 거!" },
-    { t0: 607.6, t1: 609.6, text: "자동차!" },
+  { kind: "video", src: "111525.mp4", from: 588.6, to: 592.4, audio: true, step: 6, cap: "꾹 누르고, 쏙 빼고", talk: [
+    { t0: 588.8, t1: 589.9, text: "빼 봐!" },
+    { t0: 591.5, t1: 592.4, text: "빠져!" },
   ] },
-  { kind: "video", src: "111525.mp4", from: 898.8, to: 910.2, rate: 1.4, audio: true, cap: "다 먹을 거라더니…", talk: [
-    { t0: 899.0, t1: 900.2, text: "친구들은?" },
-    { t0: 901.9, t1: 903.7, text: "친구랑 / 나눠 먹을 거야?" },
-    { t0: 903.8, t1: 904.6, text: "응!" },
-    { t0: 905.0, t1: 910.2, text: "이거 친구랑 / 같이 나눠 먹을 거야" },
+  { kind: "video", src: "111525.mp4", from: 607.4, to: 611.1, audio: true, step: 6, talk: [
+    { t0: 607.5, t1: 609.5, text: "자동차!" },
+    { t0: 609.5, t1: 611.1, text: "빠바바방!" },
   ] },
-  { kind: "video", src: "111525.mp4", from: 973.4, to: 977.8, audio: true, cap: "손으로 만지고, 찍고, 웃고", talk: [
-    { t0: 973.9, t1: 975.5, text: "아, 재밌다!" },
-    { t0: 976.5, t1: 977.3, text: "재밌어?" },
-    { t0: 977.3, t1: 977.8, text: "응!" },
+  { kind: "video", src: "111525.mp4", from: 791.3, to: 794.8, audio: true, step: 6, talk: [
+    { t0: 791.4, t1: 794.8, text: "도아가 이거 / 다 먹을 거야!" },
+  ] },
+  { kind: "video", src: "111525.mp4", from: 904.8, to: 910.2, audio: true, step: 6, cap: "「친구들은?」 하고 물었더니", talk: [
+    { t0: 905.0, t1: 910.1, text: "이거 친구랑 같이 / 나눠 먹을 거야" },
   ] },
 ];
 
-// ── 오븐 — 사진 세 장(찰칵) → 도아가 직접 넣기
+// ── 오븐 — 사진 두 장(찰칵) → 도아가 직접 넣기
 const OVEN: Shot[] = [
-  { kind: "photo", src: "p_113305_662.jpg", len: f(0.9), snap: true, origin: "50% 40%" },
-  { kind: "photo", src: "p_113310_273.jpg", len: f(0.9), snap: true, origin: "50% 40%" },
-  { kind: "video", src: "113321.mp4", from: 0, to: 7.0, audio: true, cap: "오븐에 넣는 것도 도아가\n170도에서 20분", capAt: 2.2, talk: [
+  { kind: "photo", src: "p_113305_662.jpg", len: f(0.9), snap: true, origin: "50% 40%", step: 7 },
+  { kind: "photo", src: "p_113310_273.jpg", len: f(0.9), snap: true, origin: "50% 40%", step: 7 },
+  { kind: "video", src: "113321.mp4", from: 0, to: 4.2, audio: true, step: 7, cap: "170도 오븐에서 17분\n넣는 것도 도아가", talk: [
     { t0: 0.1, t1: 3.6, text: "이렇게 살살, / 살살" },
-    { t0: 6.0, t1: 7.0, text: "이제 닫아 줘" },
   ] },
 ];
 
-// ── 완성 → 맛보기 → 포장
+// ── 완성 → 맛보기 → 포장(도아 말 위주)
 const DONE: Shot[] = [
-  { kind: "video", src: "122506.mp4", from: 19.6, to: 23.6, audio: true, cap: "드디어 완성!", talk: [{ t0: 19.7, t1: 21.0, text: "열어 봐!" }] },
-  { kind: "video", src: "122506.mp4", from: 50.3, to: 53.5, audio: true, talk: [
-    { t0: 50.4, t1: 51.5, text: "어때?" },
-    { t0: 51.9, t1: 53.5, text: "맛있어?" },
+  { kind: "video", src: "122506.mp4", from: 16.0, to: 20.7, audio: true, cap: "드디어 완성!", talk: [
+    { t0: 16.0, t1: 18.5, text: "제발, / 제발 맛있어라!" },
+    { t0: 18.5, t1: 20.7, text: "짜자잔, / 열어 봐!" },
   ] },
-  { kind: "video", src: "122506.mp4", from: 56.7, to: 62.8, audio: true, talk: [
-    { t0: 56.8, t1: 59.3, text: "엄마가 반죽했다!" },
-    { t0: 59.4, t1: 61.1, text: "아냐, / 도아가 만들었어!" },
-    { t0: 61.3, t1: 62.8, text: "내일 친구 나눠 줘" },
+  { kind: "video", src: "122506.mp4", from: 34.6, to: 36.6, audio: true, cap: "엄마한테 먼저 하나", talk: [{ t0: 34.9, t1: 36.6, text: "하나 먹어 봐" }] },
+  { kind: "video", src: "122506.mp4", from: 50.3, to: 54.7, audio: true, talk: [
+    { t0: 50.4, t1: 51.6, text: "어때?" },
+    { t0: 51.8, t1: 53.4, text: "맛있어?" },
+    { t0: 53.5, t1: 54.7, text: "그래?" },
   ] },
-  { kind: "video", src: "122638.mp4", from: 102.0, to: 105.2, audio: true, card: LESSON_CARD, talk: [
-    { t0: 102.2, t1: 104.2, text: "내일 친구들 / 몇 명 줄 거야?" },
-    { t0: 104.3, t1: 105.2, text: "다섯 명?" },
+  { kind: "video", src: "122506.mp4", from: 56.7, to: 61.2, audio: true, talk: [
+    { t0: 56.8, t1: 59.3, text: "엄마가 만들었다~" },
+    { t0: 59.4, t1: 61.2, text: "아냐, 도아가 만들었어!", mom: true },
   ] },
-  { kind: "video", src: "122638.mp4", from: 117.9, to: 122.4, audio: true, card: LESSON_CARD, talk: [
-    { t0: 118.0, t1: 120.3, text: "하나, 둘, 셋, / 넷, 다섯" },
-    { t0: 120.4, t1: 122.3, text: "다섯 명이니까 / 다섯 개" },
+  { kind: "video", src: "122638.mp4", from: 81.0, to: 84.6, audio: true, card: LESSON_CARD, talk: [
+    { t0: 81.0, t1: 81.9, text: "넣어 줘!" },
+    { t0: 82.1, t1: 84.6, text: "도아가 만들었지!" },
   ] },
+  { kind: "video", src: "122638.mp4", from: 124.3, to: 126.3, audio: true, card: LESSON_CARD, talk: [{ t0: 124.4, t1: 126.3, text: "선생님 거야?" }] },
+  { kind: "video", src: "122638.mp4", from: 151.0, to: 154.3, audio: true, card: LESSON_CARD, talk: [{ t0: 151.1, t1: 154.3, text: "아빠 거! / 아빠 거!" }] },
   // 사용자가 예뻐서 찍어 둔 스크린샷(소파에서 쿠키를 내미는 도아)
   { kind: "photo", src: "s_124813.jpg", len: f(1.8), snap: true, origin: "50% 45%", card: LESSON_CARD },
 ];
@@ -122,10 +129,10 @@ const DONE: Shot[] = [
 // ── 쿡매치 — 앱 녹화(상태바 잘라 냄, 이름·알림 배너 흐림: app_*.mp4)
 const APP: Shot[] = [
   { kind: "video", src: "app_search.mp4", from: 9.0, to: 13.0, rate: 2, app: true, cap: "아이랑 만들 쿠키는\n쿡매치에서 「쿠키」 검색" },
-  { kind: "video", src: "app_search.mp4", from: 13.6, to: 16.4, app: true, cap: "집에서 굽는 쿠키 레시피가\n한눈에" },
+  { kind: "video", src: "app_search.mp4", from: 13.6, to: 15.6, app: true, cap: "집에서 굽는 쿠키 레시피가\n한눈에" },
   { kind: "video", src: "app_coach.mp4", from: 15.0, to: 17.2, app: true, cap: "도아랑 만든 연유쿠키\n재료 5개, 내 재료 100%" },
-  { kind: "video", src: "app_coach.mp4", from: 17.2, to: 30.4, rate: 4, app: true, cap: "반죽하다 궁금하면\n쿡 코치에게 물어봐요" },
-  { kind: "video", src: "app_coach.mp4", from: 31.0, to: 36.4, app: true, cap: "「설탕 20g이면 어느 정도?」\n밥숟가락 2스푼 정도래요" },
+  // 반죽 중에 쓴 쿡 코치를 한 번 더 — 「설탕 20g이면 어느 정도?」 답(밥숟가락 2스푼)
+  { kind: "video", src: "app_coach.mp4", from: 31.0, to: 34.0, app: true, cap: "요리하다 막히면 쿡 코치\n「20g이면 어느 정도?」 → 밥숟가락 2스푼" },
 ];
 
 const TAIL: Shot[] = [
@@ -167,10 +174,11 @@ const Video: React.FC<{ s: Extract<Shot, { kind: "video" }>; len: number }> = ({
       {s.cap && <Caption from={f(s.capAt ?? 0) + 3} len={len - f(s.capAt ?? 0) - 5} text={s.cap} />}
       {s.talk?.map((t, k) => (
         <Sequence key={k} from={at(t.t0)} durationInFrames={Math.max(12, at(t.t1) - at(t.t0))}>
-          <Talk text={t.text} len={Math.max(12, at(t.t1) - at(t.t0))} />
+          {t.mom ? <MomSaid text={t.text} len={Math.max(12, at(t.t1) - at(t.t0))} /> : <Talk text={t.text} len={Math.max(12, at(t.t1) - at(t.t0))} />}
         </Sequence>
       ))}
       {s.card && <LessonCard card={s.card} />}
+      {s.step && <StepChip n={s.step} />}
     </AbsoluteFill>
   );
 };
@@ -205,6 +213,30 @@ const Talk: React.FC<{ text: string; len: number }> = ({ text, len }) => {
   );
 };
 
+// 엄마 말 — 도아 말보다 작게, 하늘색(사용자 2026-11-12: 아이 말 위주)
+const MomSaid: React.FC<{ text: string; len: number }> = ({ text, len }) => {
+  const frame = useCurrentFrame();
+  const o = Math.min(interpolate(frame, [0, 5], [0, 1], { extrapolateRight: "clamp" }), interpolate(frame, [len - 4, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
+  return (
+    <div style={{ position: "absolute", top: 640, left: 60, right: 60, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
+      <span style={{ fontSize: 64, fontWeight: 900, color: "#BFE6FF", WebkitTextStroke: "11px #000", paintOrder: "stroke fill", wordBreak: "keep-all" } as React.CSSProperties}>{text.replace(/ \/ /g, " ")}</span>
+    </div>
+  );
+};
+
+// 레시피 단계 — 왼쪽 위 노란 칩(사용자 2026-11-12: 반죽·쿠키 만드는 과정에 레시피 단계를 순서대로)
+const STEP_TOTAL = 7;
+const StepChip: React.FC<{ n: number }> = ({ n }) => (
+  <div style={{ position: "absolute", top: 250, left: 50, display: "flex", alignItems: "center", gap: 14, fontFamily: FONT_FAMILY }}>
+    <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 50, fontWeight: 900, padding: "8px 26px", borderRadius: 999, boxShadow: "0 8px 22px rgba(0,0,0,0.3)" }}>STEP {n}</div>
+    <div style={{ display: "flex", gap: 8 }}>
+      {Array.from({ length: STEP_TOTAL }, (_, k) => (
+        <div key={k} style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: k < n ? YELLOW : "rgba(255,255,255,0.55)", boxShadow: "0 0 0 2px rgba(0,0,0,0.35)" }} />
+      ))}
+    </div>
+  </div>
+);
+
 // 사진 — 천천히 다가간다. snap: 찰칵(흰 번쩍임) 후 살짝 기울어진 사진처럼
 const Photo: React.FC<{ s: Extract<Shot, { kind: "photo" }>; len: number; first: boolean }> = ({ s, len, first }) => {
   const frame = useCurrentFrame();
@@ -216,6 +248,7 @@ const Photo: React.FC<{ s: Extract<Shot, { kind: "photo" }>; len: number; first:
       <Img src={staticFile(DIR + s.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: s.origin ?? "50% 50%", transform: `scale(${z})`, transformOrigin: s.origin ?? "50% 50%" }} />
       {s.cap && <Caption from={4} len={len - 6} text={s.cap} />}
       {s.card && <LessonCard card={s.card} />}
+      {s.step && <StepChip n={s.step} />}
       {flash > 0 && <AbsoluteFill style={{ backgroundColor: WHITE, opacity: flash }} />}
     </AbsoluteFill>
   );
@@ -239,10 +272,10 @@ const RecipeTitle: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = spring({ frame: frame - 2, fps, config: { damping: 15, mass: 0.7 } });
-  const out = interpolate(frame, [TITLE_LEN - 8, TITLE_LEN], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const out = interpolate(frame, [f(3.0) - 8, f(3.0)], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", top: 230, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, opacity: Math.min(p, out), transform: `translateY(${(1 - p) * -24}px)`, fontFamily: FONT_FAMILY }}>
-      <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 52, fontWeight: 800, padding: "10px 34px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.25)" }}>재료 5개 · 170도 20분</div>
+    <div style={{ position: "absolute", top: 360, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, opacity: Math.min(p, out), transform: `translateY(${(1 - p) * -24}px)`, fontFamily: FONT_FAMILY }}>
+      <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 52, fontWeight: 800, padding: "10px 34px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.25)" }}>재료 5개 · 170도 17분</div>
       <div style={{ color: WHITE, fontSize: 104, fontWeight: 900, lineHeight: 1.15, textAlign: "center", textShadow: "0 4px 18px rgba(0,0,0,0.7), 0 0 4px rgba(0,0,0,0.6)" }}>연유쿠키</div>
     </div>
   );
@@ -255,7 +288,7 @@ const ClassTitle: React.FC = () => {
   const p = spring({ frame: frame - 2, fps, config: { damping: 13, mass: 0.6 } });
   const out = interpolate(frame, [TITLE_LEN - 8, TITLE_LEN], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", top: 210, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: Math.min(p, out), transform: `scale(${interpolate(p, [0, 1], [0.8, 1])})`, fontFamily: FONT_FAMILY }}>
+    <div style={{ position: "absolute", top: 1180, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: Math.min(p, out), transform: `scale(${interpolate(p, [0, 1], [0.8, 1])})`, fontFamily: FONT_FAMILY }}>
       <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 68, fontWeight: 900, padding: "14px 44px", borderRadius: 999, boxShadow: "0 10px 26px rgba(0,0,0,0.3)" }}>🍪 도아의 쿠키 교실</div>
     </div>
   );
@@ -306,7 +339,7 @@ export const CookingMilkCookie: React.FC = () => {
           </Sequence>
         );
       })}
-      <Sequence from={DOUGH_FROM} durationInFrames={TITLE_LEN} name="레시피 제목">
+      <Sequence from={DOUGH_FROM} durationInFrames={f(3.0)} name="레시피 제목">
         <RecipeTitle />
       </Sequence>
       <Sequence from={CLASS_FROM} durationInFrames={TITLE_LEN} name="쿠키 교실">
