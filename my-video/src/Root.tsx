@@ -19,6 +19,7 @@ import { CookieHookFix, COOKIE_HOOK_FIX_LEN } from "./CookieHookFix";
 import { ReelOverviewV2, REEL_OVERVIEW_V2_LEN } from "./ReelOverviewV2";
 import { FeatureTailV2, FEATURE_TAIL_V2_LEN, FeatureOneV2, SEGS_V2, segLenV2 } from "./FeatureDemosV2";
 import { CookieTailV2, COOKIE_TAIL_V2_LEN } from "./CookieTailV2";
+import { CookingMilkCookie, COOKING_MILK_COOKIE_TOTAL } from "./CookingMilkCookie";
 import { REELS_HOOK_V2 } from "./ReelHooksV2";
 import { REELS_HOOK_V4 } from "./ReelHooksV4";
 import { REELS_HOOK_V3 } from "./ReelHooksV3";
@@ -127,6 +128,7 @@ export const RemotionRoot: React.FC = () => {
       {SEGS_V2.map((s, i) => (
         <Composition key={`fv2-${i}`} id={`FeatureV2-${i + 1}`} component={FeatureOneV2} defaultProps={{ index: i }} durationInFrames={segLenV2(s)} fps={30} width={1080} height={1920} />
       ))}
+      <Composition id="CookingMilkCookie" component={CookingMilkCookie} durationInFrames={COOKING_MILK_COOKIE_TOTAL} fps={30} width={1080} height={1920} />
       <Composition id="CookieTailV2" component={CookieTailV2} durationInFrames={COOKIE_TAIL_V2_LEN} fps={30} width={1080} height={1920} />
       <Composition id="CookingMiyeok" component={CookingMiyeok} durationInFrames={COOKING_MIYEOK_TOTAL} fps={30} width={1080} height={1920} />
       <Composition id="CookingSausage" component={CookingSausage} durationInFrames={COOKING_SAUSAGE_TOTAL} fps={30} width={1080} height={1920} />

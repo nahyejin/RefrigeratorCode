@@ -14930,3 +14930,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **쿠키 편**: `my-video/src/CookieTailV2.tsx` = 쿡매치 구간 새 UI 재녹화(자막 4줄은 완성본과 같음, 「쿠키」 검색 → 인기순 → 필터 「오븐」) + 새 로고 CTA(「아이랑 만들 간식도, 쿡매치에서」) + FeatureTailV2. `scripts/make_cookie_v2.py` 가 사용자 확정 완성본(쿠키_20261105_v1)의 0~98.333초(이야기, 음악 포함)에 붙인다. 음악은 완성본의 쿠키 곡(Little Bells, bgm_lib 에 원본 없음)을 98.3초부터 그대로 잇고 99.5~114.6초 구간을 1.2초 겹쳐 반복(새 곡 안 받음). 결과 177.4초(3분 미만), 1080x1920.
 - **산출물**(git 제외, `my-video/out/feature_v2/`): `feature_v2_{1..8}_*.mp4`, `feature_tail_v2.mp4`, `쿠키_20261105_v2.mp4`, 확인용 `contact/*.png`. 렌더 `scripts/render_feature_v2.sh`.
 - 업로드·게시는 안 함.
+
+## 2026-11-11
+
+### 요리 릴스 7편 — 도아랑 연유쿠키(빼빼로데이 · 쿠키 교실)
+- **새 컴포지션** `my-video/src/CookingMilkCookie.tsx`(`Root.tsx` 등록): 후킹 「우리 집이 / 쿠키 교실이 됐어요」(쟁반 든 도아 사진) → 마트 강아지 포장 봉투(「내일 친구들 이걸로 줄 거야?」「응!」) → 차 안 연습(「친구야, 내가 이거 만들었어」「이거 먹어!」, 엄마는 친구 역할) → 반죽 타임랩스(버터·설탕·소금 → 연유 → 박력분 체 → 한 덩어리) → 냉장고 30분 → 「도아의 쿠키 교실」(틀 찍기, 「친구랑 나눠 먹을 거야」, 「재밌다!」) → 오븐(사진 찰칵 2장 + 도아가 직접 넣기, 170도 20분) → 완성(「엄마가 반죽했다!」「아냐, 도아가 만들었어!」) → 포장·숫자 세기 + 「오늘의 쿠키 교실」 체크 카드 → 사용자 스크린샷 컷 → 쿡매치(「쿠키」 검색 + 쿡 코치 설탕 20g 질문 → 밥숟가락 2스푼) → CTA 「아이랑 쿠키 교실도, 쿡매치에서」 → 기능영상 v2(`FeatureTailBody`) → CTA(맨 끝). 177.9초.
+- **원본 정리** `my-video/scripts/prep_cookie_20261111.py`(작업본 1080x1920 30fps·썸네일 시트·받아쓰기), 자막용 대사 `scripts/words_cookie_20261111.py`(Whisper large-v3-turbo, `initial_prompt`·VAD 없이 — prompt 문장이 그대로 받아써지는 일이 있었음). faster-whisper 와 PyAV 버전이 안 맞아 wav 를 numpy 로 읽어 넘김. medium 모델 다운로드가 0바이트에서 멈춰 이미 받아 둔 large-v3-turbo 사용.
+- 앱 녹화: 상태바 200px 잘라 냄, 상단 이름 흐림, 10:52 「소리 감지」 홈캠 알림 배너 구간(30.2~32.4초) 흐림.
+- 원래 소리 loudnorm -15 LUFS 뒤 `add_bgm.py --file mixkit_happy_home.mp3`(요리 릴스에 처음 쓰는 곡; 후킹 5벌 03 과 같은 곡 — 새 곡은 사용자 허락 뒤 교체 가능).
+- 본문 `store/COOKING_REEL_CAPTIONS.md`, 회차 기록 `my-video/COOKING_REEL_GUIDE.md`.
