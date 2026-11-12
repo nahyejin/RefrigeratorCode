@@ -51,6 +51,7 @@ def main():
     ap.add_argument('--delay', type=float, default=yt.MIN_INTERVAL_SEC)
     ap.add_argument('--commit', action='store_true', help='DB 에 반영(없으면 시험만)')
     ap.add_argument('--ids', type=int, nargs='*')
+    ap.add_argument('--max-minutes', type=float, default=0, help='이 시간(분)이 지나면 끊는다(0=제한 없음) — 매일 배치용')
     args = ap.parse_args()
     yt.MIN_INTERVAL_SEC = max(args.delay, 3.0)  # 너무 빠르게는 못 하게
 
@@ -90,7 +91,11 @@ def main():
         print(f"  [{row['id']}] {status}{f' {steps}단계' if steps else ''}  {(row['title'] or '')[:30]}", flush=True)
 
     stopped = None
+    t0 = time.time()
     for row in rows:
+        if args.max_minutes and (time.time() - t0) / 60 >= args.max_minutes:
+            stopped = f'시간 제한 {args.max_minutes:g}분 도달(남은 글은 다음 실행에서)'
+            break
         if extractor.quota_exhausted:
             stopped = 'AI 일일 한도 소진'
             break

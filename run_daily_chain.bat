@@ -40,6 +40,14 @@ set PYTHONIOENCODING=utf-8
 %CHAIN_PY% scripts\build_recipe_substitutes.py --commit --daily-limit 1500 --max-minutes 60 >> logs\recipe_substitutes_daily.log 2>&1
 echo [%date% %time%] 대체 재료 사전 끝(종료 코드 %ERRORLEVEL%) >> %CHAIN_LOG%
 
+echo [%date% %time%] 유튜브 조리 순서 구제(2026-11-12 추가 단계 — 자막으로 하루 일부씩 이어서) >> %CHAIN_LOG%
+rem 조리 순서가 없는 유튜브 글(약 2,700건)을 한국어 자막+AI 로 채운다. 이미 한 글은 건너뛰고, 새로 올라온 글도 같은 단계가 계속 처리한다.
+rem 유튜브가 요청을 막으면(IpBlocked) 그 자리에서 멈추고 다음 날 이어서 한다(우회하지 않는다). 최대 45분이 지나면 끊고 다음 단계로.
+rem Gemini 무료 키를 재료 추출·대체 재료 사전과 나눠 쓰므로 하루 300건 이하. 한도(429)면 조용히 멈춘다. 로그: logs\youtube_rescue_daily.log
+set PYTHONIOENCODING=utf-8
+%CHAIN_PY% scripts\rescue_youtube_steps.py --commit --limit 300 --delay 15 --max-minutes 45 >> logs\youtube_rescue_daily.log 2>&1
+echo [%date% %time%] 유튜브 조리 순서 구제 끝(종료 코드 %ERRORLEVEL%) >> %CHAIN_LOG%
+
 echo [%date% %time%] DB 백업(2026-10-22 추가 단계) >> %CHAIN_LOG%
 call run_db_backup_daily.bat
 
