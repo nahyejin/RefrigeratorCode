@@ -14934,3 +14934,13 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 - 표 삭제 뒷정리 중 에이전트가 발견: 코드(`backend/app.py` `save_ai_plan_history`)는 로그인한 사람이 짠 AI 식단(요청 조건 300자·요약·식단)을 서버 표 `ai_meal_plan_history` 에 **최근 60일·최대 30개**까지 보관하고 탈퇴 때 지우는데(`WITHDRAWAL_CONTENT_TABLES` 포함), 방침 표 「AI 대화 기록」 행은 「마지막으로 AI가 짠 식단(7일)은 이 기기에만 저장되고 서버에는 두지 않습니다」라고 적혀 있어 **사실과 어긋났다.**
 - **고침**(`LegalPage.tsx`): 표 행을 「쿡 픽·쿡 코치의 대화는 이 기기에만… 로그인한 상태에서 AI가 짠 식단(내가 적은 조건과 식단)은 서버에 최근 60일(최대 30개) 보관합니다」로, 「3. 얼마나 갖고 있나」에 「…AI가 짠 식단은 서버에 최근 60일까지만 보관하고, 회원 탈퇴 때 함께 지웁니다」 추가. 계정 삭제 안내(`AccountDeletion.tsx`)의 「AI 대화 기록」 → 「AI 식단 기록」. 공고일·시행일은 같은 날(2026-11-12) 유지. 웹은 배포 즉시, 앱은 다음 빌드부터.
+
+### 앱 크기 줄이기 — 30MB 대체 재료표 CSV 를 앱 번들에서 제외 (2026-11-12)
+- **원인**: `frontend/public/` 의 파일은 `vite build` 때 전부 `dist/` 로 복사되고 `cap sync` 가 그대로 앱 파일(assets)에 넣는다. 11-07 부터 화면은 작은 `ingredient_substitute_table_lite.json`(0.86MB)만 쓰는데, 매일 배치가 만드는 `ingredient_substitute_table.csv`(30.1MB)가 계속 앱에 실려 있었다(APK 안에서 압축 후 2.2MB). 같은 방식으로 `public/threads/`(스레드 자동 게시용 사진·영상 9.9MB — mp4 7.8MB 는 압축이 안 돼 그대로)도 앱에 실려 있었다. 화면 코드가 이 두 곳을 읽는 곳은 없다(`fetch`·`csvOnce`·`substituteTableLoader` 전수 확인).
+- **방법**: `frontend/vite.config.ts` 에 빌드 끝(`closeBundle`)에서 `dist/ingredient_substitute_table.csv`·`dist/threads/` 만 지우는 플러그인 추가. **Vercel(웹)은 환경변수 `VERCEL` 이 있어 건드리지 않고** 그대로 두 주소가 열림(스레드 게시가 `https://refrigerator-code.vercel.app/threads/…` 를 씀). 로컬에서 웹용으로 빌드하며 파일이 필요하면 `KEEP_WEB_ONLY_FILES=1`. 개발 서버(`vite`)에는 영향 없음(`apply: 'build'`).
+- **왜 이 방법**: (b)처럼 배치 출력 위치를 옮기면 `apply_dictionary_additions_daily.bat` 의 `CSVS`·`generate_substitutes.py`·`backend/app.py` 의 로컬 폴백(`../frontend/public/ingredient_substitute_table.csv`)·`scripts/report_ops_status.py` 를 다 고쳐야 하고 git 추적도 바뀐다. 이 방법은 배치·서버·git 은 그대로 두고 **앱 번들만** 줄인다. 이 CSV URL 을 외부에서 fetch 하는 코드는 없음(`git grep` 확인).
+- **같이 줄임**: `src/assets/냉털이 로고.png` 1024px·1.35MB → 256px·9KB(`FridgeSelect` 에서 64×32px 로만 그려짐, 나란히 비교해 같은 모양 확인).
+- **측정 전→후**: `dist` 44MB → 4.0MB(CSV 제외 5.2MB, 로고 축소 후 4.0MB). 안드로이드 디버그 APK(`gradlew clean assembleDebug`) 26.4MB → 13.3MB(−13.1MB). 릴리스(AAB/APK)도 같은 파일이 빠지므로 설치 용량이 같은 폭으로 줄 것으로 봄(실제 값은 다음 빌드에서 확인). `cap sync android` 후 `android/app/src/main/assets/public` 4.0MB, APK 안에 CSV·threads 없음 확인.
+- **확인**: 개발 서버 `/popular` 에서 `ingredient_substitute_table_lite.json`·사전 CSV 만 요청되고 큰 CSV 요청 없음, 콘솔 오류 없음.
+- **건드리지 않은 것**: `public/` 안 파일 위치·내용, 배치(`apply_dictionary_additions_daily.bat`·`generate_substitutes.py`), `backend/app.py`, 사전 CSV(`ingredient_profile_dict_with_substitutes.csv`), `Filter_Keywords.csv`, `sw.js`·`manifest.json`·`download.html`·`coupang-banner.html`(작고 웹/앱이 쓸 수 있음), 안드로이드 `res`(총 2MB, 스플래시 필요).
+- **다음 빌드 때**: 평소처럼 `cd frontend && npm run build && npx cap sync android`(맥은 `cap sync ios`) — 별도 조작 없음. `dist` 에 CSV·threads 가 없어야 정상.
