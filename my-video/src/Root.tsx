@@ -19,6 +19,8 @@ import { REELS_HOOK_V4 } from "./ReelHooksV4";
 import { REELS_HOOK_V3 } from "./ReelHooksV3";
 import { REELS_HOOK_V6 } from "./ReelHooksV6";
 import { REELS_TALK, SearchBanner } from "./TalkReels";
+import { FeatureTail, FeatureDemoOne, demoOneLen, TAIL_TOTAL_FRAMES } from "./FeatureTail";
+import { TAIL_SCENES } from "./featureTailSpec";
 import { AbsoluteFill } from "remotion";
 import { useCustomFont } from "./shared";
 
@@ -112,6 +114,10 @@ export const RemotionRoot: React.FC = () => {
         width={1080}
         height={1920}
       />
+      <Composition id="FeatureTail" component={FeatureTail} durationInFrames={TAIL_TOTAL_FRAMES} fps={30} width={1080} height={1920} />
+      {TAIL_SCENES.map((s) => (
+        <Composition key={s.key} id={`FeatureDemo-${s.key.replace(/_/g, "-")}`} component={() => <FeatureDemoOne k={s.key} />} durationInFrames={demoOneLen(s)} fps={30} width={1080} height={1920} />
+      ))}
       <Composition id="SearchBannerOverlay" component={SearchBannerOverlay} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="CookingCampPasta" component={CookingCampPasta} durationInFrames={COOKING_CAMP_PASTA_TOTAL} fps={30} width={1080} height={1920} />
       <Composition id="CookingMiyeok" component={CookingMiyeok} durationInFrames={COOKING_MIYEOK_TOTAL} fps={30} width={1080} height={1920} />
