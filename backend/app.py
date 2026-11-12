@@ -2461,7 +2461,6 @@ WITHDRAWAL_CONTENT_TABLES = [
     ("user_completed_recipes", "user_id"),
     ("user_manual_cook_logs", "user_id"),
     ("user_meal_plans", "user_id"),
-    ("ai_plan_chat_sessions", "user_id"),
     ("ai_meal_plan_history", "user_id"),
     ("family_action_notifications", "target_user_id"),
     ("push_subscriptions", "user_id"),
