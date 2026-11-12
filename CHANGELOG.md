@@ -14957,3 +14957,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **확인**: 개발 서버 `/popular` 에서 `ingredient_substitute_table_lite.json`·사전 CSV 만 요청되고 큰 CSV 요청 없음, 콘솔 오류 없음.
 - **건드리지 않은 것**: `public/` 안 파일 위치·내용, 배치(`apply_dictionary_additions_daily.bat`·`generate_substitutes.py`), `backend/app.py`, 사전 CSV(`ingredient_profile_dict_with_substitutes.csv`), `Filter_Keywords.csv`, `sw.js`·`manifest.json`·`download.html`·`coupang-banner.html`(작고 웹/앱이 쓸 수 있음), 안드로이드 `res`(총 2MB, 스플래시 필요).
 - **다음 빌드 때**: 평소처럼 `cd frontend && npm run build && npx cap sync android`(맥은 `cap sync ios`) — 별도 조작 없음. `dist` 에 CSV·threads 가 없어야 정상.
+
+### 기능영상 전면 재제작: 점검·라인업·녹화·꼬리 영상 제작 (2026-11-08 시작 · 11-12 완료)
+- 사용자 지시(11-08 「스토어 이미지처럼 기능영상도 싹 다 다시」, 「자는 동안 다 완료」): 쿠키 릴스·후킹 릴스 뒤에 붙는 기능영상을 스토어 v3 8장 순서·헤드라인으로 새 UI·새 로고로 재제작. 정한 것·점검표·라인업·환경 점검·결정 질문은 [my-video/FEATURE_DEMO_REMAKE_PLAN.md](my-video/FEATURE_DEMO_REMAKE_PLAN.md).
+- **산출물**(mp4 는 저장소에 안 올림, `my-video/out/`): `feature_tail_v2.mp4`(720x1280·30fps·64.9초, 나레이션+BGM) · `feature_tail_v2_nobgm.mp4` · `feature_demo_<a_match|b_pick|b_plan|c_coach|d_photo|e_expiry|f_listen|g_family>.mp4`(장면 1개+새 로고 끝 화면, 11~14초). 구성: 매칭률순 → 쿡 픽 → 식단 짜기 → 쿡 코치 → 사진 등록 → 소비기한 자동 → 요약·듣기 → 가족·아낀 돈(스토어 캡처) → 끝 화면.
+- **녹화**: 최신 origin/main(`061f320b`) 디버그 앱을 에뮬레이터에 설치해 녹화(`scripts/rec_feature_v2.py`). AI 화면(쿡 픽·식단 짜기·쿡 코치·사진 인식)은 **가짜 응답**이고 쓰기 요청은 전부 차단하는 `scripts/rec_lib_v2.py` `Guard` 를 켬 — 장면마다 9~20건(쿠팡 파트너 로그, 앱 방문 기록 `/api/events`)이 막혔고 실제 AI 호출·DB 쓰기는 0.
+- 옛 녹화 스크립트가 새 UI 에서 깨지던 곳(대체 칩 span→button, 「최근」 줄, 로그인 확인창 2종, 시드 id 3개 한도, 「AI 식단」 버튼 없어짐, 소프트 키보드, 영어 사진 선택기 등)은 계획 문서 §4.
+- **컴포지션**: `src/FeatureTail.tsx`·`src/featureTailSpec.ts`(장면표), `Root.tsx` 에 `FeatureTail`·`FeatureDemo-*` 등록. 나레이션 Gemini TTS 10줄(`scripts/gen_tts_v2.py`, 무료 한도 오늘 소진) — Whisper 재확인에서 「짜드려요」 끝·「귀로」·「쿡매치」 3곳 의심(§5). 새 곡 안 받음: 이미 있던 `mixkit_under_the_sun`(장르 미확인).
+- 옛 `Reel1~8`·`RestFeatures`·`ReelOverview`·후킹 묶음은 손대지 않음(이미 올린 릴스 재현용). 새 편에는 꼬리/개별 데모를 mp4 로 이어 붙인다.
+- 시범(11-08): `scripts/rec_reel2_v2.py`(매칭률순) → `public/reel2_matching_demo_v2.mp4`.
