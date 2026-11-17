@@ -49,12 +49,24 @@ const HOME: Shot[] = [
 const COOK: Shot[] = [
   { kind: "video", src: "prep.mp4", from: 0, to: 4.1, step: "도아 무 손질하고" },
   { kind: "video", src: "julienne.mp4", from: 0, to: 5.0, step: "채 썰기" },
-  { kind: "video", src: "pot.mp4", from: 0, to: 7.1, step: "쌀 위에 무 듬뿍" },
+  { kind: "video", src: "pot.mp4", from: 0, to: 5.5, step: "쌀 위에 무 듬뿍" },
   { kind: "video", src: "onion.mp4", from: 0, to: 4.1, step: "대파 송송" },
   { kind: "video", src: "sauce.mp4", from: 0, to: 6.2, step: "양념장 만들고" },
   { kind: "video", src: "beef.mp4", from: 0, to: 5.6, step: "소고기는 따로 볶기" },
-  { kind: "video", src: "open.mp4", from: 3.0, to: 13.0, audio: true, step: "콩나물 무밥 완성!", talk: [{ at: 2.9, len: 1.2, text: "짜잔!", who: "" }] },
-  { kind: "video", src: "mix.mp4", from: 0, to: 7.1, step: "소고기 · 양념장 올려\n쓱쓱 비비기" },
+  { kind: "video", src: "open.mp4", from: 3.0, to: 13.0, audio: true, step: "콩나물 소고기 무밥 완성!", talk: [{ at: 2.9, len: 1.2, text: "짜잔!", who: "" }] },
+  { kind: "video", src: "mix.mp4", from: 1.6, to: 7.1, step: "소고기 · 양념장 올려\n쓱쓱 비비기" },
+];
+
+// 쿡매치 레시피(코스트코 소고기 다짐육 소분 활용 소고기 무밥)와 바꾼 점 — 사용자 2026-11-17
+const RECIPE: Shot[] = [
+  { kind: "video", src: "app_raw.mp4", from: 86.0, to: 94.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
+    { at: 0.3, text: "무 채 썰어 국간장 · 들기름에 절이기" }, { at: 0.9, text: "다짐육은 생강술 넣어 양념" },
+    { at: 1.5, text: "쌀 · 무 · 다짐육 함께 밥솥에" }, { at: 2.1, text: "대파 · 청양고추 양념장 곁들이기" },
+  ] } },
+  { kind: "photo", src: "bowl.jpg", len: f(6.0), origin: "50% 55%", list: { title: "이렇게 바꿨어요", small: true, items: [
+    { at: 0.3, text: "소고기는 따로 볶아서 올리기" }, { at: 0.9, text: "콩나물 추가" },
+    { at: 1.5, text: "청양고추는 양념장에 쏙" }, { at: 2.1, text: "생강술 대신 생강가루" },
+  ] } },
 ];
 
 const EAT: Shot[] = [
@@ -75,10 +87,9 @@ const EAT: Shot[] = [
 
 // 쿡매치 앱 녹화(20261116_231027, 위쪽 상태 표시줄 · 집 카메라 알림 자리는 잘라 냄)
 const APP: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 28.0, rate: 3.2, app: true, step: "쿡매치에서 「무밥」 검색" },
+  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 28.0, rate: 4, app: true, step: "쿡매치에서 「무밥」 검색" },
   { kind: "video", src: "app_raw.mp4", from: 60.0, to: 74.0, rate: 2, app: true, step: "꼭 넣을 재료에 「소고기」" },
   { kind: "video", src: "app_raw.mp4", from: 80.0, to: 96.0, rate: 2.6, app: true, step: "내 냉장고 재료로\n소고기 무밥 레시피" },
-  { kind: "video", src: "app_raw.mp4", from: 103.5, to: 108.0, rate: 1.2, app: true, step: "가족에게 레시피 공유" },
   { kind: "video", src: "app_raw.mp4", from: 116.0, to: 135.0, rate: 2.6, app: true, step: "모르는 건 쿡코치에게\n「생강술 대신 뭘 써?」" },
 ];
 const OUTRO_LEN = INTRO + 75;
@@ -86,14 +97,14 @@ const TAIL: Shot[] = [
   { kind: "cta", len: CTA_LEN },
   { kind: "transition", len: OUTRO_LEN },
 ];
-const SHOTS: Shot[] = [...OPEN, ...KIDS, ...HOME, ...COOK, ...EAT, ...APP, ...TAIL];
+const SHOTS: Shot[] = [...OPEN, ...KIDS, ...HOME, ...COOK, ...RECIPE, ...EAT, ...APP, ...TAIL];
 export const COOKING_MUBAP_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(4.2);
 const sum = (xs: Shot[]) => xs.reduce((a, x) => a + shotLen(x), 0);
 const KIDS_FROM = sum(OPEN);
 const kidsAt = (i: number) => KIDS_FROM + sum(KIDS.slice(0, i));
 const COOK_START = sum([...OPEN, ...KIDS, ...HOME]);
-const BANNER_FROM = sum([...OPEN, ...KIDS, ...HOME, ...COOK, ...EAT]);
+const BANNER_FROM = sum([...OPEN, ...KIDS, ...HOME, ...COOK, ...RECIPE, ...EAT]);
 const CTA_AT = BANNER_FROM + sum(APP);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
