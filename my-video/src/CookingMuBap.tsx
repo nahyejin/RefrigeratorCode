@@ -26,23 +26,18 @@ const HOOK = { at: 0, len: 3.4, text: "어린이집에서 도아가 캔 무로\n
 const OPEN: Shot[] = [{ kind: "photo", src: "hook.jpg", len: f(3.4), origin: "50% 40%" }];
 
 // 키즈노트 사진(선생님이 보내 주심) — 묶음마다 자막 하나를 길게(KIDS_CAPTIONS)
-const kp = (id: string, len = 1.3): Shot => ({ kind: "photo", src: `k_${id}.jpg`, len: f(len), origin: "50% 45%" });
-const KIDS: Shot[] = [kp("015117"), kp("015129"), kp("002409"), kp("002444"), kp("002453"), kp("002709"), kp("002723"), kp("015316", 1.5), kp("021229"), kp("021606", 1.6)];
-const KIDS_CAPTIONS = [
-  { from: 0, to: 1, text: "어린이집에서\n무 캐기 체험" },
-  { from: 2, to: 3, text: "커다란 무를 번쩍" },
-  { from: 4, to: 6, text: "무 아저씨 얼굴 꾸미기" },
-  { from: 7, to: 7, text: "「무 판매합니다」 놀이" },
-  { from: 8, to: 9, text: "채 썬 무로 오감 놀이까지" },
-];
+// 어린이집 사진은 한 장씩 넘기지 말고 콜라주 한 컷(사용자 2026-11-17: 했다는 것만 인지되면 된다)
+const KIDS: Shot[] = [{ kind: "photo", src: "kids_collage.jpg", len: f(3.4), origin: "50% 50%" }];
+const KIDS_CAPTIONS = [{ from: 0, to: 0, text: "어린이집에서 무 캐고, 꾸미고\n오감 놀이까지!" }];
 
 const HOME: Shot[] = [
   { kind: "photo", src: "k_091133.jpg", len: f(2.2), origin: "50% 45%", caption: "도아가 집에 들고 온\n「무 아저씨」" },
-  { kind: "video", src: "home.mp4", from: 5.3, to: 19.5, audio: true, talk: [
-    { at: 0.2, len: 6.4, text: "무 아저씨 / 눈, 코, 귀", who: "" },
-    { at: 6.8, len: 2.3, text: "이걸로 무밥 해 줄까?", who: "" },
-    { at: 9.3, len: 1.2, text: "응!", who: "" },
-    { at: 11.8, len: 2.3, text: "엄마가 무밥 해 줄게", who: "" },
+  // 「무밥 해 줄까?」가 급해 보인다(사용자 2026-11-17) → 렌더 뒤 1.15배속을 상쇄해 원래 속도로
+  { kind: "video", src: "home.mp4", from: 5.3, to: 19.5, rate: 0.87, audio: true, talk: [
+    { at: 0.23, len: 7.36, text: "무 아저씨 / 눈, 코, 귀", who: "" },
+    { at: 7.82, len: 2.64, text: "이걸로 무밥 해 줄까?", who: "" },
+    { at: 10.7, len: 1.38, text: "응!", who: "" },
+    { at: 13.57, len: 2.64, text: "엄마가 무밥 해 줄게", who: "" },
   ] },
 ];
 
