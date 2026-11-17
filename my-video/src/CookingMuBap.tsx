@@ -43,18 +43,18 @@ const HOME: Shot[] = [
 
 const COOK: Shot[] = [
   { kind: "video", src: "prep.mp4", from: 0, to: 4.1, step: "어린이집에서 캐 온\n도아 무 손질" },
-  { kind: "video", src: "julienne.mp4", from: 0, to: 5.0, step: "무는 채 썰고" },
+  { kind: "video", src: "julienne.mp4", from: 0.5, to: 4.5, step: "무는 채 썰고" },
   { kind: "video", src: "pot.mp4", from: 0, to: 5.5, step: "쌀 위에 콩나물 · 무 얹어서\n밥 짓기" },
   { kind: "video", src: "onion.mp4", from: 0, to: 4.1, step: "양념장: 대파 · 청양고추 송송" },
-  { kind: "video", src: "sauce.mp4", from: 0, to: 6.2, step: "간장 · 들기름 · 다진 마늘\n생강가루 · 후춧가루" },
+  { kind: "video", src: "sauce.mp4", from: 0.6, to: 5.6, step: "간장 · 들기름 · 다진 마늘\n생강가루 · 후춧가루" },
   { kind: "video", src: "beef.mp4", from: 0, to: 5.6, step: "소고기는 도아 먹기 좋게\n양념 없이 따로 볶기" },
-  { kind: "video", src: "open.mp4", from: 3.0, to: 13.0, audio: true, step: "콩나물 무밥 완성!", talk: [{ at: 2.9, len: 1.2, text: "짜잔!", who: "" }] },
+  { kind: "video", src: "open.mp4", from: 4.0, to: 12.0, audio: true, step: "콩나물 무밥 완성!", talk: [{ at: 1.9, len: 1.2, text: "짜잔!", who: "" }] },
   { kind: "video", src: "mix.mp4", from: 1.6, to: 7.1, step: "볶은 소고기 · 양념장 올려\n쓱쓱 비비기" },
 ];
 
 // 쿡매치 레시피(코스트코 소고기 다짐육 소분 활용 소고기 무밥)와 바꾼 점 — 사용자 2026-11-17
 const RECIPE: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 86.0, to: 95.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
+  { kind: "video", src: "app_raw.mp4", from: 86.0, to: 93.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
     { at: 0.3, text: "다짐육 양념: 진간장 · 참기름 · 생강술" }, { at: 0.8, text: "다진 마늘 · 후추 · 대파" },
     { at: 1.4, text: "쌀 위에 절인 무 · 다짐육 얹어 밥 짓기" },
     { at: 2.0, text: "양념장 따로: 청양 · 매실청 · 고춧가루 …" },
@@ -68,9 +68,9 @@ const RECIPE: Shot[] = [
 ];
 
 const EAT: Shot[] = [
-  { kind: "video", src: "eatA.mp4", from: 0, to: 11.5, audio: true, talk: [
-    { at: 0.6, len: 1.8, text: "이거 누가 했어?", who: "" },
-    { at: 8.8, len: 1.4, text: "도아가!", who: "" },
+  { kind: "video", src: "eatA.mp4", from: 6.2, to: 11.5, audio: true, talk: [
+    { at: 0.3, len: 1.6, text: "누가 했어?", who: "" },
+    { at: 2.6, len: 1.4, text: "도아가!", who: "" },
   ] },
   { kind: "video", src: "eatB.mp4", from: 0, to: 8.0, audio: true, lines: [{ at: 0.2, len: 7.7, text: "직접 캔 가을무라\n더 달고 맛있대요" }], talk: [
     { at: 0.3, len: 1.7, text: "응, 이거 도아가 한 거야", who: "" },
@@ -85,10 +85,10 @@ const EAT: Shot[] = [
 
 // 쿡매치 앱 녹화(20261116_231027, 위쪽 상태 표시줄 · 집 카메라 알림 자리는 잘라 냄)
 const APP: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 28.0, rate: 4, app: true, step: "쿡매치에서 「무밥」 검색" },
+  { kind: "video", src: "app_raw.mp4", from: 2.0, to: 28.0, rate: 5, app: true, step: "쿡매치에서 「무밥」 검색" },
   { kind: "video", src: "app_raw.mp4", from: 60.0, to: 74.0, rate: 2, app: true, step: "꼭 넣을 재료에 「소고기」" },
-  { kind: "video", src: "app_raw.mp4", from: 80.0, to: 96.0, rate: 2.6, app: true, step: "내 냉장고 재료로\n소고기 무밥 레시피" },
-  { kind: "video", src: "app_raw.mp4", from: 116.0, to: 135.0, rate: 2.6, app: true, step: "모르는 건 쿡코치에게\n「생강술 대신 뭘 써?」" },
+  { kind: "video", src: "app_raw.mp4", from: 80.0, to: 96.0, rate: 3.2, app: true, step: "내 냉장고 재료로\n소고기 무밥 레시피" },
+  { kind: "video", src: "app_raw.mp4", from: 116.0, to: 135.0, rate: 3.2, app: true, step: "모르는 건 쿡코치에게\n「생강술 대신 뭘 써?」" },
 ];
 const OUTRO_LEN = INTRO + 75;
 const TAIL: Shot[] = [
