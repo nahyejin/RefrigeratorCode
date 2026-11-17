@@ -42,25 +42,28 @@ const HOME: Shot[] = [
 ];
 
 const COOK: Shot[] = [
-  { kind: "video", src: "prep.mp4", from: 0, to: 4.1, step: "도아 무 손질하고" },
-  { kind: "video", src: "julienne.mp4", from: 0, to: 5.0, step: "채 썰기" },
-  { kind: "video", src: "pot.mp4", from: 0, to: 5.5, step: "쌀 위에 무 듬뿍" },
-  { kind: "video", src: "onion.mp4", from: 0, to: 4.1, step: "대파 송송" },
-  { kind: "video", src: "sauce.mp4", from: 0, to: 6.2, step: "양념장 만들고" },
-  { kind: "video", src: "beef.mp4", from: 0, to: 5.6, step: "소고기는 따로 볶기" },
-  { kind: "video", src: "open.mp4", from: 3.0, to: 13.0, audio: true, step: "콩나물 소고기 무밥 완성!", talk: [{ at: 2.9, len: 1.2, text: "짜잔!", who: "" }] },
-  { kind: "video", src: "mix.mp4", from: 1.6, to: 7.1, step: "소고기 · 양념장 올려\n쓱쓱 비비기" },
+  { kind: "video", src: "prep.mp4", from: 0, to: 4.1, step: "어린이집에서 캐 온\n도아 무 손질" },
+  { kind: "video", src: "julienne.mp4", from: 0, to: 5.0, step: "무는 채 썰고" },
+  { kind: "video", src: "pot.mp4", from: 0, to: 5.5, step: "쌀 위에 콩나물 · 무 얹어서\n밥 짓기" },
+  { kind: "video", src: "onion.mp4", from: 0, to: 4.1, step: "양념장: 대파 · 청양고추 송송" },
+  { kind: "video", src: "sauce.mp4", from: 0, to: 6.2, step: "간장 · 들기름 · 다진 마늘\n생강가루 · 후춧가루" },
+  { kind: "video", src: "beef.mp4", from: 0, to: 5.6, step: "소고기는 도아 먹기 좋게\n양념 없이 따로 볶기" },
+  { kind: "video", src: "open.mp4", from: 3.0, to: 13.0, audio: true, step: "콩나물 무밥 완성!", talk: [{ at: 2.9, len: 1.2, text: "짜잔!", who: "" }] },
+  { kind: "video", src: "mix.mp4", from: 1.6, to: 7.1, step: "볶은 소고기 · 양념장 올려\n쓱쓱 비비기" },
 ];
 
 // 쿡매치 레시피(코스트코 소고기 다짐육 소분 활용 소고기 무밥)와 바꾼 점 — 사용자 2026-11-17
 const RECIPE: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 86.0, to: 94.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
-    { at: 0.3, text: "무 채 썰어 국간장 · 들기름에 절이기" }, { at: 0.9, text: "다짐육은 생강술 넣어 양념" },
-    { at: 1.5, text: "쌀 · 무 · 다짐육 함께 밥솥에" }, { at: 2.1, text: "대파 · 청양고추 양념장 곁들이기" },
+  { kind: "video", src: "app_raw.mp4", from: 86.0, to: 95.0, app: true, list: { title: "원래 레시피는 이래요", bottom: true, items: [
+    { at: 0.3, text: "다짐육 양념: 진간장 · 참기름 · 생강술" }, { at: 0.8, text: "다진 마늘 · 후추 · 대파" },
+    { at: 1.4, text: "쌀 위에 절인 무 · 다짐육 얹어 밥 짓기" },
+    { at: 2.0, text: "양념장 따로: 청양 · 매실청 · 고춧가루 …" },
   ] } },
-  { kind: "photo", src: "bowl.jpg", len: f(6.0), origin: "50% 55%", list: { title: "이렇게 바꿨어요", small: true, items: [
-    { at: 0.3, text: "소고기는 따로 볶아서 올리기" }, { at: 0.9, text: "콩나물 추가" },
-    { at: 1.5, text: "청양고추는 양념장에 쏙" }, { at: 2.1, text: "생강술 대신 생강가루" },
+  { kind: "photo", src: "bowl.jpg", len: f(8.0), origin: "50% 55%", list: { title: "이렇게 바꿨어요", small: true, items: [
+    { at: 0.2, text: "밥", head: true }, { at: 0.4, text: "마침 있던 콩나물 추가, 콩나물 · 무만 얹어 짓기" },
+    { at: 1.4, text: "소고기", head: true }, { at: 1.6, text: "도아 때문에 양념 없이 따로 볶기" },
+    { at: 2.6, text: "양념장", head: true }, { at: 2.8, text: "다짐육 양념을 양념장으로 + 청양고추" },
+    { at: 3.6, text: "생강술 대신 생강가루 (쿡코치 추천)" }, { at: 4.4, text: "이것만으로 충분해서 아래 양념장은 생략" },
   ] } },
 ];
 
