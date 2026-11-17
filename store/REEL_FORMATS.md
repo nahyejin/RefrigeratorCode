@@ -50,7 +50,7 @@
 | 후킹 5벌 04 장보기(그건 캠핑 가는 거잖아) | Walking in the Park (Mixkit 529) | 잔잔한 산책 (처음 깐 컨트리는 바꿈) |
 | 요리 4편 캠핑 다음날 남은 면 | Smile (Mixkit 1076) | 우쿨렐레·어쿠스틱 포크팝 (v1 에 깐 Pixabay 기타는 초기 티저 곡이라 바꿈) |
 | 요리 6편 쿠키 오감 놀이 | Banjo Man in Africa (Mixkit 822) — 「Little Bells」인 줄 알고 깔았으나 번호를 잘못 읽음(Little Bells 는 506) | 밴조 (`--duck 0.4`) |
-| 요리 7편 어린이집 무로 콩나물 소고기 무밥 | ~~Latino 01 (Mixkit 663)~~ — 「I Love You Grandma」(804)인 줄 알고 깔았으나 번호 오인, 재즈·영화음악풍이라 사용자 반려 → 교체 예정 | |
+| 요리 7편 어린이집 무로 콩나물 소고기 무밥 | **Jumping Around (Mixkit 8)** — 사용자가 후보 4곡 중 직접 고름(처음 깐 663 Latino 01 은 재즈·영화음악풍이라 반려) | Children, 통통 튀는 경쾌한 곡 (`--duck 0.4`) |
 | 요리 5편 남은 무·대파 오뎅탕 | At the Playhouse (Mixkit, bgm_lib 에 이미 있던 곡) | 사용자 2026-11-02 「BGM 너무 잘 골랐네」 — 다음 편 고를 때 이 곡과 비슷한 느낌을 참고 |
 
 ---
