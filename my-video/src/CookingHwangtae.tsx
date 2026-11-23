@@ -29,11 +29,10 @@ const STORY: Shot[] = [
   { kind: "video", src: "prep.mp4", from: 0, to: 6.0, step: "냉장고에 상비 중인 무,\n콩나물 · 청양고추로\n쿡매치에서 찾은 황태국" },
 ];
 
-// 쿡코치(091929 녹화, 위쪽 개인 메일 알림 자리는 잘라 냄 + 캡처)
+// 쿡코치: 처음 한 질문과 최종 답만(092024 질문 + 092032 최종 답, 중간에 다시 물어본 과정은 뺌)
 const COACH: Shot[] = [
-  { kind: "video", src: "coach_raw.mp4", from: 0, to: 20.0, rate: 2, app: true, step: "황태가 200g이라\n쿡코치에게 계량 부탁" },
-  { kind: "video", src: "coach_raw.mp4", from: 20.0, to: 38.0, rate: 2.5, app: true, step: "물 · 양념은 70~80%만 먼저\n간 보면서 맞추래요" },
-  { kind: "photo", src: "coach2.jpg", len: f(3.0), origin: "50% 50%", caption: "단계별 계량까지 한 번에" },
+  { kind: "photo", src: "coach_q.jpg", len: f(2.6), origin: "50% 30%", caption: "황태가 200g이라\n쿡코치에게 계량 부탁" },
+  { kind: "photo", src: "coach_a.jpg", len: f(5.0), origin: "50% 40%", caption: "조리 순서별 계량까지\n한 번에" },
 ];
 
 const COOK: Shot[] = [
@@ -50,8 +49,8 @@ const COOK: Shot[] = [
 
 const RECIPE: Shot[] = [
   { kind: "photo", src: "pot.jpg", len: f(6.0), origin: "50% 55%", list: { title: "이렇게 바꿨어요", small: true, items: [
-    { at: 0.2, text: "황태 60g → 200g, 쿡코치로 3.3배 계량" }, { at: 1.0, text: "물 · 양념은 70~80%만 먼저 넣고 간 보기" },
-    { at: 1.8, text: "다시마 대신 코인육수" }, { at: 2.6, text: "두부는 생략" },
+    { at: 0.2, text: "황태 60g → 200g, 쿡코치로 다시 계량" }, { at: 1.0, text: "다시마 대신 코인육수" },
+    { at: 1.8, text: "두부는 생략" }, { at: 2.6, text: "달걀은 마지막에 풀어 넣기" },
   ] } },
 ];
 
