@@ -45,13 +45,13 @@ const COOK: Shot[] = [
     { at: 2.1, len: 2.2, text: "다 돼 간다", who: "" },
     { at: 5.0, len: 2.6, text: "우와 맛있겠다", who: "" },
   ] },
-  { kind: "video", src: "ladle.mp4", from: 0, to: 8.0, step: "황태콩나물국 완성!" },
+  { kind: "video", src: "ladle.mp4", from: 0, to: 8.0, step: "마지막에 달걀 풀어 넣고\n황태콩나물국 완성!" },
 ];
 
 const RECIPE: Shot[] = [
   { kind: "photo", src: "pot.jpg", len: f(6.0), origin: "50% 55%", list: { title: "이렇게 바꿨어요", small: true, items: [
     { at: 0.2, text: "황태 60g → 200g, 쿡코치로 3.3배 계량" }, { at: 1.0, text: "물 · 양념은 70~80%만 먼저 넣고 간 보기" },
-    { at: 1.8, text: "다시마 대신 코인육수" },
+    { at: 1.8, text: "다시마 대신 코인육수" }, { at: 2.6, text: "두부는 생략" },
   ] } },
 ];
 
