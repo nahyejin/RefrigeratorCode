@@ -14966,3 +14966,10 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **컴포지션**: `src/FeatureTail.tsx`·`src/featureTailSpec.ts`(장면표), `Root.tsx` 에 `FeatureTail`·`FeatureDemo-*` 등록. 나레이션 Gemini TTS 10줄(`scripts/gen_tts_v2.py`, 무료 한도 오늘 소진) — Whisper 재확인에서 「짜드려요」 끝·「귀로」·「쿡매치」 3곳 의심(§5). 새 곡 안 받음: 이미 있던 `mixkit_under_the_sun`(장르 미확인).
 - 옛 `Reel1~8`·`RestFeatures`·`ReelOverview`·후킹 묶음은 손대지 않음(이미 올린 릴스 재현용). 새 편에는 꼬리/개별 데모를 mp4 로 이어 붙인다.
 - 시범(11-08): `scripts/rec_reel2_v2.py`(매칭률순) → `public/reel2_matching_demo_v2.mp4`.
+
+## 2026-11-23
+
+### [iOS] 마이크 버튼이 허용창을 못 띄우던 문제 — 권한 설명 두 줄 추가
+- 제보: 쿡 픽·식단 짜기·쿡 코치의 마이크를 누르면 「마이크를 쓸 수 있게 허용해 주세요」만 뜨는데, 아이폰 설정에서 쿡매치 항목을 열어도 마이크 스위치가 없어 허용할 곳이 없다.
+- 원인: `frontend/ios/App/App/Info.plist` 에 카메라·사진 보관함 설명만 있고 **`NSMicrophoneUsageDescription`·`NSSpeechRecognitionUsageDescription` 이 없었다.** 웹뷰의 음성인식(`VoiceInputButton`)은 마이크+음성 인식 두 권한이 필요한데, iOS 는 설명 문구가 없는 권한은 허용창을 띄우지 않고 그대로 막으며 설정 앱에도 스위치를 만들지 않는다.
+- 수정: 두 키 추가(「말로 재료와 질문을 입력하기 위해 마이크를 사용해요」「말씀하신 내용을 글자로 바꾸기 위해 음성 인식을 사용해요」). **새 iOS 빌드부터 적용** — 이미 깔린 앱은 그대로다. 새 빌드에서 처음 마이크를 누르면 허용창이 두 번(마이크·음성 인식) 뜬다. 안드로이드는 웹뷰에 음성인식이 없어 버튼 자체가 안 나오므로 해당 없음.

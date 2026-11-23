@@ -98,5 +98,12 @@
 	     앱은 사진을 앨범에 저장하지 않는다(saveToGallery 안 씀). -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>쿡매치는 사진을 앨범에 저장하지 않아요. 사진 촬영 기능이 동작하려면 이 권한 설명이 필요해요.</string>
+	<!-- 말로 입력하는 마이크 버튼(VoiceInputButton — 쿡 픽·식단 짜기·쿡 코치)이 쓴다. 웹뷰의 음성인식은 마이크와 음성 인식
+	     두 권한을 모두 요구한다. 이 두 문구가 없으면 iOS 는 허용창을 아예 띄우지 않고 요청을 막아서, 설정 앱의 쿡매치 항목에
+	     「마이크」「음성 인식」 스위치 자체가 안 생긴다(2026-11-23 「허용할 창구가 없다」 제보). -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>말로 재료와 질문을 입력하기 위해 마이크를 사용해요.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>말씀하신 내용을 글자로 바꾸기 위해 음성 인식을 사용해요.</string>
 </dict>
 </plist>
