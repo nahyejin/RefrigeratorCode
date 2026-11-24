@@ -122,6 +122,14 @@ def handle_recipe_ask(get_db, recipe_id):
     if not recipe:
         return jsonify({'error': '레시피를 찾을 수 없어요.'}), 404
 
+    # 조리 순서가 없는 글(유튜브 글 일부)은 답하지 않는다 — 자료에 없는 단계·시간·불 세기를 AI 가 그럴듯하게 지어내기 때문이다
+    # (2026-11-24). **크레딧을 깎기 전에** 돌려보낸다. 앱은 같은 글에서 쿡 코치 입구를 막지만, 이미 깔린 옛 앱을 위해 서버도 막는다.
+    if not _lines(recipe.get('cook_steps')):
+        return jsonify({
+            'error': '조리 순서가 없는 글이라 쿡 코치가 답하기 어려워요.',
+            'no_steps': True,
+        }), 422
+
     provider, api_key = _provider_and_key()
     if not provider:
         return jsonify({'error': 'LLM 키가 없습니다. backend .env에 GEMINI_API_KEY 또는 GROQ_API_KEY를 넣어 주세요.'}), 503

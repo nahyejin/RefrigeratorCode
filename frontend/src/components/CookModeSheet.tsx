@@ -592,7 +592,24 @@ const CookModeSheet: React.FC<Props> = ({
       )}
       {/* 쿡 코치 입구 — 우하단 알약만으로는 「이 요리를 도와주는 AI」라는 느낌이 안 난다는 지적(2026-11-06)이라 창 위쪽에 눈에 띄게
           하나 더 둔다. 같은 카드를 여는 두 번째 입구다(CookCoach 가 이 이벤트를 듣는다). */}
-      {!loading && data && recipeId != null && (
+      {/* 조리 순서가 없는 글(유튜브 글 일부)은 쿡 코치를 **쓸 수 없게** 막는다(2026-11-24 「순서가 없으면 AI가 지어낼 것 같다」).
+          자료에 없는 단계·시간·불 세기를 AI 가 그럴듯하게 만들어 내기 때문이다. 서버도 같은 글은 크레딧을 깎기 전에 거절한다. */}
+      {!loading && data && recipeId != null && steps.length === 0 && (
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 14,
+            padding: '11px 14px', borderRadius: 9999, border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
+            color: 'var(--ink-500)', fontSize: 13, fontWeight: 600, cursor: 'default', fontFamily: 'inherit',
+          }}
+        >
+          <ChefHatIcon size={18} />
+          <span>조리 순서가 없는 글이라 쿡 코치를 쓸 수 없어요</span>
+        </button>
+      )}
+      {!loading && data && recipeId != null && steps.length > 0 && (
         <button
           type="button"
           className="ai-fab-pill k"
@@ -676,9 +693,9 @@ const CookModeSheet: React.FC<Props> = ({
                   substituteTable={readSubstituteTable() || {}}
                   storedSubstitutes={data?.substitutes ?? null}
                   title={data?.title || fallbackTitle || ''}
-                  onSubstituteClick={(from, to) => window.dispatchEvent(new CustomEvent('cookmatch:ask-coach', {
+                  onSubstituteClick={steps.length > 0 ? (from, to) => window.dispatchEvent(new CustomEvent('cookmatch:ask-coach', {
                     detail: { question: `${from} 대신 ${to} 써도 돼요?` },
-                  }))}
+                  })) : undefined}
                 />
               )}
             </section>
@@ -897,7 +914,7 @@ const CookModeSheet: React.FC<Props> = ({
     </Sheet>
     {/* 요리 한 건 전용 도우미 「쿡 코치」(2026-11-06) — 우하단 떠 있는 버튼 → 대화 카드. 재료·순서가 뜬 레시피에만 두고,
         레시피 창을 닫으면 사라져 대화도 지워진다. */}
-    {isOpen && data && recipeId != null && <CookCoach recipeId={recipeId} anchor={sheetRef} steps={steps} onHasChat={has => { coachHasChatRef.current = has; }}
+    {isOpen && data && recipeId != null && steps.length > 0 && <CookCoach recipeId={recipeId} anchor={sheetRef} steps={steps} onHasChat={has => { coachHasChatRef.current = has; }}
       recipe={{ title: data?.title || fallbackTitle || '레시피', thumbnail: thumbUrl, ingredientCount: names.length || detail.length }} />}
     {/* 쿡 코치 대화가 있는데 레시피 창을 닫으려 할 때 — 대화는 메모리에만 있어 닫으면 사라진다. 돌아갈 길(주 버튼)을 먼저 둔다.
         「레시피를 완료하셨나요?」는 이 확인에서 「그래도 닫기」를 누른 **뒤에** 이어서 뜬다(팝업이 겹치지 않는다). */}
